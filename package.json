@@ -1,0 +1,41 @@
+{
+  "name": "block-creative-studio",
+  "version": "0.1.4",
+  "private": true,
+  "type": "module",
+  "description": "A browser-first block-placement gameplay director and deterministic video renderer for IAA creative production.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4173",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "check:core": "node scripts/check-core.mjs",
+    "check:source": "node scripts/check-source.mjs",
+    "check:imports": "node scripts/check-imports.mjs",
+    "check:json": "node scripts/check-json.mjs",
+    "check:syntax": "tsc -p tsconfig.app.json --noEmit --noCheck --pretty false && tsc -p tsconfig.node.json --noEmit --noCheck --pretty false",
+    "check": "npm run check:source && npm run check:core"
+  },
+  "dependencies": {
+    "mediabunny": "1.54.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@types/three": "0.185.4",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "5.8.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "packageManager": "npm@10.9.2"
+}
