@@ -32,10 +32,10 @@ jobs:
             --exclude='.seed/' \
             --exclude='.bootstrap' \
             --exclude='.github/workflows/bootstrap.yml' \
+            --exclude='.github/workflows/ci.yml' \
             "$tmp/source/" ./
           rm -rf .seed
           rm -f .bootstrap
-          rm -f .github/workflows/bootstrap.yml
 
       - name: Commit expanded project
         shell: bash
