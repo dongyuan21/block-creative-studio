@@ -16,10 +16,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Pack source tree
         run: |
-          tar --exclude=.git --exclude=node_modules --exclude=dist -czf block-creative-studio-source.tar.gz .
+          tar --exclude=.git --exclude=node_modules --exclude=dist -czf /tmp/block-creative-studio-source.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
           name: block-creative-studio-source
-          path: block-creative-studio-source.tar.gz
+          path: /tmp/block-creative-studio-source.tar.gz
           if-no-files-found: error
           retention-days: 1
