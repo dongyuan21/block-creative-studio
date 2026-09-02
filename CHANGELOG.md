@@ -193,6 +193,9 @@
 - Strict TapTile SkinPacks with overlay/full-front/composed face assemblies, multiple body styles, asset/stage registries and one resolver for board/flight/tray/match-ghost roles.
 - Seekable TapTile director compiler with four profiles, semantic event tracks, action timing overrides, seeded procedural effects and input/VFX overlap.
 - Shared deterministic TapTile Canvas renderer and generic fixed-frame WebCodecs/Mediabunny exporter with frozen render identities, cancellable progress and six regression checkpoints.
+- Two semantic TapTile AudioPacks with seeded cue variants, per-cue gain/offset/fades/delay, peak limiting and AAC muxing.
+- Independent CutSpec/TimeWarp and Outro compilation, production-frame preview, hash-deduplicated batch queues, per-result manifests and deterministic result naming.
+- Deterministic `.taptile-project.zip` export/import with project, asset manifest, Takes, bundle manifest, per-file SHA-256 checksums and strict mismatch rejection.
 - Reference-first Canvas 2D renderer calibrated from the supplied 1064×1788 gameplay recording.
 - Machine-readable layout, atom catalog, timing observations and scoring evidence under `docs/reference/`.
 - Per-cell colors for candidate pieces, placement, replay, serialization and both render backends.
@@ -210,7 +213,7 @@
 
 ### Known gaps
 
-- TapTile audio mixing, cuts, project bundles and batch rendering remain staged behind Gate D.
+- Hardware WebCodecs may produce byte-different MP4 containers for identical input; frozen combination/PCM identities and decoded frame hashes are used for deterministic-content verification.
 - Exact clear scoring, praise thresholds, Combo rules, tray generation and several overlapping VFX timings remain unresolved from a single recording.
 
 ## 0.1.4 — 2026-09-01

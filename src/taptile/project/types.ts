@@ -234,11 +234,13 @@ export interface AudioCueRef {
   fadeInMs: number;
   fadeOutMs: number;
   delayFrames: number;
+  peakLimit?: number;
 }
 
 export interface AudioPack {
   id: string;
   name: string;
+  peakLimit?: number;
   tap: AudioCueRef;
   pickup?: AudioCueRef;
   traySettle: AudioCueRef;

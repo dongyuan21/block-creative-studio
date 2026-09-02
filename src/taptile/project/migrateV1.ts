@@ -15,6 +15,7 @@ import {
   type TapTileProjectV2,
   type ThemeVariant,
 } from './types';
+import { createDefaultTapTileAudioAssets, createDefaultTapTileProductionSpec } from '../production/defaults';
 
 const ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
 const FOOD_GLYPHS = ['🍓', '🍉', '🍋', '🥝', '🍒', '🍇', '🥕', '🍩', '🍪', '🧁', '🍄', '🥑'];
@@ -223,6 +224,7 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
     },
     assets: {
       entries: {
+        ...createDefaultTapTileAudioAssets(),
         'classic-tile-surface-v1': {
           id: 'classic-tile-surface-v1',
           kind: 'image',
@@ -297,6 +299,6 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
       showLayerBadges: source.showLayerBadges,
       debugView: 'normal',
     },
-    production: { audioPacks: {}, cuts: {}, outros: {} },
+    production: createDefaultTapTileProductionSpec(),
   };
 }

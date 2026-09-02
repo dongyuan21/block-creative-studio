@@ -1,4 +1,4 @@
-import type { CompiledTapTileLevel, TapTilePresentationRole, TapTileProjectV2 } from '../project';
+import type { CompiledTapTileLevel, OutroPack, TapTilePresentationRole, TapTileProjectV2 } from '../project';
 import type { TapTilePresentationFrame } from '../director';
 import { resolveStageAssembly, resolveTileVisual, type ResolvedTileVisual } from '../visual';
 import type { TapTileAssetCache } from './AssetCache';
@@ -288,6 +288,79 @@ export function renderTapTilePresentationFrame(
   context.restore();
   trace.items.sort((left, right) => left.band - right.band || left.id.localeCompare(right.id));
   return trace;
+}
+
+export function renderTapTileOutroOverlay(
+  canvas: HTMLCanvasElement,
+  outro: OutroPack,
+  progress: number,
+  bundle: TapTileCanvasRenderBundle,
+): CanvasRenderTraceItem {
+  const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw new Error('CANVAS_2D_CONTEXT_UNAVAILABLE');
+  const width = canvas.width;
+  const height = canvas.height;
+  const clamped = Math.max(0, Math.min(1, progress));
+  const entrance = Math.min(1, clamped / 0.24);
+  context.save();
+  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.globalAlpha = entrance;
+  const gradient = context.createLinearGradient(0, 0, width, height);
+  gradient.addColorStop(0, '#142f73');
+  gradient.addColorStop(0.55, '#6c3fc4');
+  gradient.addColorStop(1, '#ed6b9e');
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, width, height);
+  if (outro.backgroundAssetId) {
+    const background = bundle.assets.get(outro.backgroundAssetId);
+    if (background) {
+      context.globalAlpha = entrance * 0.72;
+      drawCover(context, background, 0, 0, width, height);
+    }
+  }
+  context.globalAlpha = entrance;
+  const lift = round((1 - entrance) * 80);
+  const scale = outro.transitionId === 'soft-zoom' ? 0.9 + entrance * 0.1 : 1;
+  context.translate(width / 2, height / 2);
+  context.scale(scale, scale);
+  context.translate(-width / 2, -height / 2 + lift);
+  context.fillStyle = 'rgba(255,255,255,0.14)';
+  roundedRect(context, 130, 360, 820, 1010, 64);
+  context.fill();
+  context.strokeStyle = 'rgba(255,255,255,0.34)';
+  context.lineWidth = 4;
+  context.stroke();
+  if (outro.logoAssetId) {
+    const logo = bundle.assets.get(outro.logoAssetId);
+    if (logo) drawCover(context, logo, 340, 455, 400, 220);
+  } else {
+    context.fillStyle = '#ffffff';
+    context.textAlign = 'center';
+    context.font = '900 94px "Segoe UI", sans-serif';
+    context.fillText('TAP TILE', width / 2, 600);
+  }
+  context.fillStyle = '#ffffff';
+  context.textAlign = 'center';
+  context.font = '900 72px "Segoe UI", sans-serif';
+  context.fillText(outro.headline ?? '轻点配对，立即通关！', width / 2, 820, 760);
+  context.font = '500 38px "Segoe UI", sans-serif';
+  context.fillStyle = 'rgba(255,255,255,0.84)';
+  context.fillText('三张同图即可消除', width / 2, 920);
+  const pulse = 1 + Math.sin(clamped * Math.PI * 6) * 0.025;
+  context.translate(width / 2, 1115);
+  context.scale(pulse, pulse);
+  roundedRect(context, -300, -82, 600, 164, 82);
+  context.fillStyle = '#ffd64a';
+  context.shadowColor = 'rgba(29, 16, 78, 0.38)';
+  context.shadowBlur = 30;
+  context.shadowOffsetY = 16;
+  context.fill();
+  context.shadowColor = 'transparent';
+  context.fillStyle = '#362467';
+  context.font = '900 58px "Segoe UI", sans-serif';
+  context.fillText(outro.ctaLabel ?? '立即试玩', 0, 20);
+  context.restore();
+  return { band: TAPTILE_Z_BANDS.outro, id: `outro:${outro.id}`, bounds: { x: 0, y: 0, width, height } };
 }
 
 function indexColor(value: string): string {

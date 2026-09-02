@@ -30,9 +30,9 @@
 | Gate B | complete | 随 M6 | 15 个测试文件、71/71；两套 Skin 的 Transition/State/Hash 全等测试通过 | 同一 48 步 Take 比较 49 个状态；`level-ec5f06bd` 与 `state-8ba1e269` 不变；视觉身份改变；board/tray 身份一致；控制台 0 错误 | flight/match-ghost 由同一 resolver 覆盖并有角色不变量测试，实际动画随导演阶段呈现 |
 | M7 Director | complete | 本阶段提交 | 16 个测试文件、78/78；四 Profile、事件轨、动作时间点、直接/顺播一致、Seed、单动作覆盖和正式重放状态通过 | 动作条、事件点、播放头、缩放、Profile 与单动作飞行帧覆盖已接 UI | DOM 导演预览将在 M8 与 Canvas 固定帧渲染共用 PresentationFrame |
 | Gate C | complete | 随 M7 | 直接 Seek、Seed 粒子、VFX overlap、玩法哈希不变量通过 | 三 Profile 为 `2430/1125/822` 帧；48 动作；快速 Profile 各 15 处 overlap；Seek 往返一致；控制台 0 错误 | 无 |
-| M8 Canvas + MP4 | complete | 本阶段提交 | 17 个测试文件、84/84；通用 FrameRenderJob、AssetCache、冻结身份、zBand、几何与像素哈希测试通过；check/type/build 通过 | 真实浏览器导出 1080×1920、30fps、108 帧、3.6 秒 H.264 MP4；取消后工程不变；6 个关键帧截图与解码帧比对；控制台 0 错误 | H.264 有预期有损压缩，关键帧 SSIM 为 0.9715–0.9819；布局由同一 CanvasRenderer 输出且无空间漂移 |
-| M9 Audio/Batch | pending |  |  |  |  |
-| Gate D | pending |  |  |  |  |
+| M8 Canvas + MP4 | complete | `8d4d472` | 17 个测试文件、84/84；通用 FrameRenderJob、AssetCache、冻结身份、zBand、几何与像素哈希测试通过；check/type/build 通过 | 真实浏览器导出 1080×1920、30fps、108 帧、3.6 秒 H.264 MP4；取消后工程不变；6 个关键帧截图与解码帧比对；控制台 0 错误 | H.264 有预期有损压缩，关键帧 SSIM 为 0.9715–0.9819；布局由同一 CanvasRenderer 输出且无空间漂移 |
+| M9 Audio/Batch | complete | 本阶段提交 | 18 个测试文件、94/94；AudioPack 变体/Seed/音量/偏移/淡入淡出/延迟/峰值、Cut/TimeWarp、Outro、矩阵去重/取消/失败隔离、manifest 与 ZIP hash 回导通过 | 组合预览、带音频单条导出、3 任务批量队列、manifest 下载、项目包导出/回导均接入 Export UI | IndexedDB 本地资产会写入包且校验 SHA-256；默认 Gate D 工程只使用 builtin/synth 资产，因此包内 assets 为 manifest |
+| Gate D | complete | 随 M9 | 18 个测试文件、94/94；check/type/build 通过 | 1 Level、2 Take、2 Skin、4 Director、2 Audio、2 Cut、1 Outro；单条 AAC 成片与 3 个批量组合成功；项目包原样回导；控制台 0 错误 | WebCodecs 的 MP4 压缩字节流不承诺 bit-exact；两次重跑的解码视频帧与音频帧逐帧 MD5 完全一致，组合/PCM 内容 hash 一致 |
 
 ## 决策账本
 
@@ -41,6 +41,7 @@
 - `editorLocked` 只影响编辑器，不进入可点击判定。
 - `levelHash` 排除主题、牌面、牌体、背景、导演与音频字段。
 - 未经浏览器和固定帧实测的能力不会在本表中标为 Gate 完成。
+- “确定性成片”以冻结输入、帧映射、PCM hash 与解码后逐帧内容为准；硬件 WebCodecs 允许产生内容等价但容器 SHA 不同的合法码流。
 
 ## Gate A 证据
 
@@ -78,3 +79,14 @@
 - 浏览器导出元数据：H.264 High、`yuv420p`、1080×1920、30fps、108 帧、3.600 秒、3,849,167 bytes。
 - 6 个固定帧像素哈希：`pixels-7aa2d09a`、`pixels-41817f6f`、`pixels-ee3b1709`、`pixels-8b63219e`、`pixels-52c38aec`、`pixels-32a4ae33`。
 - 同一 `TapTileRenderJob` 与 `CanvasRenderer` 驱动预览和导出；导出前冻结 Project/Level/Take/Skin/Director/Asset 身份，取消操作确认 Take 集合未变。
+
+## M9 / Gate D 证据
+
+- `artifacts/design-qa/taptile/gate-d-single-audio.mp4` 与对应 `.manifest.json`。
+- 单条成片：H.264 High、`yuv420p`、1080×1920、30fps、163 帧 / 5.433 秒；AAC-LC、48kHz、立体声；21 个语义 cue；4,394,698 bytes。
+- 音频实测平均 `-19.4 dB`、峰值 `-3.6 dB`；混音器限制后浮点峰值 `0.6510`，低于 AudioPack 上限。
+- 同组合重跑的 `variant-4733e779` 与 `pcm-1ec9cafc` 一致；两份 MP4 的解码视频 frame-MD5 与音频 frame-MD5 逐帧完全一致。容器 SHA 不同属于 WebCodecs 合法编码差异，不是画面/声音漂移。
+- `artifacts/design-qa/taptile/gate-d-batch-{1,2,3}.mp4`：3/3 成功，均含 H.264 + AAC，并各自带 manifest、唯一组合 hash 与 PCM hash。
+- `artifacts/design-qa/taptile/gate-d-project.taptile-project.zip`：63,680 bytes；包含 `project.json`、`assets/manifest.json`、2 个 Take、项目 manifest 与 `checksums.json`；浏览器回导前逐文件 SHA-256 校验，回导后工程身份完全一致。
+- `artifacts/design-qa/taptile/gate-d-production-matrix.png`、`gate-d-outro-final-frame.png`、`gate-d-batch-complete.png`。
+- 浏览器 Gate D：2 Take、2 SkinPack、4 DirectorProfile、2 AudioPack、2 CutSpec、1 OutroPack、48 个去重可执行组合；控制台 0 错误。

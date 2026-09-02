@@ -1,6 +1,9 @@
 import {
+  AudioSample,
+  AudioSampleSource,
   BufferTarget,
   CanvasSource,
+  getFirstEncodableAudioCodec,
   getFirstEncodableVideoCodec,
   Mp4OutputFormat,
   Output,
@@ -33,6 +36,14 @@ export interface FixedFrameExportOptions {
   signal?: AbortSignal;
   onProgress?: (progress: FrameRenderProgress) => void;
   keyFrameIntervalSeconds?: number;
+  audio?: FixedFrameAudioTrack;
+}
+
+export interface FixedFrameAudioTrack {
+  data: Float32Array;
+  sampleRate: number;
+  numberOfChannels: number;
+  bitrate?: number;
 }
 
 export interface FixedFrameExportResult {
@@ -44,6 +55,7 @@ export interface FixedFrameExportResult {
   height: number;
   fps: number;
   codec: 'avc';
+  audioCodec?: 'aac';
 }
 
 export interface FrameRenderJobValidation {
@@ -107,10 +119,41 @@ export async function exportFixedFrameVideo<Frame>(
   const output = new Output({ format: new Mp4OutputFormat(), target });
   const source = new CanvasSource(canvas, { codec, quality });
   output.addVideoTrack(source, { frameRate: job.fps });
+  let audioSource: AudioSampleSource | undefined;
+  let audioCodec: 'aac' | undefined;
+  if (options.audio) {
+    if (typeof AudioEncoder === 'undefined') throw new Error('当前浏览器未启用 WebCodecs AudioEncoder，无法导出带音频 MP4。');
+    const { data, sampleRate, numberOfChannels } = options.audio;
+    if (!(data instanceof Float32Array) || data.length === 0 || !Number.isInteger(sampleRate) || sampleRate <= 0 || !Number.isInteger(numberOfChannels) || numberOfChannels <= 0 || data.length % numberOfChannels !== 0) {
+      throw new Error('固定帧导出的音频轨必须是有效的交错 Float32 PCM。');
+    }
+    const audioQuality = new Quality({ bitrate: options.audio.bitrate ?? 192_000 });
+    const selectedAudioCodec = await getFirstEncodableAudioCodec(['aac'], { sampleRate, numberOfChannels, quality: audioQuality });
+    if (selectedAudioCodec !== 'aac') throw new Error(`当前浏览器无法以 AAC 编码 ${sampleRate}Hz/${numberOfChannels}ch 音频。`);
+    audioCodec = selectedAudioCodec;
+    audioSource = new AudioSampleSource({ codec: audioCodec, quality: audioQuality });
+    output.addAudioTrack(audioSource, { languageCode: 'und', name: 'TapTile semantic mix' });
+  }
   if (options.metadata) output.setMetadataTags(options.metadata);
 
   try {
     await output.start();
+    if (audioSource && options.audio) {
+      const audioSample = new AudioSample({
+        data: options.audio.data,
+        format: 'f32',
+        numberOfChannels: options.audio.numberOfChannels,
+        sampleRate: options.audio.sampleRate,
+        timestamp: 0,
+      });
+      try {
+        await audioSource.add(audioSample);
+      } finally {
+        audioSample.close();
+        audioSource.close();
+      }
+      throwIfAborted(options.signal);
+    }
     const frameDuration = 1 / job.fps;
     const keyInterval = Math.max(1, Math.round((options.keyFrameIntervalSeconds ?? 2) * job.fps));
     for (let frameIndex = 0; frameIndex < job.totalFrames; frameIndex += 1) {
@@ -144,6 +187,7 @@ export async function exportFixedFrameVideo<Frame>(
       height: job.height,
       fps: job.fps,
       codec,
+      ...(audioCodec ? { audioCodec } : {}),
     };
   } catch (error) {
     try { await output.cancel(); } catch { /* Preserve the original error. */ }

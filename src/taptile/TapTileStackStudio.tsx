@@ -69,6 +69,8 @@ import { DirectorStageOverlay } from './director/DirectorStageOverlay';
 import { DirectorTimeline } from './director/DirectorTimeline';
 import { TapTileCanvasPreview } from './render/TapTileCanvasPreview';
 import { createTapTileRenderJob, preflightTapTileRenderJob, selectTapTileRegressionFrames } from './render';
+import { ensureTapTileProductionDefaults } from './production';
+import { TapTileProductionPanel } from './production/TapTileProductionPanel';
 import { exportFixedFrameVideo, type FrameRenderProgress } from '../exporter/fixedFrameExporter';
 import { safeFileName } from '../utils/download';
 import {
@@ -158,7 +160,7 @@ function initialProject(): TapTileProjectV2 {
     const storedV2 = window.localStorage.getItem(AUTOSAVE_KEY_V2);
     if (storedV2) {
       const parsed: unknown = JSON.parse(storedV2);
-      if (isTapTileProjectV2(parsed)) return parseTapTileProjectV2(parsed);
+      if (isTapTileProjectV2(parsed)) return ensureTapTileProductionDefaults(parseTapTileProjectV2(parsed));
     }
     const storedV1 = window.localStorage.getItem(AUTOSAVE_KEY_V1);
     if (storedV1) {
@@ -977,7 +979,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const importProject = async (file: File): Promise<void> => {
     const parsed: unknown = JSON.parse(await file.text());
     const next = isTapTileProjectV2(parsed)
-      ? parseTapTileProjectV2(parsed)
+      ? ensureTapTileProductionDefaults(parseTapTileProjectV2(parsed))
       : isStackProject(parsed)
         ? migrateTapTileStackProjectV1(parsed)
         : null;
@@ -1393,6 +1395,20 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 {tapTileExportResult && <a data-export-download href={tapTileExportResult.url} download={tapTileExportResult.fileName}>下载 {tapTileExportResult.fileName}</a>}
               </div>
             </section>
+          )}
+
+          {workspaceMode === 'export' && compiledDirector && (
+            <TapTileProductionPanel
+              project={project}
+              level={compiledLevel}
+              onChange={commit}
+              onImport={(next) => {
+                dispatch({ type: 'reset', value: ensureTapTileProductionDefaults(next) });
+                setSelectedIds([]);
+                setLayerFocus('all');
+              }}
+              onNotice={setNotice}
+            />
           )}
 
           <footer className="tpt-stage-status">

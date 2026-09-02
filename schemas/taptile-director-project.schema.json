@@ -140,9 +140,101 @@
       "additionalProperties": false
     },
     "authoring": { "type": "object" },
-    "production": { "type": "object" }
+    "production": {
+      "type": "object",
+      "required": ["audioPacks", "cuts", "outros"],
+      "properties": {
+        "audioPacks": { "type": "object", "additionalProperties": { "$ref": "#/$defs/audioPack" } },
+        "selectedAudioPackId": { "type": "string", "minLength": 1 },
+        "cuts": { "type": "object", "additionalProperties": { "$ref": "#/$defs/cutSpec" } },
+        "selectedCutId": { "type": "string", "minLength": 1 },
+        "outros": { "type": "object", "additionalProperties": { "$ref": "#/$defs/outroPack" } }
+      },
+      "additionalProperties": false
+    }
   },
   "$defs": {
+    "audioCue": {
+      "type": "object",
+      "required": ["assetIds", "volume", "startOffsetMs", "fadeInMs", "fadeOutMs", "delayFrames"],
+      "properties": {
+        "assetIds": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "volume": { "type": "number", "minimum": 0 },
+        "startOffsetMs": { "type": "number", "minimum": 0 },
+        "fadeInMs": { "type": "number", "minimum": 0 },
+        "fadeOutMs": { "type": "number", "minimum": 0 },
+        "delayFrames": { "type": "integer", "minimum": 0 },
+        "peakLimit": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "audioPack": {
+      "type": "object",
+      "required": ["id", "name", "tap", "traySettle", "match"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "peakLimit": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tap": { "$ref": "#/$defs/audioCue" },
+        "pickup": { "$ref": "#/$defs/audioCue" },
+        "traySettle": { "$ref": "#/$defs/audioCue" },
+        "match": { "$ref": "#/$defs/audioCue" },
+        "shatter": { "$ref": "#/$defs/audioCue" },
+        "warning": { "$ref": "#/$defs/audioCue" },
+        "win": { "$ref": "#/$defs/audioCue" },
+        "outro": { "$ref": "#/$defs/audioCue" }
+      },
+      "additionalProperties": false
+    },
+    "outroPack": {
+      "type": "object",
+      "required": ["id", "name", "durationFrames"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "transitionId": { "type": "string" },
+        "backgroundAssetId": { "type": "string" },
+        "logoAssetId": { "type": "string" },
+        "headline": { "type": "string" },
+        "ctaLabel": { "type": "string" },
+        "durationFrames": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "cutSpec": {
+      "type": "object",
+      "required": ["id", "name", "takeRange"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "takeRange": {
+          "type": "object",
+          "required": ["startActionIndex", "endActionIndex"],
+          "properties": {
+            "startActionIndex": { "type": "integer", "minimum": 0 },
+            "endActionIndex": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "timeWarpSegments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["sourceStartFrame", "sourceEndFrame", "speed"],
+            "properties": {
+              "sourceStartFrame": { "type": "integer", "minimum": 0 },
+              "sourceEndFrame": { "type": "integer", "minimum": 0 },
+              "speed": { "type": "number", "exclusiveMinimum": 0 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "introFrames": { "type": "integer", "minimum": 0 },
+        "outroPackId": { "type": "string", "minLength": 1 },
+        "targetDurationFrames": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
     "blockerEdges": {
       "type": "array",
       "items": {

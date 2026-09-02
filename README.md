@@ -30,7 +30,7 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 
 精确清除得分、格内 `5/9` 选择、Praise 阈值、Combo 窗口、发牌策略和音频事件仍标记为 `unresolved`。
 
-## TapTile 7 槽三消导演台 Gate A
+## TapTile 7 槽三消导演台 Gate D
 
 默认首页现已提供一个独立的 TapTile 9:16 可视化工作台。编辑器保留沙漏、T 型、阶梯和自由模板及完整堆叠编辑能力，并已接入 Project Schema V2、旋转矩形遮挡编译、7 槽三消正式状态机、玩法校验、真人试玩、Take 录制与确定性回放。右上角可切回原 Block Creative Studio。
 
@@ -38,7 +38,7 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 
 牌块层数支持无固定上限的整数增减，层数越大越靠上；层级过滤只展示实际使用的层。多选两张以上可执行上下左右边缘或水平/垂直中心对齐，多选三张以上还可执行横向、纵向等距分布。
 
-Gate A 已在真实浏览器中完成两组三消、增量解锁和逐步回放闭环，且控制台无错误。确定性 Agent 现可生成稳定通关、险境翻盘、连续三消、快速清台和刻意失败五类 Take，并在保存前由正式引擎重放验证。Gate B 证明同一 Level/Take 在动物与食物两套完整 SkinPack 下逐步逻辑和终态哈希不变；Gate C 又完成四套可切换导演节奏、任意帧 Seek、固定 Seed 粒子与 VFX/下一次输入重叠。M8 已用预览同源的 CanvasRenderer 在真实浏览器导出 1080×1920、30fps H.264 MP4，并验证固定帧、取消安全和关键帧一致性。当前后续工作聚焦音频、切版、项目包和批量渲染。
+Gate A 已在真实浏览器中完成两组三消、增量解锁和逐步回放闭环，且控制台无错误。确定性 Agent 现可生成稳定通关、险境翻盘、连续三消、快速清台和刻意失败五类 Take，并在保存前由正式引擎重放验证。Gate B 证明同一 Level/Take 在动物与食物两套完整 SkinPack 下逐步逻辑和终态哈希不变；Gate C 又完成四套可切换导演节奏、任意帧 Seek、固定 Seed 粒子与 VFX/下一次输入重叠。M8 已用预览同源的 CanvasRenderer 在真实浏览器导出 1080×1920、30fps H.264 MP4。Gate D 进一步完成 2 套语义 AudioPack、Cut/TimeWarp、Outro、带 AAC 单条成片、批量组合 manifest，以及带 SHA-256 校验的 `.taptile-project.zip` 导出回导闭环。
 
 ## 当前可运行能力
 
@@ -52,6 +52,8 @@ Gate A 已在真实浏览器中完成两组三消、增量解锁和逐步回放�
 - 默认 `reference-2d` Canvas 渲染器；
 - 保留 `three-3d` 实验后端，但停止把它当作当前视觉基线；
 - WebCodecs + Mediabunny 的浏览器固定帧 H.264/MP4 导出；
+- TapTile 语义事件音频混合、AAC 封装、Cut/TimeWarp、Outro、组合批量队列和逐条 manifest；
+- 带资产清单、独立 Takes、manifest 与 checksums 的 `.taptile-project.zip` 工程包；
 - 工程 JSON 导入/导出、运行时校验、自动保存和 CI；
 - 固定机位 Camera Profile 与语义资产类型契约，为后续混合渲染器留出稳定接口。
 - IndexedDB Browser Asset Store：真实背景/牌面文件按 SHA-256 持久化，自动派生 Look/Variant，并进入实时预览与固定帧导出。
@@ -239,8 +241,8 @@ schemas             工程、资产谱系和固定机位契约 Schema
 - 外部背景与牌面二进制资产已可持久化、预览和导出；GLB、Flipbook、音频、材质纹理和粒子资产目前仅完成存储与契约绑定，尚未完成对应 Render Pass；
 - 六级 Praise 已进入谱系，当前运行时阈值仍是明确标注的原型启发式；
 - `NEW HIGH SCORE`、候选刷新复合 VFX 和完整异步演出尚未完全进入运行时；
-- 导出当前为无声 MP4；音频事件轨仍未接入；
-- TapTile 的音频事件轨、切版、项目包和批量组合仍在 Gate D 阶段接入；
+- Block 主线导出当前仍为无声 MP4；其音频事件轨尚未接入；
+- TapTile 同一冻结组合的源帧映射、PCM 与解码内容确定；浏览器硬件 WebCodecs 不承诺 MP4 容器字节流 bit-exact；
 - 当前只保证桌面 Chrome；
 - Blender/AE 接口保留，但 DCC 适配推迟到 2D 资产槽位和 Golden Scene 门禁之后。
 
