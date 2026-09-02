@@ -2,10 +2,37 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.1 — 2026-09-02
+
+### Added
+
+- Web Variant Workspace backed by the same Asset Registry, Variant Compiler and Quality Gate as the BCS CLI.
+- Project-to-Headless bridge that derives a Creative Master, immutable current-project Look Pack, fixed-camera metadata, Variant Recipe, Resolved Render Plan and Quality Report from the active project and Take.
+- Built-in reference and experimental fixed-camera Look Packs expressed as versioned atomic asset manifests rather than closed theme branches.
+- Browser import for external manifest-only Asset Bundles and Variant Recipes, plus LocalStorage persistence of the Agent round-trip workspace.
+- Browser export for Creative Master, active Variant Recipe, Resolved Render Plan, Quality Report and current Asset Bundle.
+- Variant status, plan hash, renderer, asset count, declared texture budget and quality issues in the human-facing inspector.
+- Regression tests for Web/CLI compiler parity, Look Pack style resolution, fixed-camera aspect invariants and strict external manifest parsing.
+- Architecture specification for the first Web Variant Workspace and its preview-binding boundary.
+
+### Changed
+
+- Video export now consumes the active resolved Look style and is blocked until the active Variant compiles and passes the structural Quality Gate.
+- Editing legacy visual controls returns the workspace to an automatically versioned `Current project Look`, keeping existing authoring usable without bypassing the compiler.
+- Updated the package version to `0.3.0-alpha.1`.
+
 ### Fixed
 
 - Fit the legacy experimental Three.js camera against the actual portrait viewport aspect so the 8×8 board, bevel and shadow remain inside the phone canvas instead of clipping at both sides.
 - Added regression coverage for 9:16 perspective framing and resize-driven camera updates.
+- Preserved complete nested `reference2d` and geometry styles when atomic asset patches are applied.
+
+### Current boundary
+
+- Imported Web assets are manifests only; binary image, texture, GLB, Flipbook, audio and plugin storage is not yet implemented.
+- External packs without a deliberate `metadata.studio.style` adapter may compile for another renderer but are not falsely presented as browser-previewable.
+- The persisted gameplay project still uses `ProjectSpec`; the Master/Variant model is currently a derived compile view.
+- Cartesian matrix authoring, batch render queue, rendered-frame Quality Gate and the production `fixed-camera-cinematic` renderer remain future work.
 
 ## 0.3.0-alpha.0 — 2026-09-02
 

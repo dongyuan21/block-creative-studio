@@ -35,8 +35,10 @@ import {
   RENDERER_OPTIONS,
 } from '../renderer/stylePresets';
 import { RHYTHM_PRESET_LIST } from '../director/rhythmPresets';
+import { VariantWorkspacePanel, type VariantWorkspacePanelProps } from './VariantWorkspacePanel';
 
 interface InspectorPanelProps {
+  variantWorkspace: Omit<VariantWorkspacePanelProps, 'locked'>;
   style: StyleSpec;
   rhythm: RhythmProfile;
   render: ProjectSpec['render'];
@@ -118,6 +120,7 @@ function RangeField({
 }
 
 export function InspectorPanel({
+  variantWorkspace,
   style,
   rhythm,
   render,
@@ -138,6 +141,7 @@ export function InspectorPanel({
 }: InspectorPanelProps) {
   return (
     <aside className="panel inspector-panel">
+      <VariantWorkspacePanel {...variantWorkspace} locked={locked} />
       <section>
         <div className="section-heading">
           <span>表现基线</span>

@@ -2,7 +2,7 @@
 
 Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
 
-> 当前版本为 `0.3.0-alpha.0`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+> 当前版本为 `0.3.0-alpha.1`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
 
 本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
@@ -73,7 +73,30 @@ node dist-cli/cli/bcs.js variant compile \
 node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
 ```
 
-详见 [`docs/architecture/AGENT_OPERABLE_BOUNDARY.md`](docs/architecture/AGENT_OPERABLE_BOUNDARY.md)、[`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md) 和 [`docs/cli/README.md`](docs/cli/README.md)。当前 CLI 只完成契约、编译与结构质量门禁；插件执行、MCP、云端渲染和 Web UI 的开放资产接入仍是后续工作。
+详见 [`docs/architecture/AGENT_OPERABLE_BOUNDARY.md`](docs/architecture/AGENT_OPERABLE_BOUNDARY.md)、[`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md)、[`docs/architecture/WEB_VARIANT_WORKSPACE_V1.md`](docs/architecture/WEB_VARIANT_WORKSPACE_V1.md) 和 [`docs/cli/README.md`](docs/cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
+
+## Web Variant Workspace
+
+右侧属性面板现在包含第一版变体工作区。网页端不再直接把一个材质下拉框视为最终生产配置，而会将当前项目和 Take 编译成：
+
+```text
+CreativeMaster
++ VariantRecipe
++ versioned Asset Registry
+→ ResolvedRenderPlan
+→ QualityReport
+```
+
+当前可以：
+
+- 在“当前工程、参考花园、清洁 2D、固定机位 3D 糖果、固定机位 3D 水晶”等内置 Look Pack 之间切换；
+- 选择 `frame-exact / semantic / rule-only` 不变量策略；
+- 导入外部 Agent 或工具生成的 Asset Manifest Bundle 和 Variant Recipe JSON；
+- 查看 Plan Hash、目标 Renderer、资产数量、显存预算和结构质量问题；
+- 导出 Master、Recipe、Plan、Quality Report 与资产清单，交给外部 Agent 继续加工；
+- 只有在变体编译和质量门禁通过后才允许正式视频导出。
+
+目前导入的是 Manifest，不是任意二进制文件。图片、PBR 纹理、GLB、Flipbook、音频和插件包的实际存储/装载将在独立 Asset Store 中实现，避免把大文件或可执行代码直接塞进 LocalStorage。
 
 ## 运行
 
@@ -132,14 +155,15 @@ python tools/reference_audit/extract_golden_frames.py \
 ```text
 src/domain          纯 TypeScript 玩法、形状、计分分解、工程校验
 src/headless        开放资产契约、Registry、变体编译与质量门禁
+src/integration     Web 项目与 Headless Core 的适配桥
 src/cli             外部 Agent / CI 使用的机器可读 CLI
 src/director        Take → 固定帧表现状态；逻辑与 VFX 时间解耦
 src/assets          语义资产与固定机位 Camera Profile 契约
 src/reference2d     真机参考 2D 布局、Canvas 渲染和交互
 src/renderer        旧 Three.js 3D 实验后端
 src/exporter        固定帧 Canvas → WebCodecs → MP4
-src/components      Human-first 工作台
-src/state           项目、试玩、Take、回放与导出编排
+src/components      Human-first 工作台与 Variant/Quality 面板
+src/state           项目、试玩、Take、变体工作区、回放与导出编排
 docs/reference/v2  全帧索引、事件索引、资产谱系和渲染映射
 tools/reference_audit  本地整片分析与 Golden Frame 提取工具
 schemas             工程、资产谱系和固定机位契约 Schema

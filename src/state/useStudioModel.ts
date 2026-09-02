@@ -32,6 +32,7 @@ import type {
   TileColor,
 } from '../domain/types';
 import { exportTakeVideo, type RenderProgress } from '../exporter/offlineVideoExporter';
+import { useVariantWorkspace } from './useVariantWorkspace';
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
 import { downloadBlob, safeFileName } from '../utils/download';
 
@@ -176,6 +177,17 @@ export function useStudioModel() {
         : null,
     [compiledTake, playbackFrame, project.rhythm],
   );
+
+  const variantWorkspace = useVariantWorkspace({
+    project,
+    selectedTake,
+    compiledTake,
+    mode,
+    setProject,
+  });
+  const resolvedStyle = variantWorkspace.resolvedStyle;
+  const activeVariantRow = variantWorkspace.activeRow;
+  const resetVariantToCurrentLook = variantWorkspace.resetToCurrentLook;
 
   useEffect(() => {
     if (!isPlaying || !compiledTake || (mode !== 'replay' && mode !== 'render')) return;
@@ -415,7 +427,8 @@ export function useStudioModel() {
   const setStyle = useCallback((patch: Partial<StyleSpec>): void => {
     if (mode === 'play' || mode === 'render') return;
     setProject((current) => ({ ...current, style: { ...current.style, ...patch } }));
-  }, [mode]);
+    resetVariantToCurrentLook();
+  }, [mode, resetVariantToCurrentLook]);
 
   const setGeometry = useCallback((patch: Partial<StyleSpec['geometry']>): void => {
     if (mode === 'play' || mode === 'render') return;
@@ -423,7 +436,8 @@ export function useStudioModel() {
       ...current,
       style: { ...current.style, geometry: { ...current.style.geometry, ...patch } },
     }));
-  }, [mode]);
+    resetVariantToCurrentLook();
+  }, [mode, resetVariantToCurrentLook]);
 
   const setRhythmPreset = useCallback((presetId: keyof typeof RHYTHM_PRESETS): void => {
     if (mode === 'play' || mode === 'render') return;
@@ -476,7 +490,24 @@ export function useStudioModel() {
 
   const exportVideo = useCallback(async (): Promise<void> => {
     if (!selectedTake || exportState.running || mode === 'play' || mode === 'render') return;
+    if (!activeVariantRow?.plan || !activeVariantRow.quality?.passed) {
+      setExportState({
+        running: false,
+        progress: null,
+        error: '当前 Variant 尚未通过编译和质量门禁，不能进入正式导出。',
+      });
+      return;
+    }
+    if (!activeVariantRow.previewSupported) {
+      setExportState({
+        running: false,
+        progress: null,
+        error: '当前 Look Pack 没有网页渲染绑定。请先实现该资产的 Renderer Adapter，或选择可预览的 Look。',
+      });
+      return;
+    }
     const exportProjectSnapshot = structuredClone(project);
+    const exportStyleSnapshot = structuredClone(resolvedStyle);
     const exportTakeSnapshot = cloneTake(selectedTake);
     const controller = new AbortController();
     exportAbortRef.current = controller;
@@ -487,7 +518,7 @@ export function useStudioModel() {
       const result = await exportTakeVideo({
         take: exportTakeSnapshot,
         rhythm: exportProjectSnapshot.rhythm,
-        style: exportProjectSnapshot.style,
+        style: exportStyleSnapshot,
         render: exportProjectSnapshot.render,
         projectName: exportProjectSnapshot.name,
         signal: controller.signal,
@@ -506,7 +537,7 @@ export function useStudioModel() {
       exportAbortRef.current = null;
       setMode('replay');
     }
-  }, [exportState.running, mode, project, selectedTake]);
+  }, [activeVariantRow, exportState.running, mode, project, resolvedStyle, selectedTake]);
 
   const cancelExport = useCallback((): void => {
     exportAbortRef.current?.abort();
@@ -551,6 +582,7 @@ export function useStudioModel() {
 
   return {
     project,
+    resolvedStyle,
     mode,
     liveSnapshot,
     takes,
@@ -563,6 +595,7 @@ export function useStudioModel() {
     selectedPieceSlot,
     clearSignal,
     exportState,
+    variantWorkspace: variantWorkspace.panel,
     recordedActionCount: recordingActionsRef.current.length,
     boardPresets: BOARD_PRESETS,
     setSelectedColor,

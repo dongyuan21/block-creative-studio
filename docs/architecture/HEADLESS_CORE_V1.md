@@ -91,3 +91,5 @@ Visual A/B quality, overexposure, occlusion, flicker, safe-area, and material re
 ## Current boundary
 
 Headless Core v1 does **not** execute plugins, call Agents, render a new backend, or expose MCP. It establishes the contracts and compiler that those later systems must use.
+
+The browser Studio now consumes this core through `src/integration/studioVariantBridge.ts`: the active project and Take are converted into a Creative Master, Look Packs are resolved by the shared Asset Registry, and video export is gated by the shared Variant Compiler and Quality Gate. The legacy `ProjectSpec` is still the authoring document; replacing it with a native Master/Variant workspace is a later migration.

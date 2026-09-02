@@ -10,6 +10,7 @@ import type { GridCell } from './domain/types';
 
 export default function App() {
   const studio = useStudioModel();
+  const displayStyle = studio.resolvedStyle;
   const displaySnapshot =
     (studio.mode === 'replay' || studio.mode === 'render') && studio.presentationFrame
       ? studio.presentationFrame.snapshot
@@ -75,7 +76,7 @@ export default function App() {
                   mode={studio.mode}
                   snapshot={studio.liveSnapshot}
                   frame={studio.presentationFrame}
-                  style={studio.project.style}
+                  style={displayStyle}
                   fps={studio.project.render.fps}
                   clearSignal={studio.clearSignal}
                   onEditCell={studio.editBoardCell}
@@ -87,7 +88,7 @@ export default function App() {
                   mode={studio.mode}
                   snapshot={studio.liveSnapshot}
                   frame={studio.presentationFrame}
-                  style={studio.project.style}
+                  style={displayStyle}
                   fps={studio.project.render.fps}
                   clearSignal={studio.clearSignal}
                   onEditCell={studio.editBoardCell}
@@ -122,7 +123,8 @@ export default function App() {
         </section>
 
         <InspectorPanel
-          style={studio.project.style}
+          variantWorkspace={studio.variantWorkspace}
+          style={displayStyle}
           rhythm={studio.project.rhythm}
           render={studio.project.render}
           seed={studio.project.seed}
