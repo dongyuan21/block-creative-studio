@@ -30,7 +30,7 @@
 | Gate B | complete | 随 M6 | 15 个测试文件、71/71；两套 Skin 的 Transition/State/Hash 全等测试通过 | 同一 48 步 Take 比较 49 个状态；`level-ec5f06bd` 与 `state-8ba1e269` 不变；视觉身份改变；board/tray 身份一致；控制台 0 错误 | flight/match-ghost 由同一 resolver 覆盖并有角色不变量测试，实际动画随导演阶段呈现 |
 | M7 Director | complete | 本阶段提交 | 16 个测试文件、78/78；四 Profile、事件轨、动作时间点、直接/顺播一致、Seed、单动作覆盖和正式重放状态通过 | 动作条、事件点、播放头、缩放、Profile 与单动作飞行帧覆盖已接 UI | DOM 导演预览将在 M8 与 Canvas 固定帧渲染共用 PresentationFrame |
 | Gate C | complete | 随 M7 | 直接 Seek、Seed 粒子、VFX overlap、玩法哈希不变量通过 | 三 Profile 为 `2430/1125/822` 帧；48 动作；快速 Profile 各 15 处 overlap；Seek 往返一致；控制台 0 错误 | 无 |
-| M8 Canvas + MP4 | in progress |  |  |  |  |
+| M8 Canvas + MP4 | complete | 本阶段提交 | 17 个测试文件、84/84；通用 FrameRenderJob、AssetCache、冻结身份、zBand、几何与像素哈希测试通过；check/type/build 通过 | 真实浏览器导出 1080×1920、30fps、108 帧、3.6 秒 H.264 MP4；取消后工程不变；6 个关键帧截图与解码帧比对；控制台 0 错误 | H.264 有预期有损压缩，关键帧 SSIM 为 0.9715–0.9819；布局由同一 CanvasRenderer 输出且无空间漂移 |
 | M9 Audio/Batch | pending |  |  |  |  |
 | Gate D | pending |  |  |  |  |
 
@@ -70,3 +70,11 @@
 - `artifacts/design-qa/taptile/gate-c-combo-rush.png`
 - 三套 Profile 共享 `level-ec5f06bd` 与 `state-8ba1e269`；总时长不同，动作与三消结果不变。
 - 快速 Profile 的播放头截图可见三消 ghost/VFX 与下一动作时间条重叠；直接 Seek 往返快照完全一致。
+
+## M8 证据
+
+- `artifacts/design-qa/taptile/m8-six-action-combo-rush-1080x1920.mp4`
+- `artifacts/design-qa/taptile/m8-{initial,first-click,first-flight-midpoint,first-tray-reorder,first-match,ending}-frame-*.png`
+- 浏览器导出元数据：H.264 High、`yuv420p`、1080×1920、30fps、108 帧、3.600 秒、3,849,167 bytes。
+- 6 个固定帧像素哈希：`pixels-7aa2d09a`、`pixels-41817f6f`、`pixels-ee3b1709`、`pixels-8b63219e`、`pixels-52c38aec`、`pixels-32a4ae33`。
+- 同一 `TapTileRenderJob` 与 `CanvasRenderer` 驱动预览和导出；导出前冻结 Project/Level/Take/Skin/Director/Asset 身份，取消操作确认 Take 集合未变。

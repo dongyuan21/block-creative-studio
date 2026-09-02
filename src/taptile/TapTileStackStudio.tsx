@@ -67,6 +67,10 @@ import { TileVisual } from './visual/TileVisual';
 import { compileTapTileTake, evaluateTapTileFrame } from './director';
 import { DirectorStageOverlay } from './director/DirectorStageOverlay';
 import { DirectorTimeline } from './director/DirectorTimeline';
+import { TapTileCanvasPreview } from './render/TapTileCanvasPreview';
+import { createTapTileRenderJob, preflightTapTileRenderJob, selectTapTileRegressionFrames } from './render';
+import { exportFixedFrameVideo, type FrameRenderProgress } from '../exporter/fixedFrameExporter';
+import { safeFileName } from '../utils/download';
 import {
   TAPTILE_WORKSPACE_MODES,
   type TapTileWorkspaceMode,
@@ -243,6 +247,16 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const [directorFrame, setDirectorFrame] = useState(0);
   const [directorZoom, setDirectorZoom] = useState(0.7);
   const [selectedDirectorActionId, setSelectedDirectorActionId] = useState<string | null>(null);
+  const [tapTileExportProgress, setTapTileExportProgress] = useState<FrameRenderProgress | null>(null);
+  const [tapTileExportError, setTapTileExportError] = useState('');
+  const [tapTileExportResult, setTapTileExportResult] = useState<{
+    url: string;
+    fileName: string;
+    bytes: number;
+    frameCount: number;
+    durationSeconds: number;
+  } | null>(null);
+  const tapTileExportAbortRef = useRef<AbortController | null>(null);
   const gameplay = useGameplaySession();
 
   const commit = useCallback((mutate: (draft: TapTileProjectV2) => void): void => {
@@ -275,6 +289,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const directorPresentation = useMemo(
     () => compiledDirector ? evaluateTapTileFrame(compiledDirector, directorFrame) : null,
     [compiledDirector, directorFrame],
+  );
+  const renderRegressionFrames = useMemo(
+    () => compiledDirector ? selectTapTileRegressionFrames(compiledDirector) : [],
+    [compiledDirector],
   );
   const selectedSkinCompatibility = useMemo(
     () => validateSkinPack(project, project.visuals.selectedThemeId),
@@ -317,6 +335,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     if (!compiledDirector) return;
     setDirectorFrame((current) => Math.min(current, compiledDirector.totalFrames - 1));
   }, [compiledDirector]);
+
+  useEffect(() => () => {
+    tapTileExportAbortRef.current?.abort();
+    if (tapTileExportResult?.url) URL.revokeObjectURL(tapTileExportResult.url);
+  }, [tapTileExportResult?.url]);
 
   const visibleTileIds = useMemo(
     () => tiles
@@ -748,6 +771,56 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     setNotice(`已重置动作 ${actionId} 的节奏覆盖`);
   };
 
+  const beginTapTileExport = async (): Promise<void> => {
+    if (!compiledDirector || !selectedDirectorTake || tapTileExportAbortRef.current) {
+      if (!compiledDirector) setNotice('导出前需要一个有效 Take 与导演时间线');
+      return;
+    }
+    if (tapTileExportResult?.url) URL.revokeObjectURL(tapTileExportResult.url);
+    setTapTileExportResult(null);
+    setTapTileExportError('');
+    setTapTileExportProgress({ phase: 'preparing', currentFrame: 0, totalFrames: compiledDirector.totalFrames, ratio: 0, message: '正在冻结工程、关卡、Take、Skin 与 Director…' });
+    const controller = new AbortController();
+    tapTileExportAbortRef.current = controller;
+    const job = createTapTileRenderJob(project, compiledLevel, compiledDirector);
+    try {
+      const preflight = await preflightTapTileRenderJob(job);
+      if (!preflight.valid) throw new Error(preflight.issues.map((issue) => `${issue.code}: ${issue.message}`).join('\n'));
+      const fileName = `${safeFileName(project.name)}-${safeFileName(selectedDirectorTake.name)}-${compiledDirector.profileId}-1080x1920.mp4`;
+      const result = await exportFixedFrameVideo(job, {
+        bitrate: project.render.quality === 'cinematic' ? 20_000_000 : project.render.quality === 'preview' ? 8_000_000 : 14_000_000,
+        fileName,
+        signal: controller.signal,
+        onProgress: setTapTileExportProgress,
+        metadata: {
+          title: `${project.name} · ${selectedDirectorTake.name}`,
+          artist: 'Block Creative Studio',
+          comment: `TapTile deterministic render · ${preflight.identity.levelHash} · ${preflight.identity.finalStateHash} · ${preflight.identity.skinHash} · ${preflight.identity.directorHash}`,
+        },
+      });
+      const url = URL.createObjectURL(result.blob);
+      setTapTileExportResult({
+        url,
+        fileName: result.fileName,
+        bytes: result.blob.size,
+        frameCount: result.frameCount,
+        durationSeconds: result.durationSeconds,
+      });
+      setNotice(`MP4 已完成：${result.frameCount} 帧 · ${result.durationSeconds.toFixed(2)} 秒`);
+    } catch (error) {
+      const canceled = error instanceof DOMException && error.name === 'AbortError';
+      setTapTileExportError(canceled ? '导出已取消；工程和 Take 未改变。' : error instanceof Error ? error.message : String(error));
+      setNotice(canceled ? '已安全取消导出' : '导出失败；工程未发生修改');
+      await job.dispose?.();
+    } finally {
+      tapTileExportAbortRef.current = null;
+    }
+  };
+
+  const cancelTapTileExport = (): void => {
+    tapTileExportAbortRef.current?.abort();
+  };
+
   const beginPlay = (): void => {
     if (!compiledLevel.validation.valid) {
       setWorkspaceMode('validate');
@@ -836,7 +909,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       setDirectorFrame(0);
       setNotice(compiledDirector ? `导演时间线已编译：${compiledDirector.totalFrames} 帧` : '还没有有效 Take；请先试玩保存或让 Agent 生成');
     } else if (mode === 'export') {
-      setNotice('导出模式需要已保存 Take；固定帧输出将在后续 Gate 接入');
+      setDirectorFrame(0);
+      setNotice(compiledDirector ? '导出会冻结当前 Skin 与 Director，并输出 1080×1920、30fps H.264 MP4' : '导出前需要已保存 Take');
     } else {
       setNotice('已返回可编辑工程；试玩状态未写回布局');
     }
@@ -1240,6 +1314,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               {workspaceMode === 'direct' && directorPresentation && (
                 <DirectorStageOverlay frame={directorPresentation} project={project} level={compiledLevel} />
               )}
+              {(workspaceMode === 'direct' || workspaceMode === 'export') && compiledDirector && directorPresentation && (
+                <TapTileCanvasPreview project={project} level={compiledLevel} compiledTake={compiledDirector} frameNumber={directorPresentation.frameNumber} />
+              )}
             </div>
             {workspaceMode === 'edit' && (
               <div className="tpt-snap-coach" aria-hidden="true">
@@ -1294,6 +1371,28 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               onTimingOverride={setDirectorTimingOverride}
               onResetOverride={resetDirectorTimingOverride}
             />
+          )}
+
+          {workspaceMode === 'export' && compiledDirector && (
+            <section
+              className="tpt-export-panel"
+              data-export-phase={tapTileExportProgress?.phase ?? 'idle'}
+              data-export-frames={tapTileExportResult?.frameCount ?? 0}
+              data-export-bytes={tapTileExportResult?.bytes ?? 0}
+              data-export-duration={tapTileExportResult?.durationSeconds ?? 0}
+              data-regression-frames={JSON.stringify(renderRegressionFrames)}
+            >
+              <div><strong>固定帧 MP4</strong><small>1080×1920 · 30fps · H.264 · {compiledDirector.totalFrames} 帧 · Preview/Export 同源</small></div>
+              <label><span>检查帧</span><input data-export-preview-seek type="range" min={0} max={compiledDirector.totalFrames - 1} value={directorPresentation?.frameNumber ?? 0} onChange={(event) => setDirectorFrame(Number(event.target.value))} /></label>
+              {tapTileExportProgress && <div className="tpt-export-progress"><i style={{ width: `${tapTileExportProgress.ratio * 100}%` }} /><span>{tapTileExportProgress.message}</span></div>}
+              {tapTileExportError && <p className="tpt-export-error">{tapTileExportError}</p>}
+              <div className="tpt-export-actions">
+                {tapTileExportAbortRef.current
+                  ? <button data-action="cancel-taptile-export" onClick={cancelTapTileExport}>取消导出</button>
+                  : <button data-action="start-taptile-export" className="tpt-action-primary" onClick={() => void beginTapTileExport()}>导出 H.264 MP4</button>}
+                {tapTileExportResult && <a data-export-download href={tapTileExportResult.url} download={tapTileExportResult.fileName}>下载 {tapTileExportResult.fileName}</a>}
+              </div>
+            </section>
           )}
 
           <footer className="tpt-stage-status">
