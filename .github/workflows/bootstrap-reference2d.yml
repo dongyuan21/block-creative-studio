@@ -34,12 +34,19 @@ jobs:
           rm -f README.md.rej docs/PHASE1_STATUS.md.rej
           python - <<'PY'
           from pathlib import Path
-          path = Path('scripts/check-source.mjs')
-          source = path.read_text(encoding='utf-8')
+          import json
+
+          source_check = Path('scripts/check-source.mjs')
+          source = source_check.read_text(encoding='utf-8')
           marker = "    '--noEmit',\n"
           if "    '--ignoreConfig',\n" not in source:
               source = source.replace(marker, marker + "    '--ignoreConfig',\n", 1)
-          path.write_text(source, encoding='utf-8')
+          source_check.write_text(source, encoding='utf-8')
+
+          core_config = Path('tsconfig.core.json')
+          config = json.loads(core_config.read_text(encoding='utf-8'))
+          config['compilerOptions']['moduleResolution'] = 'Classic'
+          core_config.write_text(json.dumps(config, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
           PY
           rm -rf .seed-reference2d
           git diff --check
