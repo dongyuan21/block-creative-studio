@@ -20,9 +20,9 @@
 | Milestone | 状态 | Commit | 自动测试 | 浏览器验证 | 主要遗留 |
 |---|---|---|---|---|---|
 | M0 基线与文档 | complete | 本状态文档首次提交 | 49/49；check/type/build 通过 | 基线截图完成；原冒烟脚本有已记录失败 | npm 不在 PATH；使用等价运行时 |
-| M1 Schema V2 | in progress |  |  |  |  |
-| M2 Level Compiler | pending |  |  |  |  |
-| M3 7 槽引擎 | pending |  |  |  |  |
+| M1 Schema V2 | complete | 本阶段提交 | 55/55；check/type/build 通过 | 编辑器已接 V2；完整闭环归 Gate A | IndexedDB 资产上传留到资产阶段 |
+| M2 Level Compiler | in progress |  |  |  |  |
+| M3 7 槽引擎 | in progress |  |  |  |  |
 | M4 Play + Take | pending |  |  |  |  |
 | Gate A | pending |  |  |  |  |
 | M5 Solver | pending |  |  |  |  |

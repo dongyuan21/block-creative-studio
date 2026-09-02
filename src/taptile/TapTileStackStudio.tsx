@@ -11,7 +11,6 @@ import {
   estimateOverlapPairs,
   FACE_LIBRARY,
   isStackProject,
-  makeTemplateProject,
   maxLayer,
   nextTileId,
   normalizeTile,
@@ -20,9 +19,18 @@ import {
   type SceneThemeId,
   type StackTemplateId,
   type StackTile,
-  type TapTileStackProject,
   type TileMaterialId,
 } from './stackModel';
+import {
+  createDefaultTapTileProject,
+  isTapTileProjectV2,
+  migrateTapTileStackProjectV1,
+  parseTapTileProjectV2,
+  projectAsLegacyView,
+  projectStackTiles,
+  replaceProjectStackTiles,
+  type TapTileProjectV2,
+} from './project';
 import {
   alignStackTiles,
   type StackAlignmentCommand,
@@ -40,7 +48,8 @@ import {
 } from './stackSelection';
 import './taptile-studio.css';
 
-const AUTOSAVE_KEY = 'taptile-stack-studio/autosave/v1';
+const AUTOSAVE_KEY_V2 = 'taptile-director-project/autosave/v2';
+const AUTOSAVE_KEY_V1 = 'taptile-stack-studio/autosave/v1';
 
 const ALIGNMENT_ACTIONS: Array<{
   command: StackAlignmentCommand;
@@ -59,20 +68,20 @@ const ALIGNMENT_ACTIONS: Array<{
 ];
 
 interface HistoryState {
-  past: TapTileStackProject[];
-  present: TapTileStackProject;
-  future: TapTileStackProject[];
+  past: TapTileProjectV2[];
+  present: TapTileProjectV2;
+  future: TapTileProjectV2[];
 }
 
 type HistoryAction =
-  | { type: 'commit'; value: TapTileStackProject }
-  | { type: 'replace'; value: TapTileStackProject }
-  | { type: 'record-drag'; baseline: TapTileStackProject }
+  | { type: 'commit'; value: TapTileProjectV2 }
+  | { type: 'replace'; value: TapTileProjectV2 }
+  | { type: 'record-drag'; baseline: TapTileProjectV2 }
   | { type: 'undo' }
   | { type: 'redo' }
-  | { type: 'reset'; value: TapTileStackProject };
+  | { type: 'reset'; value: TapTileProjectV2 };
 
-function sameProject(left: TapTileStackProject, right: TapTileStackProject): boolean {
+function sameProject(left: TapTileProjectV2, right: TapTileProjectV2): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
@@ -115,24 +124,29 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
   return { past: [], present: action.value, future: [] };
 }
 
-function initialProject(): TapTileStackProject {
+function initialProject(): TapTileProjectV2 {
   try {
-    const stored = window.localStorage.getItem(AUTOSAVE_KEY);
-    if (stored) {
-      const parsed: unknown = JSON.parse(stored);
-      if (isStackProject(parsed)) return parsed;
+    const storedV2 = window.localStorage.getItem(AUTOSAVE_KEY_V2);
+    if (storedV2) {
+      const parsed: unknown = JSON.parse(storedV2);
+      if (isTapTileProjectV2(parsed)) return parseTapTileProjectV2(parsed);
+    }
+    const storedV1 = window.localStorage.getItem(AUTOSAVE_KEY_V1);
+    if (storedV1) {
+      const parsed: unknown = JSON.parse(storedV1);
+      if (isStackProject(parsed)) return migrateTapTileStackProjectV1(parsed);
     }
   } catch {
     // A malformed local draft should never block the editor from opening.
   }
-  return makeTemplateProject('hourglass');
+  return createDefaultTapTileProject('hourglass');
 }
 
 interface DragSession {
   pointerId: number;
   startClientX: number;
   startClientY: number;
-  baseline: TapTileStackProject;
+  baseline: TapTileProjectV2;
   positions: Map<string, { x: number; y: number }>;
   locks: SnapLocks;
   guides: SnapGuide[];
@@ -147,20 +161,26 @@ interface MarqueeSession {
   moved: boolean;
 }
 
-const cloneProject = (project: TapTileStackProject): TapTileStackProject => structuredClone(project);
+const cloneProject = (project: TapTileProjectV2): TapTileProjectV2 => structuredClone(project);
 
-function downloadProject(project: TapTileStackProject): void {
+function downloadProject(project: TapTileProjectV2): void {
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `${project.name.replace(/[\\/:*?"<>|]/g, '-')}.taptile-stack.json`;
+  anchor.download = `${project.name.replace(/[\\/:*?"<>|]/g, '-')}.taptile-project.json`;
   anchor.click();
   URL.revokeObjectURL(url);
 }
 
-function faceGlyph(faceId: string): string {
-  return FACE_LIBRARY.find((face) => face.id === faceId)?.glyph ?? '⭐';
+function faceGlyph(project: TapTileProjectV2, faceId: string): string {
+  const archetype = Object.values(project.visuals.archetypes).find((candidate) => candidate.matchKey === faceId);
+  const binding = archetype
+    ? project.visuals.themes[project.visuals.selectedThemeId]?.bindings[archetype.id]
+    : undefined;
+  const assembly = binding ? project.visuals.faceAssemblies[binding.faceAssemblyId] : undefined;
+  const glyph = assembly?.parts.find((part) => part.source.kind === 'glyph')?.source;
+  return glyph?.kind === 'glyph' ? glyph.value : FACE_LIBRARY.find((face) => face.id === faceId)?.glyph ?? '⭐';
 }
 
 function faceAccent(faceId: string): string {
@@ -191,41 +211,44 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const marqueeRef = useRef<MarqueeSession | null>(null);
   const snapClearTimerRef = useRef<number | null>(null);
 
-  const commit = useCallback((mutate: (draft: TapTileStackProject) => void): void => {
+  const commit = useCallback((mutate: (draft: TapTileProjectV2) => void): void => {
     const next = cloneProject(projectRef.current);
     mutate(next);
+    next.revision += 1;
     next.updatedAt = new Date().toISOString();
     dispatch({ type: 'commit', value: next });
   }, []);
 
+  const tiles = useMemo(() => projectStackTiles(project), [project]);
+
   const selectedTiles = useMemo(
-    () => project.tiles.filter((tile) => selectedIds.includes(tile.id)),
-    [project.tiles, selectedIds],
+    () => tiles.filter((tile) => selectedIds.includes(tile.id)),
+    [tiles, selectedIds],
   );
   const primaryTile = selectedTiles.at(-1) ?? null;
-  const highestLayer = maxLayer(project.tiles);
+  const highestLayer = maxLayer(tiles);
   const usedLayers = useMemo(
-    () => [...new Set(project.tiles.map((tile) => tile.layer))].sort((left, right) => left - right),
-    [project.tiles],
+    () => [...new Set(tiles.map((tile) => tile.layer))].sort((left, right) => left - right),
+    [tiles],
   );
   const layerRanks = useMemo(
     () => new Map(usedLayers.map((layer, index) => [layer, index])),
     [usedLayers],
   );
-  const overlapPairs = useMemo(() => estimateOverlapPairs(project.tiles), [project.tiles]);
+  const overlapPairs = useMemo(() => estimateOverlapPairs(tiles), [tiles]);
 
   const visibleTileIds = useMemo(
-    () => project.tiles
+    () => tiles
       .filter((tile) => layerFocus === 'all' || tile.layer === layerFocus)
       .map((tile) => tile.id),
-    [layerFocus, project.tiles],
+    [layerFocus, tiles],
   );
 
   useEffect(() => {
     setAutosaveLabel('正在保存…');
     const timer = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(project));
+        window.localStorage.setItem(AUTOSAVE_KEY_V2, JSON.stringify(project));
         setAutosaveLabel('已自动保存');
       } catch {
         setAutosaveLabel('自动保存不可用');
@@ -246,9 +269,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     const ids = new Set(selectedRef.current);
     if (ids.size === 0) return;
     commit((draft) => {
-      draft.tiles = draft.tiles.map((tile) => ids.has(tile.id)
+      const nextTiles = projectStackTiles(draft).map((tile) => ids.has(tile.id)
         ? normalizeTile(mutate(tile))
         : tile);
+      replaceProjectStackTiles(draft, nextTiles);
     });
   }, [commit]);
 
@@ -256,7 +280,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     const ids = new Set(selectedRef.current);
     if (ids.size === 0) return;
     commit((draft) => {
-      draft.tiles = draft.tiles.filter((tile) => !ids.has(tile.id));
+      replaceProjectStackTiles(draft, projectStackTiles(draft).filter((tile) => !ids.has(tile.id)));
     });
     setSelectedIds([]);
     setNotice(`已删除 ${ids.size} 张牌`);
@@ -267,10 +291,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     if (ids.size === 0) return;
     const newIds: string[] = [];
     commit((draft) => {
-      const additions = draft.tiles
+      const draftTiles = projectStackTiles(draft);
+      const additions = draftTiles
         .filter((tile) => ids.has(tile.id))
         .map((tile, index) => {
-          const id = `${nextTileId(draft)}-${index + 1}`;
+          const id = `${nextTileId(projectAsLegacyView(draft))}-${index + 1}`;
           newIds.push(id);
           return normalizeTile({
             ...tile,
@@ -281,7 +306,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             locked: false,
           });
         });
-      draft.tiles.push(...additions);
+      replaceProjectStackTiles(draft, [...draftTiles, ...additions]);
     });
     setSelectedIds(newIds);
     setNotice(`已复制 ${newIds.length} 张牌`);
@@ -295,14 +320,15 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     }
     const idSet = new Set(ids);
     commit((draft) => {
-      draft.tiles = alignStackTiles(draft.tiles, idSet, command)
+      const aligned = alignStackTiles(projectStackTiles(draft), idSet, command)
         .map((tile) => idSet.has(tile.id) ? normalizeTile(tile) : tile);
+      replaceProjectStackTiles(draft, aligned);
     });
     setNotice(`已完成${label}`);
   }, [commit]);
 
   const selectAllVisible = useCallback((): void => {
-    const ids = projectRef.current.tiles
+    const ids = projectStackTiles(projectRef.current)
       .filter((tile) => layerFocus === 'all' || tile.layer === layerFocus)
       .map((tile) => tile.id);
     setSelectedIds(ids);
@@ -371,11 +397,13 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   }, [clearSelection, deleteSelected, duplicateSelected, selectAllVisible, updateSelected]);
 
   const chooseTemplate = (templateId: StackTemplateId): void => {
-    const next = makeTemplateProject(templateId);
-    next.material = project.material;
-    next.theme = project.theme;
-    next.snap = project.snap;
-    next.showLayerBadges = project.showLayerBadges;
+    const next = createDefaultTapTileProject(templateId);
+    next.name = project.name;
+    next.authoring.material = project.authoring.material;
+    next.authoring.sceneTheme = project.authoring.sceneTheme;
+    next.authoring.snap = project.authoring.snap;
+    next.authoring.showLayerBadges = project.authoring.showLayerBadges;
+    next.visuals.selectedThemeId = project.visuals.selectedThemeId;
     dispatch({ type: 'commit', value: next });
     setSelectedIds([]);
     setLayerFocus('all');
@@ -390,18 +418,20 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     }
     let newId = '';
     commit((draft) => {
-      newId = nextTileId(draft);
-      const count = draft.tiles.length;
-      draft.tiles.push(normalizeTile({
+      const draftTiles = projectStackTiles(draft);
+      newId = nextTileId(projectAsLegacyView(draft));
+      const count = draftTiles.length;
+      const nextTile = normalizeTile({
         id: newId,
         x: STACK_STAGE.width / 2 + ((count % 3) - 1) * 18,
         y: 410 + ((count % 5) - 2) * 12,
-        layer: draft.tiles.length === 0 ? 0 : maxLayer(draft.tiles) + 1,
+        layer: draftTiles.length === 0 ? 0 : maxLayer(draftTiles) + 1,
         rotation: 0,
         scale: 1,
         faceId,
         locked: false,
-      }));
+      });
+      replaceProjectStackTiles(draft, [...draftTiles, nextTile]);
     });
     setSelectedIds([newId]);
     setNotice('已在画布中央新增牌块');
@@ -435,7 +465,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       startClientX: event.clientX,
       startClientY: event.clientY,
       baseline: cloneProject(projectRef.current),
-      positions: new Map(projectRef.current.tiles
+      positions: new Map(projectStackTiles(projectRef.current)
         .filter((candidate) => ids.has(candidate.id))
         .map((candidate) => [candidate.id, { x: candidate.x, y: candidate.y }])),
       locks: { x: null, y: null },
@@ -464,11 +494,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     if (session.axisLock === 'y') rawDx = 0;
 
     const snapped = solveSmartSnap({
-      tiles: session.baseline.tiles,
+      tiles: projectStackTiles(session.baseline),
       movingIds: [...session.positions.keys()],
       rawDx,
       rawDy,
-      enabled: session.baseline.snap && !event.altKey,
+      enabled: session.baseline.authoring.snap && !event.altKey,
       previousLocks: session.locks,
       threshold: (9 * STACK_STAGE.width) / Math.max(1, rect.width),
       releaseThreshold: (18 * STACK_STAGE.width) / Math.max(1, rect.width),
@@ -476,10 +506,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     session.locks = snapped.locks;
     session.guides = snapped.guides;
     const next = cloneProject(session.baseline);
-    next.tiles = next.tiles.map((tile) => {
+    const movedTiles = projectStackTiles(next).map((tile) => {
       const start = session.positions.get(tile.id);
       return start ? normalizeTile({ ...tile, x: start.x + snapped.dx, y: start.y + snapped.dy }) : tile;
     });
+    replaceProjectStackTiles(next, movedTiles);
     next.updatedAt = new Date().toISOString();
     dispatch({ type: 'replace', value: next });
     setSnapGuides(snapped.guides);
@@ -490,7 +521,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     const session = dragRef.current;
     if (!session || session.pointerId !== event.pointerId) return;
     const finalProject = cloneProject(projectRef.current);
-    finalProject.tiles = finalProject.tiles.map((tile) => normalizeTile(tile));
+    replaceProjectStackTiles(finalProject, projectStackTiles(finalProject).map((tile) => normalizeTile(tile)));
+    finalProject.revision += 1;
+    finalProject.updatedAt = new Date().toISOString();
     dispatch({ type: 'replace', value: finalProject });
     dispatch({ type: 'record-drag', baseline: session.baseline });
     dragRef.current = null;
@@ -546,7 +579,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     }
     setMarquee(rect);
     if (!session.moved) return;
-    const inside = tileIdsInsideSelection(projectRef.current.tiles, rect, layerFocus);
+    const inside = tileIdsInsideSelection(projectStackTiles(projectRef.current), rect, layerFocus);
     setSelectedIds(session.additive ? [...new Set([...session.baselineSelection, ...inside])] : inside);
   };
 
@@ -563,26 +596,43 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     }
   };
 
-  const setSceneOption = <Key extends keyof TapTileStackProject>(
+  const setAuthoringOption = <Key extends keyof TapTileProjectV2['authoring']>(
     key: Key,
-    value: TapTileStackProject[Key],
+    value: TapTileProjectV2['authoring'][Key],
   ): void => {
     commit((draft) => {
-      draft[key] = value;
+      draft.authoring[key] = value;
     });
+  };
+
+  const setProjectName = (name: string): void => commit((draft) => {
+    draft.name = name;
+  });
+
+  const setVisualTheme = (themeId: string): void => {
+    if (!project.visuals.themes[themeId]) return;
+    commit((draft) => {
+      draft.visuals.selectedThemeId = themeId;
+    });
+    setNotice('只更换视觉主题；匹配分组、阻挡图和 Take 不变');
   };
 
   const importProject = async (file: File): Promise<void> => {
     const parsed: unknown = JSON.parse(await file.text());
-    if (!isStackProject(parsed)) throw new Error('不是可识别的 TapTile Stack Studio 工程。');
-    dispatch({ type: 'commit', value: parsed });
+    const next = isTapTileProjectV2(parsed)
+      ? parseTapTileProjectV2(parsed)
+      : isStackProject(parsed)
+        ? migrateTapTileStackProjectV1(parsed)
+        : null;
+    if (!next) throw new Error('不是可识别的 TapTile V2 或旧版工程。');
+    dispatch({ type: 'commit', value: next });
     setSelectedIds([]);
     setLayerFocus('all');
-    setNotice('工程已导入');
+    setNotice(isTapTileProjectV2(parsed) ? 'V2 工程已导入' : '旧工程已迁移为 V2；原文件未改动');
   };
 
   return (
-    <div className={`tpt-studio theme-${project.theme} material-${project.material}`}>
+    <div className={`tpt-studio theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}>
       <header className="tpt-topbar">
         <div className="tpt-brand">
           <span className="tpt-brand-mark">T</span>
@@ -595,7 +645,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           <span>项目</span>
           <input
             value={project.name}
-            onChange={(event) => setSceneOption('name', event.target.value)}
+            onChange={(event) => setProjectName(event.target.value)}
             aria-label="项目名称"
           />
         </div>
@@ -611,7 +661,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           ref={importRef}
           className="tpt-hidden-input"
           type="file"
-          accept=".json,.taptile-stack.json"
+          accept=".json,.taptile-stack.json,.taptile-project.json"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (!file) return;
@@ -631,7 +681,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               {TEMPLATE_OPTIONS.map((template) => (
                 <button
                   key={template.id}
-                  className={project.templateId === template.id ? 'is-active' : ''}
+                  className={project.authoring.templateId === template.id ? 'is-active' : ''}
                   onClick={() => chooseTemplate(template.id)}
                 >
                   <i className={`template-glyph template-${template.id}`} aria-hidden="true" />
@@ -643,8 +693,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           </section>
 
           <section className="tpt-face-section">
-            <div className="tpt-section-title"><span>牌面库</span><small>{FACE_LIBRARY.length} FACES</small></div>
-            <p className="tpt-helper">有选中时替换牌面；未选中时新增牌块。</p>
+            <div className="tpt-section-title"><span>匹配分组</span><small>{FACE_LIBRARY.length} MATCH KEYS</small></div>
+            <p className="tpt-helper">这里会改变玩法与 Take 有效性；纯换皮请使用右侧“视觉主题”。</p>
             <div className="tpt-face-grid">
               {FACE_LIBRARY.map((face) => (
                 <button
@@ -665,9 +715,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           <div className="tpt-stage-toolbar">
             <div className="tpt-tool-group">
               <button
-                className={`tpt-magnet-button${project.snap ? ' is-active' : ''}`}
+                className={`tpt-magnet-button${project.authoring.snap ? ' is-active' : ''}`}
                 onClick={() => {
-                  setSceneOption('snap', !project.snap);
+                  setAuthoringOption('snap', !project.authoring.snap);
                   setSnapGuides([]);
                   setSnapTargetIds([]);
                 }}
@@ -690,7 +740,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               <i aria-hidden="true">⌁</i>
               <span>{snapGuides.length > 0
                 ? [...new Set(snapGuides.map((guide) => guide.label))].join(' · ')
-                : project.snap ? '等待吸附' : '吸附已关闭'}</span>
+                : project.authoring.snap ? '等待吸附' : '吸附已关闭'}</span>
             </div>
             <div className="tpt-tool-group tpt-layer-filter">
               <span>查看</span>
@@ -754,7 +804,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 </div>
               ))}
 
-              {project.tiles.map((tile, index) => {
+              {tiles.map((tile, index) => {
                 const selected = selectedIds.includes(tile.id);
                 const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
                 const snapTarget = snapTargetIds.includes(tile.id);
@@ -764,12 +814,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                     type="button"
                     data-tile-id={tile.id}
                     className={`stack-tile${selected ? ' is-selected' : ''}${dimmed ? ' is-dimmed' : ''}${tile.locked ? ' is-locked' : ''}${snapTarget ? ' is-snap-target' : ''}`}
-                    aria-label={`${faceGlyph(tile.faceId)} 第 ${tile.layer + 1} 层`}
+                    aria-label={`${faceGlyph(project, tile.faceId)} 第 ${tile.layer + 1} 层`}
                     style={{
                       left: `${(tile.x / STACK_STAGE.width) * 100}%`,
                       top: `${(tile.y / STACK_STAGE.height) * 100}%`,
                       width: `${((STACK_STAGE.tileSize * tile.scale) / STACK_STAGE.width) * 100}%`,
-                      zIndex: 100 + (layerRanks.get(tile.layer) ?? 0) * (project.tiles.length + 1) + index,
+                      zIndex: 100 + (layerRanks.get(tile.layer) ?? 0) * (tiles.length + 1) + index,
                       transform: `translate(-50%, -50%) rotate(${tile.rotation}deg)`,
                       '--tile-accent': faceAccent(tile.faceId),
                     } as React.CSSProperties}
@@ -784,9 +834,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                     }}
                   >
                     <span className="tile-body">
-                      <span className="tile-face">{faceGlyph(tile.faceId)}</span>
+                      <span className="tile-face">{faceGlyph(project, tile.faceId)}</span>
                     </span>
-                    {project.showLayerBadges && <small className="tile-layer-badge">{tile.layer + 1}</small>}
+                    {project.authoring.showLayerBadges && <small className="tile-layer-badge">{tile.layer + 1}</small>}
                     {tile.locked && <small className="tile-lock-badge">●</small>}
                   </button>
                 );
@@ -801,10 +851,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
           <footer className="tpt-stage-status">
             <span><i className="status-ready" />自由编辑模式</span>
-            <span><strong>{project.tiles.length}</strong> 张牌</span>
+            <span><strong>{tiles.length}</strong> 张牌</span>
             {selectedIds.length > 0 && <span className="tpt-selected-count"><strong>{selectedIds.length}</strong> 已选</span>}
             <span><strong>{usedLayers.length}</strong> 个层级</span>
-            <span>最高第 <strong>{project.tiles.length > 0 ? highestLayer + 1 : 0}</strong> 层</span>
+            <span>最高第 <strong>{tiles.length > 0 ? highestLayer + 1 : 0}</strong> 层</span>
             <span><strong>{overlapPairs}</strong> 处跨层遮挡</span>
             <span className="tpt-status-notice">{notice}</span>
           </footer>
@@ -815,7 +865,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             <div className="tpt-section-title"><span>场景</span><small>SCENE</small></div>
             <label className="tpt-field">
               <span>背景风格</span>
-              <select value={project.theme} onChange={(event) => setSceneOption('theme', event.target.value as SceneThemeId)}>
+              <select value={project.authoring.sceneTheme} onChange={(event) => setAuthoringOption('sceneTheme', event.target.value as SceneThemeId)}>
                 <option value="deep-ocean">深海蓝岛</option>
                 <option value="sunset">日落旷野</option>
                 <option value="candy">糖果乐园</option>
@@ -823,8 +873,16 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               </select>
             </label>
             <label className="tpt-field">
+              <span>视觉主题（不改玩法）</span>
+              <select value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
+                {Object.values(project.visuals.themes).map((theme) => (
+                  <option key={theme.id} value={theme.id}>{theme.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="tpt-field">
               <span>牌体材质</span>
-              <select value={project.material} onChange={(event) => setSceneOption('material', event.target.value as TileMaterialId)}>
+              <select value={project.authoring.material} onChange={(event) => setAuthoringOption('material', event.target.value as TileMaterialId)}>
                 <option value="porcelain">经典休闲牌</option>
                 <option value="ice">冰瓷圆角</option>
                 <option value="jelly">透明果冻</option>
@@ -832,8 +890,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               </select>
             </label>
             <div className="tpt-toggle-row">
-              <label><input type="checkbox" checked={project.snap} onChange={(event) => setSceneOption('snap', event.target.checked)} /><span>智能吸附</span></label>
-              <label><input type="checkbox" checked={project.showLayerBadges} onChange={(event) => setSceneOption('showLayerBadges', event.target.checked)} /><span>显示层数</span></label>
+              <label><input type="checkbox" checked={project.authoring.snap} onChange={(event) => setAuthoringOption('snap', event.target.checked)} /><span>智能吸附</span></label>
+              <label><input type="checkbox" checked={project.authoring.showLayerBadges} onChange={(event) => setAuthoringOption('showLayerBadges', event.target.checked)} /><span>显示层数</span></label>
             </div>
           </section>
 
@@ -848,7 +906,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             ) : (
               <div className="tpt-selection-controls">
                 <div className="tpt-selected-preview">
-                  <span>{faceGlyph(primaryTile.faceId)}</span>
+                  <span>{faceGlyph(project, primaryTile.faceId)}</span>
                   <div><strong>{FACE_LIBRARY.find((face) => face.id === primaryTile.faceId)?.label}</strong><small>{selectedIds.length > 1 ? `同时选中 ${selectedIds.length} 张` : primaryTile.id}</small></div>
                 </div>
                 <div className="tpt-number-grid">

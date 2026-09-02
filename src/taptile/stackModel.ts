@@ -77,7 +77,9 @@ const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.max(minimum, Math.min(maximum, value));
 
 function faceFor(index: number): string {
-  return FACE_LIBRARY[index % FACE_LIBRARY.length]?.id ?? 'bear';
+  // Authoring templates are production-playable by construction: each logical
+  // match key is emitted in groups of three, independent of the active skin.
+  return FACE_LIBRARY[Math.floor(index / 3) % FACE_LIBRARY.length]?.id ?? 'bear';
 }
 
 function templateTile(
@@ -122,6 +124,7 @@ function hourglassTiles(): StackTile[] {
   });
   pushCenteredRow(tiles, 'hourglass', 3, 320, 4, 54);
   pushCenteredRow(tiles, 'hourglass', 3, 523, 4, 54);
+  pushCenteredRow(tiles, 'hourglass', 2, 706, 0, 58);
   return tiles;
 }
 
@@ -136,6 +139,7 @@ function tShapeTiles(): StackTile[] {
   pushCenteredRow(tiles, 't-shape', 5, 574, 0, 58);
   pushCenteredRow(tiles, 't-shape', 6, 623, 1, 58);
   pushCenteredRow(tiles, 't-shape', 6, 672, 2, 58, STACK_STAGE.width / 2 - 5);
+  pushCenteredRow(tiles, 't-shape', 1, 724, 0, 58);
   return tiles;
 }
 
@@ -148,6 +152,7 @@ function terraceTiles(): StackTile[] {
     pushCenteredRow(tiles, 'terraces', 5, 430 + row * 48, row % 3, 62, STACK_STAGE.width / 2 + (row % 2 ? -10 : 10));
   }
   pushCenteredRow(tiles, 'terraces', 6, 650, 1, 59);
+  pushCenteredRow(tiles, 'terraces', 1, 716, 0, 59);
   return tiles;
 }
 
@@ -157,7 +162,7 @@ function freeTiles(): StackTile[] {
     [177, 302, 1], [249, 302, 1],
     [126, 377, 0], [198, 377, 2], [270, 377, 0],
     [162, 455, 1], [234, 455, 3], [306, 455, 1],
-    [126, 535, 0], [198, 535, 2], [270, 535, 0],
+    [126, 535, 0], [198, 535, 2], [270, 535, 0], [342, 535, 0],
   ] as const;
   return points.map(([x, y, layer], index) => templateTile('free', index, x, y, layer));
 }
