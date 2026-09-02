@@ -29,6 +29,7 @@ import {
   projectAsLegacyView,
   projectStackTiles,
   replaceProjectStackTiles,
+  type TapTileDirectorTiming,
   type TapTileProjectV2,
 } from './project';
 import {
@@ -63,6 +64,9 @@ import {
   validateSkinPack,
 } from './visual';
 import { TileVisual } from './visual/TileVisual';
+import { compileTapTileTake, evaluateTapTileFrame } from './director';
+import { DirectorStageOverlay } from './director/DirectorStageOverlay';
+import { DirectorTimeline } from './director/DirectorTimeline';
 import {
   TAPTILE_WORKSPACE_MODES,
   type TapTileWorkspaceMode,
@@ -236,6 +240,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
   const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('safe-win');
   const [agentBusy, setAgentBusy] = useState(false);
+  const [directorFrame, setDirectorFrame] = useState(0);
+  const [directorZoom, setDirectorZoom] = useState(0.7);
+  const [selectedDirectorActionId, setSelectedDirectorActionId] = useState<string | null>(null);
   const gameplay = useGameplaySession();
 
   const commit = useCallback((mutate: (draft: TapTileProjectV2) => void): void => {
@@ -248,6 +255,27 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
   const tiles = useMemo(() => projectStackTiles(project), [project]);
   const compiledLevel = useMemo(() => compileTapTileLevel(project), [project]);
+  const selectedDirectorTake = useMemo(
+    () => project.takes.find((take) => take.id === project.selectedTakeId) ?? project.takes.at(-1) ?? null,
+    [project.selectedTakeId, project.takes],
+  );
+  const selectedDirectorProfile = project.director.profiles[project.director.selectedProfileId] ?? null;
+  const compiledDirector = useMemo(() => {
+    if (!selectedDirectorTake || !selectedDirectorProfile) return null;
+    try {
+      return compileTapTileTake(compiledLevel, selectedDirectorTake, selectedDirectorProfile, {
+        seed: project.director.seed,
+        fps: project.render.fps,
+        actionOverrides: project.director.actionOverrides,
+      });
+    } catch {
+      return null;
+    }
+  }, [compiledLevel, project.director.actionOverrides, project.director.seed, project.render.fps, selectedDirectorProfile, selectedDirectorTake]);
+  const directorPresentation = useMemo(
+    () => compiledDirector ? evaluateTapTileFrame(compiledDirector, directorFrame) : null,
+    [compiledDirector, directorFrame],
+  );
   const selectedSkinCompatibility = useMemo(
     () => validateSkinPack(project, project.visuals.selectedThemeId),
     [project],
@@ -256,7 +284,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     ? gameplay.gameState
     : workspaceMode === 'replay'
       ? gameplay.replayState
-      : null;
+      : workspaceMode === 'direct'
+        ? directorPresentation?.gameState ?? null
+        : null;
   const displayedBoardIds = useMemo(
     () => new Set(displayState?.boardIds ?? tiles.map((tile) => tile.id)),
     [displayState, tiles],
@@ -282,6 +312,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     [usedLayers],
   );
   const overlapPairs = useMemo(() => estimateOverlapPairs(tiles), [tiles]);
+
+  useEffect(() => {
+    if (!compiledDirector) return;
+    setDirectorFrame((current) => Math.min(current, compiledDirector.totalFrames - 1));
+  }, [compiledDirector]);
 
   const visibleTileIds = useMemo(
     () => tiles
@@ -682,6 +717,37 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     setNotice('只更换视觉主题；匹配分组、阻挡图和 Take 不变');
   };
 
+  const setDirectorProfile = (profileId: string): void => {
+    if (!project.director.profiles[profileId]) return;
+    commit((draft) => {
+      draft.director.selectedProfileId = profileId;
+    });
+    setDirectorFrame(0);
+    setNotice(`已切换导演 Profile：${project.director.profiles[profileId]?.name ?? profileId}；玩法哈希不变`);
+  };
+
+  const setDirectorTimingOverride = (
+    actionId: string,
+    key: keyof TapTileDirectorTiming,
+    value: number,
+  ): void => {
+    if (!Number.isFinite(value)) return;
+    commit((draft) => {
+      draft.director.actionOverrides[actionId] = {
+        ...draft.director.actionOverrides[actionId],
+        [key]: Math.max(0, Math.round(value)),
+      };
+    });
+    setNotice(`已覆盖动作 ${actionId} 的 ${key}`);
+  };
+
+  const resetDirectorTimingOverride = (actionId: string): void => {
+    commit((draft) => {
+      delete draft.director.actionOverrides[actionId];
+    });
+    setNotice(`已重置动作 ${actionId} 的节奏覆盖`);
+  };
+
   const beginPlay = (): void => {
     if (!compiledLevel.validation.valid) {
       setWorkspaceMode('validate');
@@ -767,7 +833,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       const errors = compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length;
       setNotice(errors === 0 ? `关卡有效 · ${compiledLevel.levelHash}` : `发现 ${errors} 个阻塞错误`);
     } else if (mode === 'direct') {
-      setNotice('导演模式使用已保存 Take；时间线将在下一 Gate 接入');
+      setDirectorFrame(0);
+      setNotice(compiledDirector ? `导演时间线已编译：${compiledDirector.totalFrames} 帧` : '还没有有效 Take；请先试玩保存或让 Agent 生成');
     } else if (mode === 'export') {
       setNotice('导出模式需要已保存 Take；固定帧输出将在后续 Gate 接入');
     } else {
@@ -853,6 +920,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       data-level-hash={compiledLevel.levelHash}
       data-state-hash={displayState ? tapTileStateHash(displayState) : ''}
       data-selected-theme={project.visuals.selectedThemeId}
+      data-director-profile={compiledDirector?.profileId ?? ''}
+      data-director-frame={directorPresentation?.frameNumber ?? ''}
     >
       <header className="tpt-topbar">
         <div className="tpt-brand">
@@ -1168,6 +1237,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   warning={displayState.status === 'playing' && displayState.trayIds.length === 6}
                 />
               )}
+              {workspaceMode === 'direct' && directorPresentation && (
+                <DirectorStageOverlay frame={directorPresentation} project={project} level={compiledLevel} />
+              )}
             </div>
             {workspaceMode === 'edit' && (
               <div className="tpt-snap-coach" aria-hidden="true">
@@ -1204,6 +1276,24 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 <button onClick={() => gameplay.seekReplay(gameplay.replayIndex + 1)} disabled={gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1}>下一步</button>
               </div>
             </div>
+          )}
+
+          {workspaceMode === 'direct' && compiledDirector && (
+            <DirectorTimeline
+              compiled={compiledDirector}
+              currentFrame={directorPresentation?.frameNumber ?? 0}
+              zoom={directorZoom}
+              profiles={project.director.profiles}
+              selectedProfileId={project.director.selectedProfileId}
+              selectedActionId={selectedDirectorActionId}
+              actionOverrides={project.director.actionOverrides}
+              onSeek={setDirectorFrame}
+              onZoom={setDirectorZoom}
+              onProfileChange={setDirectorProfile}
+              onSelectAction={setSelectedDirectorActionId}
+              onTimingOverride={setDirectorTimingOverride}
+              onResetOverride={resetDirectorTimingOverride}
+            />
           )}
 
           <footer className="tpt-stage-status">

@@ -28,9 +28,9 @@
 | M5 Solver | complete | 本阶段提交 | 14 个测试文件、64/64；小关卡、正式沙漏、同 Seed、danger-rescue、intentional-fail、证据边界通过 | 48 步 `safe-win` Agent Take 胜利并确定性回放；终态 `state-8ba1e269`；控制台 0 错误 | Beam Search 的 `not-found` 不宣称数学无解 |
 | M6 SkinPack | complete | 本阶段提交 | 15 个测试文件、71/71；两套完整覆盖、三类 FaceAssembly、Asset/Stage Registry、兼容错误、role 一致和视觉边界不变量通过 | animals/food 均显示 16 个匹配组完整覆盖 | IndexedDB 上传保留为后续资产入口；项目不持久化 blob URL |
 | Gate B | complete | 随 M6 | 15 个测试文件、71/71；两套 Skin 的 Transition/State/Hash 全等测试通过 | 同一 48 步 Take 比较 49 个状态；`level-ec5f06bd` 与 `state-8ba1e269` 不变；视觉身份改变；board/tray 身份一致；控制台 0 错误 | flight/match-ghost 由同一 resolver 覆盖并有角色不变量测试，实际动画随导演阶段呈现 |
-| M7 Director | in progress |  |  |  |  |
-| Gate C | pending |  |  |  |  |
-| M8 Canvas + MP4 | pending |  |  |  |  |
+| M7 Director | complete | 本阶段提交 | 16 个测试文件、78/78；四 Profile、事件轨、动作时间点、直接/顺播一致、Seed、单动作覆盖和正式重放状态通过 | 动作条、事件点、播放头、缩放、Profile 与单动作飞行帧覆盖已接 UI | DOM 导演预览将在 M8 与 Canvas 固定帧渲染共用 PresentationFrame |
+| Gate C | complete | 随 M7 | 直接 Seek、Seed 粒子、VFX overlap、玩法哈希不变量通过 | 三 Profile 为 `2430/1125/822` 帧；48 动作；快速 Profile 各 15 处 overlap；Seek 往返一致；控制台 0 错误 | 无 |
+| M8 Canvas + MP4 | in progress |  |  |  |  |
 | M9 Audio/Batch | pending |  |  |  |  |
 | Gate D | pending |  |  |  |  |
 
@@ -62,3 +62,11 @@
 - `artifacts/design-qa/taptile/gate-b-food-v1-replay.png`
 - 同一 Take 的 49 个状态哈希、棋盘 ID 和槽位 ID 逐步相同；两套主题的视觉身份不同。
 - `animals-v1` 与 `food-v1` 均严格覆盖全部 16 个 archetype，缺绑定时明确报错且不会静默回退。
+
+## Gate C 证据
+
+- `artifacts/design-qa/taptile/gate-c-human-natural.png`
+- `artifacts/design-qa/taptile/gate-c-tight-fast.png`
+- `artifacts/design-qa/taptile/gate-c-combo-rush.png`
+- 三套 Profile 共享 `level-ec5f06bd` 与 `state-8ba1e269`；总时长不同，动作与三消结果不变。
+- 快速 Profile 的播放头截图可见三消 ghost/VFX 与下一动作时间条重叠；直接 Seek 往返快照完全一致。

@@ -22,6 +22,7 @@
 - `src/taptile/gameplay/take/`：语义 Take 录制、确定性重放、逐动作校验和 Seek。
 - `src/taptile/gameplay/solver/`：确定性 Beam Search、五类素材剧情 Profile 和正式引擎验证后的 Agent Take。
 - `src/taptile/visual/`：Asset Registry、三类 FaceAssembly、严格 ThemeResolver、StageAssembly 和 SkinPack 兼容检查。
+- `src/taptile/director/`：语义事件轨、四套 Profile、动作级时间点、VFX overlap、纯函数 PresentationFrame 和可寻址时间线。
 - `src/taptile/play/`：试玩台、7 槽 UI、可点击提示和回放交互。
 - `src/taptile/pixelGeometry.ts`：编辑坐标到 1080×1920 输出整数像素的唯一换算入口。
 - `src/taptile/stackModel.ts`：堆叠编辑模型。

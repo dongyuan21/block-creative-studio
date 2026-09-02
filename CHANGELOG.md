@@ -191,6 +191,7 @@
 - TapTile play mode, semantic Take recording, state-verified replay/seek and a browser-verified Gate A example project and Take.
 - Deterministic TapTile Beam Search with safe-win, danger-rescue, combo-heavy, fast-clear and intentional-fail Agent Take profiles.
 - Strict TapTile SkinPacks with overlay/full-front/composed face assemblies, multiple body styles, asset/stage registries and one resolver for board/flight/tray/match-ghost roles.
+- Seekable TapTile director compiler with four profiles, semantic event tracks, action timing overrides, seeded procedural effects and input/VFX overlap.
 - Reference-first Canvas 2D renderer calibrated from the supplied 1064×1788 gameplay recording.
 - Machine-readable layout, atom catalog, timing observations and scoring evidence under `docs/reference/`.
 - Per-cell colors for candidate pieces, placement, replay, serialization and both render backends.
@@ -208,7 +209,7 @@
 
 ### Known gaps
 
-- TapTile director compilation, fixed-frame MP4, audio mixing and batch rendering remain staged behind Gates C–D.
+- TapTile fixed-frame MP4, audio mixing and batch rendering remain staged behind Gate D.
 - Exact clear scoring, praise thresholds, Combo rules, tray generation and several overlapping VFX timings remain unresolved from a single recording.
 
 ## 0.1.4 — 2026-09-01
