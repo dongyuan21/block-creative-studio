@@ -7,6 +7,32 @@
 - Fit the legacy experimental Three.js camera against the actual portrait viewport aspect so the 8×8 board, bevel and shadow remain inside the phone canvas instead of clipping at both sides.
 - Added regression coverage for 9:16 perspective framing and resize-driven camera updates.
 
+## 0.3.0-alpha.0 — 2026-09-02
+
+### Added
+
+- Agent-neutral Headless Core contracts for versioned assets, material appearance and behavior, effect packs, look packs, plugins, Creative Masters, Variant Recipes, immutable Resolved Render Plans and Quality Reports.
+- Open Asset Registry supporting built-in, uploaded, generated, project-local and future DCC-produced artifacts through one versioned `AssetRef` contract.
+- Deterministic Variant Compiler with `frame-exact`, `semantic` and `rule-only` lock modes, atomic slot overrides, renderer compatibility checks and stable plan hashes.
+- Structural Quality Gate for required slots, unresolved assets, deterministic hashes, material/effect compatibility, fixed-camera output ratios, plugin permissions and declared render budgets.
+- JSON-first BCS CLI commands for capability discovery, schema discovery, asset validation, variant compilation and quality checking.
+- Headless JSON Schemas, a complete copper material/effect/look example, CLI smoke workflow and regression tests for registry resolution, stable hashing, variant compilation and quality gates.
+- Architecture documents that define BCS as Agent-operable rather than Agent-embedded: external Agents may author assets and recipes, while BCS performs strict validation, compilation and deterministic execution.
+
+### Changed
+
+- Updated the package to `0.3.0-alpha.0` and made the production build emit both the Vite web application and the Node.js CLI.
+- Replaced closed theme assumptions at the Headless Core boundary with versioned packs and atomic asset slots; Gold, Steel and Wood remain reference examples rather than product limits.
+- Promoted the fixed camera, layout profile, replay fingerprint and output aspect ratio to invariant inputs of variant compilation.
+
+### Not implemented yet
+
+- The current Web Studio has not yet been migrated to edit Asset Registry packs, Variant Recipes or Variant Matrices.
+- Plugin manifests are validated, but generated JavaScript, Web Worker and WASM plugins are not executed yet.
+- MCP and Agent Skills are intentionally deferred until the CLI and Headless Core contracts stabilize.
+- The Quality Gate currently covers structure, compatibility, determinism and budgets; visual checks such as clipping, overexposure, flicker, occlusion and baseline A/B scoring remain pending.
+- `fixed-camera-cinematic` is currently a compile target contract, not yet the final production renderer; the existing `three-3d` renderer remains an experimental preview backend.
+
 ## 0.2.0-alpha.2 — 2026-09-02
 
 ### Added
