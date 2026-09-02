@@ -23,9 +23,9 @@
 | M1 Schema V2 | complete | 本阶段提交 | 55/55；check/type/build 通过 | 编辑器已接 V2；完整闭环归 Gate A | IndexedDB 资产上传留到资产阶段 |
 | M2 Level Compiler | complete | 本阶段提交 | 旋转几何、覆盖、hash 与验证测试通过 | 调试 UI 将随 Gate A 验证 | 阈值为显式工程默认值，不声称为官方公式 |
 | M3 7 槽引擎 | complete | 本阶段提交 | 7 槽顺序、拒绝、解锁、6/7、胜负与 100 次确定性通过 | 浏览器交互归 Gate A | 旧多模式研究代码仅保留在 experimental |
-| M4 Play + Take | pending |  |  |  |  |
-| Gate A | pending |  |  |  |  |
-| M5 Solver | pending |  |  |  |  |
+| M4 Play + Take | complete | 本阶段提交 | 13 个测试文件、58/58；check/type/build 通过 | 试玩与回放闭环通过 | 编辑态布局变更在试玩中锁定 |
+| Gate A | complete | 随 M4 | 13 个测试文件、58/58；check/type/build 通过 | 48 张初始牌；修正遮挡边 `91→90`；6 次动作完成 2 组三消并解锁 4 张；Replay `6/6`；终态 `state-c91f0b62`；控制台 0 错误 | 截图与示例已固化 |
+| M5 Solver | in progress |  |  |  |  |
 | M6 SkinPack | pending |  |  |  |  |
 | Gate B | pending |  |  |  |  |
 | M7 Director | pending |  |  |  |  |
@@ -41,3 +41,11 @@
 - `editorLocked` 只影响编辑器，不进入可点击判定。
 - `levelHash` 排除主题、牌面、牌体、背景、导演与音频字段。
 - 未经浏览器和固定帧实测的能力不会在本表中标为 Gate 完成。
+
+## Gate A 证据
+
+- `artifacts/design-qa/taptile/gate-a-blocker-validation.png`
+- `artifacts/design-qa/taptile/gate-a-play-two-matches.png`
+- `artifacts/design-qa/taptile/gate-a-deterministic-replay.png`
+- `examples/taptile-gate-a-project.json`
+- `examples/taptile-gate-a-take.json`

@@ -11,10 +11,16 @@
 5. [`TPT_PIXEL_ALIGNMENT.md`](TPT_PIXEL_ALIGNMENT.md)：1080×1920 输出坐标、整数像素和堆叠遮挡统一规范。
 6. [`source-mechanics.json`](source-mechanics.json)：供 Agent/脚本直接读取的源项目玩法分类。
 7. [`generated/video-index.json`](generated/video-index.json) / [`generated/video-index.csv`](generated/video-index.csv)：完整视频索引。
+8. [`TPT_TRAY_MATCH3_EXECUTION_HANDOFF.md`](TPT_TRAY_MATCH3_EXECUTION_HANDOFF.md)：7 槽三消导演台的执行约束、阶段门禁与交付标准。
+9. [`TPT_IMPLEMENTATION_STATUS.md`](TPT_IMPLEMENTATION_STATUS.md)：逐阶段测试、浏览器验证和遗留台账。
 
 ## 对应代码
 
-- `src/taptile/gameplay/`：纯 TypeScript 玩法状态机、槽位归组、三消、原位消除和遮挡图。
+- `src/taptile/project/`：Project Schema V2、V1 迁移、稳定哈希和编辑器适配层。
+- `src/taptile/gameplay/compiler/`：旋转牌块遮挡图、覆盖修正、关卡校验和稳定 `levelHash`。
+- `src/taptile/gameplay/`：正式 `taptile-tray-match3-v1` 7 槽三消状态机；历史多模式研究实现隔离在 `experimental/`。
+- `src/taptile/gameplay/take/`：语义 Take 录制、确定性重放、逐动作校验和 Seek。
+- `src/taptile/play/`：试玩台、7 槽 UI、可点击提示和回放交互。
 - `src/taptile/pixelGeometry.ts`：编辑坐标到 1080×1920 输出整数像素的唯一换算入口。
 - `src/taptile/stackModel.ts`：堆叠编辑模型。
 - `scripts/analyze-taptile-videos.mjs`：可重复生成视频索引。

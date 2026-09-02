@@ -46,6 +46,17 @@ import {
   type StackPoint,
   type StackSelectionRect,
 } from './stackSelection';
+import {
+  compileTapTileLevel,
+  playableTapTileIds,
+} from './gameplay';
+import { GameplayStageOverlay } from './play/GameplayStage';
+import { GameplayTray } from './play/GameplayTray';
+import { useGameplaySession } from './play/useGameplaySession';
+import {
+  TAPTILE_WORKSPACE_MODES,
+  type TapTileWorkspaceMode,
+} from './workspace/WorkspaceMode';
 import './taptile-studio.css';
 
 const AUTOSAVE_KEY_V2 = 'taptile-director-project/autosave/v2';
@@ -210,6 +221,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const dragRef = useRef<DragSession | null>(null);
   const marqueeRef = useRef<MarqueeSession | null>(null);
   const snapClearTimerRef = useRef<number | null>(null);
+  const rejectClearTimerRef = useRef<number | null>(null);
+  const [workspaceMode, setWorkspaceMode] = useState<TapTileWorkspaceMode>('edit');
+  const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
+  const gameplay = useGameplaySession();
 
   const commit = useCallback((mutate: (draft: TapTileProjectV2) => void): void => {
     const next = cloneProject(projectRef.current);
@@ -220,6 +235,21 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   }, []);
 
   const tiles = useMemo(() => projectStackTiles(project), [project]);
+  const compiledLevel = useMemo(() => compileTapTileLevel(project), [project]);
+  const displayState = workspaceMode === 'play'
+    ? gameplay.gameState
+    : workspaceMode === 'replay'
+      ? gameplay.replayState
+      : null;
+  const displayedBoardIds = useMemo(
+    () => new Set(displayState?.boardIds ?? tiles.map((tile) => tile.id)),
+    [displayState, tiles],
+  );
+  const displayedPlayableIds = useMemo(() => new Set(
+    displayState
+      ? playableTapTileIds(compiledLevel, displayState)
+      : compiledLevel.initialPlayableIds,
+  ), [compiledLevel, displayState]);
 
   const selectedTiles = useMemo(
     () => tiles.filter((tile) => selectedIds.includes(tile.id)),
@@ -259,6 +289,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
   useEffect(() => () => {
     if (snapClearTimerRef.current !== null) window.clearTimeout(snapClearTimerRef.current);
+    if (rejectClearTimerRef.current !== null) window.clearTimeout(rejectClearTimerRef.current);
   }, []);
 
   useEffect(() => {
@@ -266,6 +297,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   }, [layerFocus, usedLayers]);
 
   const updateSelected = useCallback((mutate: (tile: StackTile) => StackTile): void => {
+    if (workspaceMode !== 'edit') return;
     const ids = new Set(selectedRef.current);
     if (ids.size === 0) return;
     commit((draft) => {
@@ -274,9 +306,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
         : tile);
       replaceProjectStackTiles(draft, nextTiles);
     });
-  }, [commit]);
+  }, [commit, workspaceMode]);
 
   const deleteSelected = useCallback((): void => {
+    if (workspaceMode !== 'edit') return;
     const ids = new Set(selectedRef.current);
     if (ids.size === 0) return;
     commit((draft) => {
@@ -284,9 +317,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     });
     setSelectedIds([]);
     setNotice(`已删除 ${ids.size} 张牌`);
-  }, [commit]);
+  }, [commit, workspaceMode]);
 
   const duplicateSelected = useCallback((): void => {
+    if (workspaceMode !== 'edit') return;
     const ids = new Set(selectedRef.current);
     if (ids.size === 0) return;
     const newIds: string[] = [];
@@ -310,9 +344,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     });
     setSelectedIds(newIds);
     setNotice(`已复制 ${newIds.length} 张牌`);
-  }, [commit]);
+  }, [commit, workspaceMode]);
 
   const alignSelection = useCallback((command: StackAlignmentCommand, label: string, minimum: number): void => {
+    if (workspaceMode !== 'edit') return;
     const ids = [...selectedRef.current];
     if (ids.length < minimum) {
       setNotice(minimum === 3 ? '等距分布至少需要选中 3 张牌' : '对齐至少需要选中 2 张牌');
@@ -325,7 +360,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       replaceProjectStackTiles(draft, aligned);
     });
     setNotice(`已完成${label}`);
-  }, [commit]);
+  }, [commit, workspaceMode]);
 
   const selectAllVisible = useCallback((): void => {
     const ids = projectStackTiles(projectRef.current)
@@ -346,6 +381,17 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     const onKeyDown = (event: KeyboardEvent): void => {
       const target = event.target;
       if (target instanceof HTMLElement && target.closest('input, textarea, select')) return;
+      if (workspaceMode !== 'edit') {
+        if (workspaceMode === 'replay' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+          event.preventDefault();
+          gameplay.seekReplay(gameplay.replayIndex + (event.key === 'ArrowRight' ? 1 : -1));
+        } else if (event.key === 'Escape') {
+          event.preventDefault();
+          setWorkspaceMode('edit');
+          setNotice('已返回编辑模式');
+        }
+        return;
+      }
       const command = event.ctrlKey || event.metaKey;
       if (command && event.key.toLowerCase() === 'z') {
         event.preventDefault();
@@ -394,9 +440,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [clearSelection, deleteSelected, duplicateSelected, selectAllVisible, updateSelected]);
+  }, [clearSelection, deleteSelected, duplicateSelected, gameplay, selectAllVisible, updateSelected, workspaceMode]);
 
   const chooseTemplate = (templateId: StackTemplateId): void => {
+    if (workspaceMode !== 'edit') return;
     const next = createDefaultTapTileProject(templateId);
     next.name = project.name;
     next.authoring.material = project.authoring.material;
@@ -411,6 +458,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   };
 
   const chooseFace = (faceId: string): void => {
+    if (workspaceMode !== 'edit') return;
     if (selectedRef.current.length > 0) {
       updateSelected((tile) => ({ ...tile, faceId }));
       setNotice(`已替换 ${selectedRef.current.length} 张牌的牌面`);
@@ -600,6 +648,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     key: Key,
     value: TapTileProjectV2['authoring'][Key],
   ): void => {
+    if (workspaceMode === 'play' || workspaceMode === 'replay') return;
     commit((draft) => {
       draft.authoring[key] = value;
     });
@@ -617,6 +666,126 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     setNotice('只更换视觉主题；匹配分组、阻挡图和 Take 不变');
   };
 
+  const beginPlay = (): void => {
+    if (!compiledLevel.validation.valid) {
+      setWorkspaceMode('validate');
+      const firstError = compiledLevel.validation.issues.find((issue) => issue.severity === 'error');
+      setNotice(firstError ? `${firstError.code}：${firstError.message}` : '关卡未通过验证');
+      return;
+    }
+    gameplay.begin(compiledLevel);
+    setSelectedIds([]);
+    setWorkspaceMode('play');
+    setNotice(`试玩已冻结关卡 ${compiledLevel.levelHash}`);
+  };
+
+  const openSelectedReplay = (): void => {
+    const take = project.takes.find((candidate) => candidate.id === project.selectedTakeId) ?? project.takes.at(-1);
+    if (!take) {
+      setNotice('还没有可回放的 Take；请先完成一次试玩并保存');
+      return;
+    }
+    const validation = gameplay.openReplay(compiledLevel, take);
+    setWorkspaceMode('replay');
+    setNotice(validation.valid ? `Take 已验证：${take.finalStateHash}` : validation.issues[0]?.message ?? 'Take 无效');
+  };
+
+  const saveCurrentTake = (): void => {
+    const token = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${gameplay.recordedActions.length}`;
+    const take = gameplay.finish(`take-${token}`, `真人 Take ${project.takes.length + 1}`);
+    if (!take) {
+      setNotice('至少完成一次合法点击后才能保存 Take');
+      return;
+    }
+    commit((draft) => {
+      draft.takes.push(take);
+      draft.selectedTakeId = take.id;
+    });
+    gameplay.openReplay(compiledLevel, take);
+    setWorkspaceMode('replay');
+    setNotice(`Take 已保存并通过确定性重放：${take.finalStateHash}`);
+  };
+
+  const switchWorkspaceMode = (mode: TapTileWorkspaceMode): void => {
+    if (mode === 'play') {
+      beginPlay();
+      return;
+    }
+    if (mode === 'replay') {
+      openSelectedReplay();
+      return;
+    }
+    setWorkspaceMode(mode);
+    if (mode === 'validate') {
+      const errors = compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length;
+      setNotice(errors === 0 ? `关卡有效 · ${compiledLevel.levelHash}` : `发现 ${errors} 个阻塞错误`);
+    } else if (mode === 'direct') {
+      setNotice('导演模式使用已保存 Take；时间线将在下一 Gate 接入');
+    } else if (mode === 'export') {
+      setNotice('导出模式需要已保存 Take；固定帧输出将在后续 Gate 接入');
+    } else {
+      setNotice('已返回可编辑工程；试玩状态未写回布局');
+    }
+  };
+
+  const tapGameplayTile = (event: ReactPointerEvent<HTMLButtonElement>, tile: StackTile): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = stageRef.current?.getBoundingClientRect();
+    const transition = gameplay.tapTile(tile.id, rect ? {
+      x: (event.clientX - rect.left) / Math.max(1, rect.width),
+      y: (event.clientY - rect.top) / Math.max(1, rect.height),
+    } : undefined);
+    if (!transition) return;
+    if (!transition.accepted) {
+      setRejectedTileId(tile.id);
+      if (rejectClearTimerRef.current !== null) window.clearTimeout(rejectClearTimerRef.current);
+      rejectClearTimerRef.current = window.setTimeout(() => setRejectedTileId(null), 420);
+      setNotice(transition.rejectReason === 'blocked'
+        ? `不可点击：仍被 ${(transition.blockerIds ?? []).join('、')} 阻挡`
+        : `点击被拒绝：${transition.rejectReason}`);
+      return;
+    }
+    if (transition.terminal === 'won') setNotice('关卡胜利；请保存 Take');
+    else if (transition.terminal === 'lost') setNotice('槽位结算后失败；可保存失败 Take 或重新开始');
+    else if (transition.matchedTileIds.length > 0) setNotice(`已完成三消：${transition.matchedTileIds.join('、')}`);
+    else if (transition.newlyUnlockedTileIds.length > 0) setNotice(`新解锁 ${transition.newlyUnlockedTileIds.length} 张牌`);
+    else setNotice(`已记录动作 ${gameplay.recordedActions.length + 1}`);
+  };
+
+  const selectValidationTile = (event: ReactPointerEvent<HTMLButtonElement>, tile: StackTile): void => {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedIds((current) => event.shiftKey
+      ? current.includes(tile.id) ? current.filter((id) => id !== tile.id) : [...current, tile.id]
+      : [tile.id]);
+  };
+
+  const updatePairOverride = (kind: 'ignored' | 'forced'): void => {
+    const pair = tiles.filter((tile) => selectedIds.includes(tile.id));
+    if (pair.length !== 2) {
+      setNotice('请用 Shift 选择两张不同层级的牌');
+      return;
+    }
+    const [lower, upper] = [...pair].sort((left, right) => left.layer - right.layer);
+    if (!lower || !upper || lower.layer === upper.layer) {
+      setNotice('同层牌不互相阻挡；请先调整层级');
+      return;
+    }
+    const edge = { blockerId: upper.id, blockedId: lower.id };
+    commit((draft) => {
+      const target = draft.level.blockerOverrides[kind];
+      const exists = target.some((candidate) => candidate.blockerId === edge.blockerId && candidate.blockedId === edge.blockedId);
+      draft.level.blockerOverrides[kind] = exists
+        ? target.filter((candidate) => candidate.blockerId !== edge.blockerId || candidate.blockedId !== edge.blockedId)
+        : [...target, edge];
+      const other = kind === 'ignored' ? 'forced' : 'ignored';
+      draft.level.blockerOverrides[other] = draft.level.blockerOverrides[other]
+        .filter((candidate) => candidate.blockerId !== edge.blockerId || candidate.blockedId !== edge.blockedId);
+    });
+    setNotice(`${kind === 'ignored' ? '忽略' : '强制'}阻挡 ${upper.id} → ${lower.id} 已切换`);
+  };
+
   const importProject = async (file: File): Promise<void> => {
     const parsed: unknown = JSON.parse(await file.text());
     const next = isTapTileProjectV2(parsed)
@@ -632,29 +801,40 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   };
 
   return (
-    <div className={`tpt-studio theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}>
+    <div className={`tpt-studio mode-${workspaceMode} debug-${project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}>
       <header className="tpt-topbar">
         <div className="tpt-brand">
           <span className="tpt-brand-mark">T</span>
           <div>
-            <strong>TapTile Stack Studio</strong>
-            <small>手工堆叠编辑器 · Preview 02</small>
+            <strong>TapTile Match-3 Director</strong>
+            <small>7 槽三消导演台 · V1</small>
           </div>
         </div>
         <div className="tpt-project-name">
           <span>项目</span>
           <input
             value={project.name}
+            disabled={workspaceMode === 'play'}
             onChange={(event) => setProjectName(event.target.value)}
             aria-label="项目名称"
           />
         </div>
+        <nav className="tpt-mode-switch" aria-label="工作模式">
+          {TAPTILE_WORKSPACE_MODES.map((mode) => (
+            <button
+              key={mode.id}
+              data-mode-id={mode.id}
+              className={workspaceMode === mode.id ? 'is-active' : ''}
+              onClick={() => switchWorkspaceMode(mode.id)}
+            >{mode.label}</button>
+          ))}
+        </nav>
         <nav className="tpt-actions" aria-label="工程操作">
-          <button disabled={history.past.length === 0} onClick={() => dispatch({ type: 'undo' })} title="Ctrl+Z">↶ 撤销</button>
-          <button disabled={history.future.length === 0} onClick={() => dispatch({ type: 'redo' })} title="Ctrl+Y">↷ 重做</button>
+          <button disabled={workspaceMode !== 'edit' || history.past.length === 0} onClick={() => dispatch({ type: 'undo' })} title="Ctrl+Z">↶ 撤销</button>
+          <button disabled={workspaceMode !== 'edit' || history.future.length === 0} onClick={() => dispatch({ type: 'redo' })} title="Ctrl+Y">↷ 重做</button>
           <button onClick={() => importRef.current?.click()}>导入</button>
           <button onClick={() => downloadProject(project)}>导出工程</button>
-          <button className="tpt-action-primary" onClick={() => setNotice('第一版先聚焦堆叠编辑，玩法预览将在下一阶段接入')}>▶ 预览</button>
+          <button className="tpt-action-primary" onClick={beginPlay}>▶ 开始试玩</button>
           <button className="tpt-block-link" onClick={onOpenBlockStudio}>Block Studio</button>
         </nav>
         <input
@@ -682,6 +862,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 <button
                   key={template.id}
                   className={project.authoring.templateId === template.id ? 'is-active' : ''}
+                  disabled={workspaceMode !== 'edit'}
                   onClick={() => chooseTemplate(template.id)}
                 >
                   <i className={`template-glyph template-${template.id}`} aria-hidden="true" />
@@ -700,6 +881,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 <button
                   key={face.id}
                   title={face.label}
+                  disabled={workspaceMode !== 'edit'}
                   style={{ '--face-accent': face.accent } as React.CSSProperties}
                   onClick={() => chooseFace(face.id)}
                 >
@@ -716,6 +898,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             <div className="tpt-tool-group">
               <button
                 className={`tpt-magnet-button${project.authoring.snap ? ' is-active' : ''}`}
+                disabled={workspaceMode !== 'edit'}
                 onClick={() => {
                   setAuthoringOption('snap', !project.authoring.snap);
                   setSnapGuides([]);
@@ -723,17 +906,17 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 }}
                 title="识别中心、边缘、两牌中线与等距轨道"
               ><span aria-hidden="true">⌁</span> 智能吸附</button>
-              <button onClick={selectAllVisible} disabled={visibleTileIds.length === 0} title="Ctrl+A">全选</button>
+              <button onClick={selectAllVisible} disabled={workspaceMode !== 'edit' || visibleTileIds.length === 0} title="Ctrl+A">全选</button>
               <button onClick={clearSelection} disabled={selectedIds.length === 0} title="Esc">取消选择</button>
-              <button onClick={duplicateSelected} disabled={selectedIds.length === 0}>＋ 复制</button>
-              <button onClick={deleteSelected} disabled={selectedIds.length === 0}>⌫ 删除</button>
+              <button onClick={duplicateSelected} disabled={workspaceMode !== 'edit' || selectedIds.length === 0}>＋ 复制</button>
+              <button onClick={deleteSelected} disabled={workspaceMode !== 'edit' || selectedIds.length === 0}>⌫ 删除</button>
               <button
                 onClick={() => updateSelected((tile) => ({ ...tile, layer: tile.layer + 1 }))}
-                disabled={selectedIds.length === 0}
+                disabled={workspaceMode !== 'edit' || selectedIds.length === 0}
               >层 +1</button>
               <button
                 onClick={() => updateSelected((tile) => ({ ...tile, layer: Math.max(0, tile.layer - 1) }))}
-                disabled={selectedIds.length === 0}
+                disabled={workspaceMode !== 'edit' || selectedIds.length === 0}
               >层 −1</button>
             </div>
             <div className={`tpt-snap-readout${snapGuides.length > 0 ? ' is-active' : ''}`} aria-live="polite">
@@ -748,17 +931,36 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               {usedLayers.map((layer) => (
                 <button key={layer} className={layerFocus === layer ? 'is-active' : ''} onClick={() => setLayerFocus(layer)}>{layer + 1}</button>
               ))}
+              <select
+                aria-label="调试视图"
+                value={project.authoring.debugView}
+                onChange={(event) => setAuthoringOption('debugView', event.target.value as TapTileProjectV2['authoring']['debugView'])}
+                disabled={workspaceMode === 'play' || workspaceMode === 'replay'}
+              >
+                <option value="normal">普通</option>
+                <option value="playability">可点击态</option>
+                <option value="blockers">阻挡关系</option>
+                <option value="single-layer">单层</option>
+              </select>
             </div>
           </div>
+
+          {workspaceMode === 'validate' && (
+            <div className={`tpt-validation-banner${compiledLevel.validation.valid ? ' is-valid' : ' is-invalid'}`}>
+              <strong>{compiledLevel.validation.valid ? '关卡有效，可以试玩' : '关卡存在阻塞错误'}</strong>
+              <span>{compiledLevel.validation.statistics.tileCount} 张牌 · {compiledLevel.validation.statistics.edgeCount} 条阻挡边 · {compiledLevel.validation.statistics.playableCount} 张初始可点</span>
+              <small>{compiledLevel.levelHash}</small>
+            </div>
+          )}
 
           <div className="tpt-stage-shell">
             <div
               ref={stageRef}
               className="tpt-phone-stage"
-              onPointerDown={beginMarquee}
-              onPointerMove={moveMarquee}
-              onPointerUp={finishMarquee}
-              onPointerCancel={finishMarquee}
+              onPointerDown={workspaceMode === 'edit' ? beginMarquee : undefined}
+              onPointerMove={workspaceMode === 'edit' ? moveMarquee : undefined}
+              onPointerUp={workspaceMode === 'edit' ? finishMarquee : undefined}
+              onPointerCancel={workspaceMode === 'edit' ? finishMarquee : undefined}
             >
               <div className="tpt-scene-background" aria-hidden="true">
                 <i className="scene-cloud cloud-one" />
@@ -772,10 +974,47 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 <strong>LEVEL 07</strong>
                 <div className="tpt-logo"><span>TAP</span><b>TILE</b></div>
               </div>
-              <div className="tpt-tray" aria-hidden="true">
-                {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
-              </div>
+              {displayState ? (
+                <GameplayTray
+                  trayIds={displayState.trayIds}
+                  status={displayState.status}
+                  glyphForTile={(tileId) => faceGlyph(project, compiledLevel.tiles[tileId]?.matchKey ?? '')}
+                />
+              ) : (
+                <div className="tpt-tray" aria-hidden="true">
+                  {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
+                </div>
+              )}
               <div className="tpt-safe-area" aria-hidden="true"><span>游戏区域</span></div>
+
+              {(workspaceMode === 'validate' || project.authoring.debugView === 'blockers') && (
+                <svg className="tpt-blocker-graph" viewBox={`0 0 ${STACK_STAGE.width} ${STACK_STAGE.height}`} aria-hidden="true">
+                  <defs>
+                    <marker id="tpt-blocker-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+                      <path d="M0,0 L7,3.5 L0,7 Z" />
+                    </marker>
+                  </defs>
+                  {compiledLevel.blockerEdges.map((edge) => {
+                    const blocker = tiles.find((tile) => tile.id === edge.blockerId);
+                    const blocked = tiles.find((tile) => tile.id === edge.blockedId);
+                    if (!blocker || !blocked) return null;
+                    const emphasized = selectedIds.length === 0 || selectedIds.includes(edge.blockerId) || selectedIds.includes(edge.blockedId);
+                    return (
+                      <line
+                        key={`${edge.blockerId}-${edge.blockedId}`}
+                        data-blocker-id={edge.blockerId}
+                        data-blocked-id={edge.blockedId}
+                        x1={blocker.x}
+                        y1={blocker.y}
+                        x2={blocked.x}
+                        y2={blocked.y}
+                        className={`${edge.source === 'forced' ? 'is-forced' : 'is-automatic'}${emphasized ? ' is-emphasized' : ''}`}
+                        markerEnd="url(#tpt-blocker-arrow)"
+                      />
+                    );
+                  })}
+                </svg>
+              )}
 
               {marquee && (
                 <div
@@ -804,16 +1043,23 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 </div>
               ))}
 
-              {tiles.map((tile, index) => {
+              {tiles.filter((tile) => displayedBoardIds.has(tile.id)).map((tile, index) => {
                 const selected = selectedIds.includes(tile.id);
                 const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
                 const snapTarget = snapTargetIds.includes(tile.id);
+                const playable = displayedPlayableIds.has(tile.id);
+                const related = primaryTile
+                  ? (compiledLevel.blockersByTile[primaryTile.id] ?? []).includes(tile.id)
+                    || (compiledLevel.dependentsByTile[primaryTile.id] ?? []).includes(tile.id)
+                  : false;
                 return (
                   <button
                     key={tile.id}
                     type="button"
                     data-tile-id={tile.id}
-                    className={`stack-tile${selected ? ' is-selected' : ''}${dimmed ? ' is-dimmed' : ''}${tile.locked ? ' is-locked' : ''}${snapTarget ? ' is-snap-target' : ''}`}
+                    data-match-key={tile.faceId}
+                    data-playable={playable ? 'true' : 'false'}
+                    className={`stack-tile${selected ? ' is-selected' : ''}${dimmed ? ' is-dimmed' : ''}${tile.locked ? ' is-locked' : ''}${snapTarget ? ' is-snap-target' : ''}${playable ? ' is-playable' : ' is-game-blocked'}${related ? ' is-blocker-related' : ''}${rejectedTileId === tile.id ? ' is-rejected' : ''}`}
                     aria-label={`${faceGlyph(project, tile.faceId)} 第 ${tile.layer + 1} 层`}
                     style={{
                       left: `${(tile.x / STACK_STAGE.width) * 100}%`,
@@ -823,11 +1069,17 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                       transform: `translate(-50%, -50%) rotate(${tile.rotation}deg)`,
                       '--tile-accent': faceAccent(tile.faceId),
                     } as React.CSSProperties}
-                    onPointerDown={(event) => beginDrag(event, tile)}
-                    onPointerMove={moveDrag}
-                    onPointerUp={finishDrag}
-                    onPointerCancel={finishDrag}
+                    onPointerDown={(event) => {
+                      if (workspaceMode === 'edit') beginDrag(event, tile);
+                      else if (workspaceMode === 'validate') selectValidationTile(event, tile);
+                      else if (workspaceMode === 'play') tapGameplayTile(event, tile);
+                      else event.preventDefault();
+                    }}
+                    onPointerMove={workspaceMode === 'edit' ? moveDrag : undefined}
+                    onPointerUp={workspaceMode === 'edit' ? finishDrag : undefined}
+                    onPointerCancel={workspaceMode === 'edit' ? finishDrag : undefined}
                     onDoubleClick={(event) => {
+                      if (workspaceMode !== 'edit') return;
                       event.stopPropagation();
                       if (!selectedIds.includes(tile.id)) setSelectedIds([tile.id]);
                       window.setTimeout(duplicateSelected, 0);
@@ -841,16 +1093,47 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   </button>
                 );
               })}
+              {displayState && (
+                <GameplayStageOverlay
+                  state={displayState}
+                  warning={displayState.status === 'playing' && displayState.trayIds.length === 6}
+                />
+              )}
             </div>
-            <div className="tpt-snap-coach" aria-hidden="true">
-              <b>框选与智能轨道</b>
-              <span>空白处拖框 · Shift 追加 · 选中后整体拖动</span>
-              <small><kbd>Alt</kbd> 关闭吸附　<kbd>Shift</kbd> 锁定拖动方向</small>
-            </div>
+            {workspaceMode === 'edit' && (
+              <div className="tpt-snap-coach" aria-hidden="true">
+                <b>框选与智能轨道</b>
+                <span>空白处拖框 · Shift 追加 · 选中后整体拖动</span>
+                <small><kbd>Alt</kbd> 关闭吸附　<kbd>Shift</kbd> 锁定拖动方向</small>
+              </div>
+            )}
           </div>
 
+          {workspaceMode === 'play' && gameplay.gameState && (
+            <div
+              className="tpt-session-bar"
+              data-mode="play"
+              data-match-count={gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length}
+              data-unlock-count={gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)}
+            >
+              <div><span className="tpt-record-dot" /><strong>正在记录 Take</strong><small>{gameplay.recordedActions.length} 个动作 · 三消 {gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 {gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 {gameplay.gameState.trayIds.length}/7</small></div>
+              <div><button onClick={gameplay.restart}>重新开始</button><button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button></div>
+            </div>
+          )}
+
+          {workspaceMode === 'replay' && gameplay.replayValidation && (
+            <div className="tpt-session-bar" data-mode="replay" data-valid={gameplay.replayValidation.valid ? 'true' : 'false'}>
+              <div><strong>{gameplay.replayValidation.valid ? '确定性回放' : 'Take 校验失败'}</strong><small>{gameplay.replayValidation.issues[0]?.message ?? `finalStateHash 一致 · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`}</small></div>
+              <div className="tpt-replay-controls">
+                <button onClick={() => gameplay.seekReplay(gameplay.replayIndex - 1)} disabled={gameplay.replayIndex === 0}>上一步</button>
+                <input type="range" min={0} max={Math.max(0, gameplay.replayValidation.replay.states.length - 1)} value={gameplay.replayIndex} onChange={(event) => gameplay.seekReplay(Number(event.target.value))} />
+                <button onClick={() => gameplay.seekReplay(gameplay.replayIndex + 1)} disabled={gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1}>下一步</button>
+              </div>
+            </div>
+          )}
+
           <footer className="tpt-stage-status">
-            <span><i className="status-ready" />自由编辑模式</span>
+            <span><i className="status-ready" />{TAPTILE_WORKSPACE_MODES.find((mode) => mode.id === workspaceMode)?.label ?? workspaceMode}模式</span>
             <span><strong>{tiles.length}</strong> 张牌</span>
             {selectedIds.length > 0 && <span className="tpt-selected-count"><strong>{selectedIds.length}</strong> 已选</span>}
             <span><strong>{usedLayers.length}</strong> 个层级</span>
@@ -861,11 +1144,47 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
         </section>
 
         <aside className="tpt-panel tpt-inspector-panel">
+          {workspaceMode === 'validate' && (
+            <section className="tpt-blocker-inspector">
+              <div className="tpt-section-title"><span>关卡与阻挡</span><small>{compiledLevel.validation.valid ? 'VALID' : 'ACTION REQUIRED'}</small></div>
+              <div className="tpt-validation-summary">
+                <strong>{compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length} 错误 · {compiledLevel.validation.issues.filter((issue) => issue.severity === 'warning').length} 警告</strong>
+                <span>{compiledLevel.initialPlayableIds.length} 张初始可点击牌</span>
+              </div>
+              <div className="tpt-validation-issues">
+                {compiledLevel.validation.issues.filter((issue) => issue.severity !== 'info').slice(0, 8).map((issue, index) => (
+                  <button
+                    key={`${issue.code}-${index}`}
+                    className={`severity-${issue.severity}`}
+                    onClick={() => {
+                      const tileId = issue.objectIds.find((id) => tiles.some((tile) => tile.id === id));
+                      if (tileId) setSelectedIds([tileId]);
+                      setNotice(`${issue.code}：${issue.message}${issue.suggestion ? ` · ${issue.suggestion}` : ''}`);
+                    }}
+                  ><b>{issue.code}</b><span>{issue.message}</span></button>
+                ))}
+                {compiledLevel.validation.issues.every((issue) => issue.severity === 'info') && <p>没有阻塞问题；可以直接开始试玩。</p>}
+              </div>
+              {primaryTile && (
+                <div className="tpt-blocker-detail" data-selected-tile={primaryTile.id}>
+                  <b>{primaryTile.id}</b>
+                  <span>{compiledLevel.initialBlockerCount[primaryTile.id] ?? 0} 个上层 blocker</span>
+                  <small>阻挡它：{(compiledLevel.blockersByTile[primaryTile.id] ?? []).join('、') || '无'}</small>
+                  <small>它阻挡：{(compiledLevel.dependentsByTile[primaryTile.id] ?? []).join('、') || '无'}</small>
+                </div>
+              )}
+              <div className="tpt-override-actions">
+                <button onClick={() => updatePairOverride('ignored')} disabled={selectedIds.length !== 2}>忽略两牌阻挡</button>
+                <button onClick={() => updatePairOverride('forced')} disabled={selectedIds.length !== 2}>强制高层阻挡低层</button>
+              </div>
+              <button className="tpt-action-primary tpt-validation-play" onClick={beginPlay} disabled={!compiledLevel.validation.valid}>验证通过，开始试玩</button>
+            </section>
+          )}
           <section>
             <div className="tpt-section-title"><span>场景</span><small>SCENE</small></div>
             <label className="tpt-field">
               <span>背景风格</span>
-              <select value={project.authoring.sceneTheme} onChange={(event) => setAuthoringOption('sceneTheme', event.target.value as SceneThemeId)}>
+              <select disabled={workspaceMode === 'play' || workspaceMode === 'replay'} value={project.authoring.sceneTheme} onChange={(event) => setAuthoringOption('sceneTheme', event.target.value as SceneThemeId)}>
                 <option value="deep-ocean">深海蓝岛</option>
                 <option value="sunset">日落旷野</option>
                 <option value="candy">糖果乐园</option>
@@ -874,7 +1193,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             </label>
             <label className="tpt-field">
               <span>视觉主题（不改玩法）</span>
-              <select value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
+              <select disabled={workspaceMode === 'play'} value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
                 {Object.values(project.visuals.themes).map((theme) => (
                   <option key={theme.id} value={theme.id}>{theme.name}</option>
                 ))}
@@ -882,7 +1201,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             </label>
             <label className="tpt-field">
               <span>牌体材质</span>
-              <select value={project.authoring.material} onChange={(event) => setAuthoringOption('material', event.target.value as TileMaterialId)}>
+              <select disabled={workspaceMode === 'play' || workspaceMode === 'replay'} value={project.authoring.material} onChange={(event) => setAuthoringOption('material', event.target.value as TileMaterialId)}>
                 <option value="porcelain">经典休闲牌</option>
                 <option value="ice">冰瓷圆角</option>
                 <option value="jelly">透明果冻</option>
@@ -890,8 +1209,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               </select>
             </label>
             <div className="tpt-toggle-row">
-              <label><input type="checkbox" checked={project.authoring.snap} onChange={(event) => setAuthoringOption('snap', event.target.checked)} /><span>智能吸附</span></label>
-              <label><input type="checkbox" checked={project.authoring.showLayerBadges} onChange={(event) => setAuthoringOption('showLayerBadges', event.target.checked)} /><span>显示层数</span></label>
+              <label><input disabled={workspaceMode !== 'edit'} type="checkbox" checked={project.authoring.snap} onChange={(event) => setAuthoringOption('snap', event.target.checked)} /><span>智能吸附</span></label>
+              <label><input disabled={workspaceMode !== 'edit'} type="checkbox" checked={project.authoring.showLayerBadges} onChange={(event) => setAuthoringOption('showLayerBadges', event.target.checked)} /><span>显示层数</span></label>
             </div>
           </section>
 
