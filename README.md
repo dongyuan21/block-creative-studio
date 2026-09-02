@@ -242,3 +242,7 @@ schemas             工程、资产谱系和固定机位契约 Schema
 - 导出当前为无声 MP4；音频事件轨仍未接入；
 - 当前只保证桌面 Chrome；
 - Blender/AE 接口保留，但 DCC 适配推迟到 2D 资产槽位和 Golden Scene 门禁之后。
+
+## TapTile 堆叠与玩法支线
+
+当前 fork 同时包含 TapTile 手工堆叠编辑器，以及从 143 条无水印成片审计出的纯 TypeScript 玩法基础层。入口与证据边界见 [`docs/taptile/README.md`](docs/taptile/README.md)。
