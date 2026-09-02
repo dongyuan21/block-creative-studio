@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- Fit the legacy experimental Three.js camera against the actual portrait viewport aspect so the 8×8 board, bevel and shadow remain inside the phone canvas instead of clipping at both sides.
+- Added regression coverage for 9:16 perspective framing and resize-driven camera updates.
+
 ## 0.2.0-alpha.2 — 2026-09-02
 
 ### Added
