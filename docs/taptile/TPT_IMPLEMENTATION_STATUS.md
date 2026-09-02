@@ -26,9 +26,9 @@
 | M4 Play + Take | complete | 本阶段提交 | 13 个测试文件、58/58；check/type/build 通过 | 试玩与回放闭环通过 | 编辑态布局变更在试玩中锁定 |
 | Gate A | complete | 随 M4 | 13 个测试文件、58/58；check/type/build 通过 | 48 张初始牌；修正遮挡边 `91→90`；6 次动作完成 2 组三消并解锁 4 张；Replay `6/6`；终态 `state-c91f0b62`；控制台 0 错误 | 截图与示例已固化 |
 | M5 Solver | complete | 本阶段提交 | 14 个测试文件、64/64；小关卡、正式沙漏、同 Seed、danger-rescue、intentional-fail、证据边界通过 | 48 步 `safe-win` Agent Take 胜利并确定性回放；终态 `state-8ba1e269`；控制台 0 错误 | Beam Search 的 `not-found` 不宣称数学无解 |
-| M6 SkinPack | in progress |  |  |  |  |
-| Gate B | pending |  |  |  |  |
-| M7 Director | pending |  |  |  |  |
+| M6 SkinPack | complete | 本阶段提交 | 15 个测试文件、71/71；两套完整覆盖、三类 FaceAssembly、Asset/Stage Registry、兼容错误、role 一致和视觉边界不变量通过 | animals/food 均显示 16 个匹配组完整覆盖 | IndexedDB 上传保留为后续资产入口；项目不持久化 blob URL |
+| Gate B | complete | 随 M6 | 15 个测试文件、71/71；两套 Skin 的 Transition/State/Hash 全等测试通过 | 同一 48 步 Take 比较 49 个状态；`level-ec5f06bd` 与 `state-8ba1e269` 不变；视觉身份改变；board/tray 身份一致；控制台 0 错误 | flight/match-ghost 由同一 resolver 覆盖并有角色不变量测试，实际动画随导演阶段呈现 |
+| M7 Director | in progress |  |  |  |  |
 | Gate C | pending |  |  |  |  |
 | M8 Canvas + MP4 | pending |  |  |  |  |
 | M9 Audio/Batch | pending |  |  |  |  |
@@ -55,3 +55,10 @@
 - `artifacts/design-qa/taptile/m5-agent-safe-win-replay.png`
 - 浏览器结果：48 个动作、全部 actor=`agent`、结果 `won`、Replay valid、控制台 0 错误。
 - `danger-rescue` 固定关卡会先触发一次 `tray.warning`，随后以三消降回 6 槽以下并最终通关。
+
+## Gate B 证据
+
+- `artifacts/design-qa/taptile/gate-b-animals-v1-replay.png`
+- `artifacts/design-qa/taptile/gate-b-food-v1-replay.png`
+- 同一 Take 的 49 个状态哈希、棋盘 ID 和槽位 ID 逐步相同；两套主题的视觉身份不同。
+- `animals-v1` 与 `food-v1` 均严格覆盖全部 16 个 archetype，缺绑定时明确报错且不会静默回退。

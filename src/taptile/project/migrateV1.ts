@@ -135,6 +135,7 @@ function makeBodyStyles(material: TapTileStackProject['material']): Record<strin
       cornerRadiusPx: 28,
       borderWidthPx: 4,
       shadowPresetId: 'soft-drop',
+      bodyAssetId: 'classic-tile-surface-v1',
       fill: '#fff7e7',
     },
     'body-cool': {
@@ -144,6 +145,7 @@ function makeBodyStyles(material: TapTileStackProject['material']): Record<strin
       cornerRadiusPx: 28,
       borderWidthPx: 4,
       shadowPresetId: 'soft-drop',
+      bodyAssetId: 'classic-tile-surface-v1',
       fill: '#eef8ff',
     },
     'body-color': {
@@ -153,6 +155,7 @@ function makeBodyStyles(material: TapTileStackProject['material']): Record<strin
       cornerRadiusPx: 30,
       borderWidthPx: 5,
       shadowPresetId: 'strong-drop',
+      bodyAssetId: 'classic-tile-surface-v1',
       fill: '#fff2bd',
     },
   };
@@ -218,7 +221,20 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
         tray: { left: 75, top: 1640, right: 1005, bottom: 1830, width: 930, height: 190 },
       },
     },
-    assets: { entries: {} },
+    assets: {
+      entries: {
+        'classic-tile-surface-v1': {
+          id: 'classic-tile-surface-v1',
+          kind: 'image',
+          source: { type: 'builtin', uri: '/assets/taptile/classic-tile-surface-v1.png' },
+          width: 512,
+          height: 512,
+          hasAlpha: false,
+          contentHash: 'f09b96ebfd4206b359d59be9364802b55b2d58cc3f559694a54d6731a6a34509',
+          version: '1',
+        },
+      },
+    },
     visuals: {
       archetypes,
       faceAssemblies,

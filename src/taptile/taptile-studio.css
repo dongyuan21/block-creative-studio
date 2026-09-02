@@ -338,7 +338,7 @@
   background: linear-gradient(145deg, #fffdf7, #ddd8cd);
   box-shadow: 0 2px 0 #9aa5ad, 0 4px 7px rgba(0, 0, 0, 0.34), inset 0 1px white;
 }
-.tpt-gameplay-tray i span { font-style: normal; font-size: clamp(9px, 1.7vw, 20px); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.24)); }
+.tpt-gameplay-tray i > span { font-style: normal; font-size: clamp(9px, 1.7vw, 20px); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.24)); }
 .tpt-gameplay-tray[data-occupied="6"] { border-color: #ffd357; box-shadow: 0 0 20px rgba(255, 188, 36, 0.35); }
 .tpt-gameplay-tray.status-lost { border-color: #ff6b74; }
 .tpt-safe-area { position: absolute; z-index: 15; left: 3.2%; right: 3.2%; top: 22.5%; bottom: 4%; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 9px; pointer-events: none; }
@@ -562,6 +562,33 @@
     drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28));
   transform: translateY(-1%);
 }
+.tpt-tile-visual {
+  position: absolute;
+  inset: 5%;
+  display: block;
+  overflow: hidden;
+  border-radius: min(22%, var(--tile-visual-radius, 12px));
+  border: var(--tile-visual-border, 1px) solid rgba(255, 255, 255, 0.16);
+  background-color: var(--tile-visual-fill, #fff7e7);
+  background-image: var(--tile-body-image, none);
+  background-position: center;
+  background-size: cover;
+  transform: scale(var(--tile-role-scale, 1));
+  transform-origin: center;
+  pointer-events: none;
+}
+.tile-body > .tpt-tile-visual { inset: 0; border: 0; background: transparent; }
+.tpt-tile-visual.mode-full-front { inset: 0; }
+.tpt-face-part { position: absolute; display: grid; place-items: center; transform-origin: center; }
+.tpt-face-part img { width: 100%; height: 100%; object-fit: contain; }
+.mode-full-front .tpt-face-part img { object-fit: cover; }
+.tpt-face-glyph { font-size: clamp(14px, 3.7vw, 42px); line-height: 1; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72)) drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28)); }
+.tpt-gameplay-tray .tpt-tile-visual { inset: 3%; }
+.tpt-gameplay-tray .tpt-face-glyph { font-size: clamp(9px, 1.7vw, 20px); }
+.tpt-face-missing { display: grid; place-items: center; width: 100%; height: 100%; color: #ff5f68; font-weight: 900; }
+.tpt-skin-compat { margin-top: 5px; font-size: 8px; }
+.tpt-skin-compat.is-valid { color: #61d9a4; }
+.tpt-skin-compat.is-invalid { color: #ff7a85; }
 .stack-tile.is-selected::before {
   content: "";
   position: absolute;

@@ -50,12 +50,19 @@ import {
   compileTapTileLevel,
   playableTapTileIds,
   solveTapTileTake,
+  tapTileStateHash,
   TAPTILE_SCENARIO_PROFILES,
   type TapTileScenarioProfileId,
 } from './gameplay';
 import { GameplayStageOverlay } from './play/GameplayStage';
 import { GameplayTray } from './play/GameplayTray';
 import { useGameplaySession } from './play/useGameplaySession';
+import {
+  resolveTileVisual,
+  resolveTileVisualForMatchKey,
+  validateSkinPack,
+} from './visual';
+import { TileVisual } from './visual/TileVisual';
 import {
   TAPTILE_WORKSPACE_MODES,
   type TapTileWorkspaceMode,
@@ -188,13 +195,13 @@ function downloadProject(project: TapTileProjectV2): void {
 }
 
 function faceGlyph(project: TapTileProjectV2, faceId: string): string {
-  const archetype = Object.values(project.visuals.archetypes).find((candidate) => candidate.matchKey === faceId);
-  const binding = archetype
-    ? project.visuals.themes[project.visuals.selectedThemeId]?.bindings[archetype.id]
-    : undefined;
-  const assembly = binding ? project.visuals.faceAssemblies[binding.faceAssemblyId] : undefined;
-  const glyph = assembly?.parts.find((part) => part.source.kind === 'glyph')?.source;
-  return glyph?.kind === 'glyph' ? glyph.value : FACE_LIBRARY.find((face) => face.id === faceId)?.glyph ?? '⭐';
+  try {
+    const visual = resolveTileVisualForMatchKey(project, faceId, project.visuals.selectedThemeId, 'hud-preview');
+    const glyph = visual.renderedFace.parts.find((part) => part.source.kind === 'glyph')?.source;
+    return glyph?.kind === 'glyph' ? glyph.value : '▣';
+  } catch {
+    return '⚠';
+  }
 }
 
 function faceAccent(faceId: string): string {
@@ -241,6 +248,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
   const tiles = useMemo(() => projectStackTiles(project), [project]);
   const compiledLevel = useMemo(() => compileTapTileLevel(project), [project]);
+  const selectedSkinCompatibility = useMemo(
+    () => validateSkinPack(project, project.visuals.selectedThemeId),
+    [project],
+  );
   const displayState = workspaceMode === 'play'
     ? gameplay.gameState
     : workspaceMode === 'replay'
@@ -837,7 +848,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   };
 
   return (
-    <div className={`tpt-studio mode-${workspaceMode} debug-${project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}>
+    <div
+      className={`tpt-studio mode-${workspaceMode} debug-${project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}
+      data-level-hash={compiledLevel.levelHash}
+      data-state-hash={displayState ? tapTileStateHash(displayState) : ''}
+      data-selected-theme={project.visuals.selectedThemeId}
+    >
       <header className="tpt-topbar">
         <div className="tpt-brand">
           <span className="tpt-brand-mark">T</span>
@@ -1014,7 +1030,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 <GameplayTray
                   trayIds={displayState.trayIds}
                   status={displayState.status}
-                  glyphForTile={(tileId) => faceGlyph(project, compiledLevel.tiles[tileId]?.matchKey ?? '')}
+                  renderTile={(tileId) => {
+                    const archetypeId = compiledLevel.tiles[tileId]?.archetypeId;
+                    return archetypeId
+                      ? <TileVisual visual={resolveTileVisual(project, archetypeId, project.visuals.selectedThemeId, 'tray')} />
+                      : <span className="tpt-face-missing">!</span>;
+                  }}
                 />
               ) : (
                 <div className="tpt-tray" aria-hidden="true">
@@ -1088,6 +1109,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   ? (compiledLevel.blockersByTile[primaryTile.id] ?? []).includes(tile.id)
                     || (compiledLevel.dependentsByTile[primaryTile.id] ?? []).includes(tile.id)
                   : false;
+                const archetypeId = compiledLevel.tiles[tile.id]?.archetypeId;
+                const tileVisual = archetypeId
+                  ? resolveTileVisual(project, archetypeId, project.visuals.selectedThemeId, 'board')
+                  : null;
                 return (
                   <button
                     key={tile.id}
@@ -1121,8 +1146,16 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                       window.setTimeout(duplicateSelected, 0);
                     }}
                   >
-                    <span className="tile-body">
-                      <span className="tile-face">{faceGlyph(project, tile.faceId)}</span>
+                    <span
+                      className="tile-body"
+                      style={tileVisual ? {
+                        backgroundColor: tileVisual.bodyStyle.fill,
+                        backgroundImage: tileVisual.bodyAsset?.uri ? `url("${tileVisual.bodyAsset.uri}")` : undefined,
+                        borderRadius: `${tileVisual.bodyStyle.cornerRadiusPx / 2.5}px`,
+                        borderWidth: `${Math.max(1, tileVisual.bodyStyle.borderWidthPx / 2.5)}px`,
+                      } : undefined}
+                    >
+                      {tileVisual ? <TileVisual visual={tileVisual} /> : <span className="tpt-face-missing">!</span>}
                     </span>
                     {project.authoring.showLayerBadges && <small className="tile-layer-badge">{tile.layer + 1}</small>}
                     {tile.locked && <small className="tile-lock-badge">●</small>}
@@ -1239,6 +1272,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   <option key={theme.id} value={theme.id}>{theme.name}</option>
                 ))}
               </select>
+              <small
+                className={selectedSkinCompatibility.valid ? 'tpt-skin-compat is-valid' : 'tpt-skin-compat is-invalid'}
+                data-skin-valid={selectedSkinCompatibility.valid ? 'true' : 'false'}
+                data-skin-theme={selectedSkinCompatibility.themeId}
+              >{selectedSkinCompatibility.valid ? `${selectedSkinCompatibility.coveredArchetypeIds.length} 个匹配组全部覆盖` : `${selectedSkinCompatibility.issues.filter((issue) => issue.severity === 'error').length} 个兼容错误`}</small>
             </label>
             <label className="tpt-field">
               <span>牌体材质</span>
