@@ -76,7 +76,7 @@ const jsonFiles = walk(root).filter((path) => {
 for (const file of jsonFiles) JSON.parse(readFileSync(file, 'utf8'));
 
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
-for (const scriptName of ['check', 'check:core', 'check:source', 'build', 'test']) {
+for (const scriptName of ['check', 'check:core', 'check:source', 'check:reference', 'build', 'test']) {
   if (!packageJson.scripts?.[scriptName]) throw new Error(`Missing package script: ${scriptName}`);
 }
 

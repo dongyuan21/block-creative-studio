@@ -214,12 +214,15 @@ for (let seed = 0; seed < 12; seed += 1) {
   );
 }
 
-const coralBoard = createEmptyBoard();
-coralBoard.cells[0][0] = 'coral';
-const cyanBoard = createEmptyBoard();
-cyanBoard.cells[0][0] = 'cyan';
+const paletteFingerprints = new Set(
+  ['coral', 'amber', 'lime', 'cyan', 'blue', 'violet', 'rose'].map((color) => {
+    const board = createEmptyBoard();
+    board.cells[0][0] = color;
+    return boardFingerprint(board);
+  }),
+);
 assert(
-  boardFingerprint(coralBoard) !== boardFingerprint(cyanBoard),
+  paletteFingerprints.size === 7,
   'board fingerprints must not collide across palette colors',
 );
 

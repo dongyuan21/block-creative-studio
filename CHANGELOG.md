@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.2.0-alpha.2 — 2026-09-02
+
+### Added
+
+- Full-frame audit indexes covering all 13,546 decoded frames without temporal gaps.
+- Machine-candidate event index plus nine manually reviewed representative windows.
+- 149-atom semantic asset lineage with requirement classes, dependencies, evidence status and renderer mappings.
+- Reference profile classification for core, event-required, reference-required, optional and capture-only atoms.
+- Fixed-camera cinematic representation map and Golden Scene extraction index.
+- Reproducible local audit tools for every-frame analysis and Golden Frame extraction.
+- Runtime-independent semantic asset contracts and a calibration-pending fixed-camera profile.
+- Seventh observed tile color token, `rose`, across gameplay, project validation, Canvas and Three.js palettes.
+- Six observed praise labels in the reference renderer; trigger thresholds remain explicitly provisional.
+- CI validator for frame coverage, event bounds, asset lineage, profile completeness and renderer mappings.
+
+### Changed
+
+- Reframed the future production target as a fixed-camera hybrid cinematic renderer rather than a universal full-3D game scene.
+- Updated the best-score HUD approximation to follow `max(previousBest, currentScore)`.
+- Separated machine-derived full-video coverage from manually reviewed evidence in the committed truth layer.
+
+### Still unresolved
+
+- Exact scoring, cell glyph selection, praise thresholds, Combo timing, piece generation and audio-event lineage.
+- Pixel-level Golden Scene calibration and external 2D asset replacement remain the next implementation gate.
+
 ## 0.2.0-alpha.1 — 2026-09-02
 
 ### Added

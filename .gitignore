@@ -8,3 +8,13 @@ coverage/
 .core-dist/
 *.zip
 *.bundle
+
+# Local full-video audit inputs and generated evidence. Reference footage and
+# extracted frames are intentionally never committed to the public repository.
+.reference-audit-work/
+reference-frames/
+*.npy
+*.npz
+
+__pycache__/
+*.py[cod]

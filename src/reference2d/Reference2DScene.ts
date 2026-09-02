@@ -13,6 +13,7 @@ import type {
   GameSnapshot,
   GridCell,
   PieceInstance,
+  PraiseTierId,
   PresentationFrame,
   StyleSpec,
   TileColor,
@@ -416,7 +417,7 @@ export class Reference2DScene {
   private drawHud(clearing: ClearingFrame | null): void {
     if (!this.frame || !this.style) return;
     const context = this.context;
-    const best = this.style.reference2d.bestScore;
+    const best = Math.max(this.style.reference2d.bestScore, this.frame.snapshot.score);
     this.drawCrown(118, 86, 1);
     context.save();
     context.font = '800 54px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
@@ -704,8 +705,14 @@ export class Reference2DScene {
       context.translate(centerX, centerY + drawSize * 0.025);
       context.fillStyle = palette.motif;
       context.globalAlpha *= 0.52;
-      if (color === 'lime' || color === 'cyan') this.drawLeafMotif(drawSize * 0.24);
-      else this.drawFlowerMotif(drawSize * 0.22, color === 'blue' ? 3 : 4);
+      // The full-video audit confirms multiple botanical families but not a
+      // definitive color-to-motif assignment rule. This deterministic mapping
+      // is therefore a renderer approximation, not gameplay truth.
+      if (color === 'lime') this.drawLeafMotif(drawSize * 0.24);
+      else if (color === 'cyan') this.drawMonsteraMotif(drawSize * 0.24);
+      else if (color === 'rose') this.drawRoseMotif(drawSize * 0.25);
+      else if (color === 'amber') this.drawFlowerMotif(drawSize * 0.19, 7);
+      else this.drawFlowerMotif(drawSize * 0.22, color === 'blue' ? 5 : 4);
       context.restore();
     }
     context.restore();
@@ -743,6 +750,57 @@ export class Reference2DScene {
     context.beginPath();
     context.arc(0, 0, size * 0.28, 0, TWO_PI);
     context.fill();
+  }
+
+  private drawMonsteraMotif(size: number): void {
+    const context = this.context;
+    context.save();
+    context.rotate(-0.42);
+    context.beginPath();
+    context.moveTo(-size * 0.18, size * 0.95);
+    context.bezierCurveTo(-size * 0.98, size * 0.32, -size * 0.82, -size * 0.72, 0, -size);
+    context.bezierCurveTo(size * 0.86, -size * 0.68, size * 0.98, size * 0.28, size * 0.2, size * 0.94);
+    context.bezierCurveTo(size * 0.08, size * 1.03, -size * 0.08, size * 1.03, -size * 0.18, size * 0.95);
+    context.fill();
+
+    context.strokeStyle = 'rgba(255,255,255,0.13)';
+    context.lineWidth = Math.max(1, size * 0.075);
+    context.lineCap = 'round';
+    context.beginPath();
+    context.moveTo(0, size * 0.92);
+    context.lineTo(0, -size * 0.82);
+    for (const direction of [-1, 1] as const) {
+      for (let index = 0; index < 3; index += 1) {
+        const y = size * (0.48 - index * 0.42);
+        context.moveTo(0, y);
+        context.lineTo(direction * size * (0.48 + index * 0.08), y - size * 0.24);
+      }
+    }
+    context.stroke();
+    context.restore();
+  }
+
+  private drawRoseMotif(size: number): void {
+    const context = this.context;
+    context.save();
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.strokeStyle = context.fillStyle;
+    context.lineWidth = Math.max(1.5, size * 0.14);
+    context.beginPath();
+    context.arc(0, 0, size * 0.18, -0.4, Math.PI * 1.6);
+    context.arc(-size * 0.04, size * 0.02, size * 0.34, Math.PI * 1.55, Math.PI * 3.15);
+    context.arc(size * 0.02, size * 0.05, size * 0.54, Math.PI * 0.05, Math.PI * 1.65);
+    context.stroke();
+    for (let index = 0; index < 5; index += 1) {
+      context.save();
+      context.rotate((index / 5) * TWO_PI + 0.3);
+      context.beginPath();
+      context.ellipse(0, -size * 0.55, size * 0.34, size * 0.52, 0, 0, TWO_PI);
+      context.stroke();
+      context.restore();
+    }
+    context.restore();
   }
 
 
@@ -1045,13 +1103,29 @@ export class Reference2DScene {
     const progress = clamp01(clearing.progress);
     const lineCount = clearing.clear.rows.length + clearing.clear.cols.length;
     const combo = this.frame.snapshot.combo;
-    const praise = lineCount >= 4 || clearing.clear.cells.length >= 28 || combo >= 8
-      ? 'Unbelievable!'
-      : lineCount >= 3 || combo >= 5
-        ? 'Fantastic!'
-        : lineCount >= 2 || combo >= 2
-          ? 'Great!'
-          : 'Nice!';
+    // The six labels are observed across the full recording. Their exact
+    // trigger thresholds remain unresolved, so this selector is explicitly a
+    // prototype display heuristic rather than a reference rule claim.
+    const tier: PraiseTierId = lineCount >= 4 || clearing.clear.cells.length >= 28 || combo >= 8
+      ? 'unbelievable'
+      : lineCount >= 3 || clearing.clear.cells.length >= 24 || combo >= 6
+        ? 'fantastic'
+        : clearing.clear.cells.length >= 20 || combo >= 5
+          ? 'incredible'
+          : clearing.clear.cells.length >= 16 || combo >= 3
+            ? 'amazing'
+            : lineCount >= 2 || combo >= 2
+              ? 'great'
+              : 'nice';
+    const praiseLabels: Record<PraiseTierId, string> = {
+      nice: 'Nice!',
+      great: 'Great!',
+      amazing: 'Amazing!',
+      incredible: 'Incredible!',
+      fantastic: 'Fantastic!',
+      unbelievable: 'Unbelievable!',
+    };
+    const praise = praiseLabels[tier];
     const praiseIn = clamp01((progress - 0.28) / 0.22);
     const praiseOut = 1 - clamp01((progress - 0.82) / 0.18);
     const alpha = Math.min(praiseIn, praiseOut);
@@ -1063,20 +1137,36 @@ export class Reference2DScene {
       context.globalAlpha = alpha;
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      context.font = `900 ${praise === 'Unbelievable!' ? 55 : 68}px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif`;
+      context.font = `900 ${tier === 'unbelievable' || tier === 'incredible' ? 55 : 68}px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif`;
       context.lineWidth = 13;
       context.strokeStyle = '#ffffff';
       context.strokeText(praise, 0, 0);
       context.lineWidth = 7;
-      context.strokeStyle = praise === 'Nice!' ? '#248fda' : praise === 'Great!' ? '#e56f18' : '#7756d8';
+      context.strokeStyle = tier === 'nice'
+        ? '#248fda'
+        : tier === 'great'
+          ? '#e56f18'
+          : tier === 'amazing'
+            ? '#b24dd6'
+            : tier === 'incredible'
+              ? '#ce4e8b'
+              : '#7756d8';
       context.strokeText(praise, 0, 0);
       const gradient = context.createLinearGradient(0, -42, 0, 42);
-      if (praise === 'Nice!') {
+      if (tier === 'nice') {
         gradient.addColorStop(0, '#ffffff');
         gradient.addColorStop(1, '#64bfff');
-      } else if (praise === 'Great!') {
+      } else if (tier === 'great') {
         gradient.addColorStop(0, '#fff677');
         gradient.addColorStop(1, '#ff8d2d');
+      } else if (tier === 'amazing') {
+        gradient.addColorStop(0, '#fff68b');
+        gradient.addColorStop(0.5, '#ff76cc');
+        gradient.addColorStop(1, '#9a77ff');
+      } else if (tier === 'incredible') {
+        gradient.addColorStop(0, '#fff7a0');
+        gradient.addColorStop(0.45, '#ff75b6');
+        gradient.addColorStop(1, '#73e0ff');
       } else {
         gradient.addColorStop(0, '#fff6a0');
         gradient.addColorStop(0.5, '#ff75c1');
@@ -1086,7 +1176,7 @@ export class Reference2DScene {
       context.shadowColor = 'rgba(255,191,65,0.62)';
       context.shadowBlur = 18;
       context.fillText(praise, 0, 0);
-      if (praise === 'Unbelievable!') {
+      if (tier === 'unbelievable') {
         context.font = '900 46px "Arial Rounded MT Bold", sans-serif';
         context.fillStyle = '#fff04d';
         context.strokeStyle = '#987311';

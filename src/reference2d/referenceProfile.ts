@@ -78,6 +78,14 @@ export const REFERENCE_TILE_PALETTE: Record<TileColor, ReferenceTilePalette> = {
     motif: '#bd3a88',
     glow: '#ff9cda',
   },
+  rose: {
+    base: '#e56392',
+    top: '#f47ead',
+    bottom: '#c44375',
+    edge: '#a93663',
+    motif: '#b94270',
+    glow: '#ff9bc0',
+  },
 };
 
 export const REFERENCE_BACKGROUND = {

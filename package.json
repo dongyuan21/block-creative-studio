@@ -1,6 +1,6 @@
 {
   "name": "block-creative-studio",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "A reference-first browser studio for block-placement gameplay authoring, replay direction, and deterministic video rendering.",
@@ -16,7 +16,8 @@
     "check:imports": "node scripts/check-imports.mjs",
     "check:json": "node scripts/check-json.mjs",
     "check:syntax": "tsc -p tsconfig.app.json --noEmit --noCheck --pretty false && tsc -p tsconfig.node.json --noEmit --noCheck --pretty false",
-    "check": "npm run check:source && npm run check:core"
+    "check": "npm run check:source && npm run check:core && npm run check:reference",
+    "check:reference": "node scripts/check-reference-audit.mjs"
   },
   "dependencies": {
     "mediabunny": "1.54.0",

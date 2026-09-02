@@ -1,6 +1,6 @@
 export const BOARD_SIZE = 8;
 
-export type TileColor = 'coral' | 'amber' | 'lime' | 'cyan' | 'blue' | 'violet';
+export type TileColor = 'coral' | 'amber' | 'lime' | 'cyan' | 'blue' | 'violet' | 'rose';
 export type Actor = 'human' | 'agent';
 export type StudioMode = 'edit' | 'play' | 'replay' | 'render';
 export type GameStatus = 'playing' | 'game-over';
@@ -17,6 +17,7 @@ export type ReferencePreviewFxId = 'full-line-tint' | 'cells-only';
 export type ReferenceClearFxId = 'sweep-score-spark' | 'sweep-only';
 export type ReferenceFeedbackFxId = 'praise-combo' | 'score-only';
 export type ReferenceAmbientFxId = 'garden-petals' | 'none';
+export type PraiseTierId = 'nice' | 'great' | 'amazing' | 'incredible' | 'fantastic' | 'unbelievable';
 
 export interface GridCell { row: number; col: number }
 

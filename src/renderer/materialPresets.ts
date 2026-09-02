@@ -8,6 +8,7 @@ export const TILE_COLOR_HEX: Record<TileColor, number> = {
   cyan: 0x42d9dd,
   blue: 0x4b7cff,
   violet: 0x9d62ff,
+  rose: 0xe85f98,
 };
 
 export function createBlockMaterial(

@@ -56,7 +56,7 @@ export const REFERENCE_CLEAR_OPTIONS: Array<NamedPreset<ReferenceClearFxId>> = [
 ];
 
 export const REFERENCE_FEEDBACK_OPTIONS: Array<NamedPreset<ReferenceFeedbackFxId>> = [
-  { id: 'praise-combo', label: '评价词 + Combo', description: 'Nice、Great、Fantastic、Unbelievable 与连击演出。' },
+  { id: 'praise-combo', label: '评价词 + Combo', description: '六级评价词、Combo 与高强度反馈；阈值仍待受控标定。' },
   { id: 'score-only', label: '仅积分', description: '不显示大评价词和 Combo 装饰。' },
 ];
 
