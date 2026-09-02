@@ -100,7 +100,10 @@
         "color": "cyan",
         "used": false,
         "setIndex": 0,
-        "slotIndex": 0
+        "slotIndex": 0,
+        "cellColors": [
+          "cyan"
+        ]
       },
       {
         "id": "piece-0-1-tri-h",
@@ -108,7 +111,12 @@
         "color": "violet",
         "used": false,
         "setIndex": 0,
-        "slotIndex": 1
+        "slotIndex": 1,
+        "cellColors": [
+          "violet",
+          "amber",
+          "blue"
+        ]
       },
       {
         "id": "piece-0-2-square-2",
@@ -116,7 +124,13 @@
         "color": "violet",
         "used": false,
         "setIndex": 0,
-        "slotIndex": 2
+        "slotIndex": 2,
+        "cellColors": [
+          "lime",
+          "amber",
+          "coral",
+          "cyan"
+        ]
       }
     ],
     "style": {
@@ -131,7 +145,18 @@
         "gap": 0.055
       },
       "background": "#07142d",
-      "showPointer": true
+      "showPointer": true,
+      "renderer": "reference-2d",
+      "reference2d": {
+        "profile": "block-garden-reference-v1",
+        "tileMaterial": "soft-bevel",
+        "tileFaceSet": "botanical-reference",
+        "previewFx": "full-line-tint",
+        "clearFx": "sweep-score-spark",
+        "feedbackFx": "praise-combo",
+        "ambientFx": "garden-petals",
+        "bestScore": 22634
+      }
     },
     "rhythm": {
       "id": "suspense-burst",
@@ -253,7 +278,10 @@
             "color": "cyan",
             "used": false,
             "setIndex": 0,
-            "slotIndex": 0
+            "slotIndex": 0,
+            "cellColors": [
+              "cyan"
+            ]
           },
           {
             "id": "piece-0-1-tri-h",
@@ -261,7 +289,12 @@
             "color": "violet",
             "used": false,
             "setIndex": 0,
-            "slotIndex": 1
+            "slotIndex": 1,
+            "cellColors": [
+              "violet",
+              "amber",
+              "blue"
+            ]
           },
           {
             "id": "piece-0-2-square-2",
@@ -269,7 +302,13 @@
             "color": "violet",
             "used": false,
             "setIndex": 0,
-            "slotIndex": 2
+            "slotIndex": 2,
+            "cellColors": [
+              "lime",
+              "amber",
+              "coral",
+              "cyan"
+            ]
           }
         ],
         "seed": 41782,

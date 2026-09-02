@@ -5,6 +5,7 @@ import { Timeline } from './components/Timeline';
 import { Toolbar } from './components/Toolbar';
 import { useStudioModel } from './state/useStudioModel';
 import { ThreeViewport } from './renderer/ThreeViewport';
+import { Reference2DViewport } from './reference2d/Reference2DViewport';
 import type { GridCell } from './domain/types';
 
 export default function App() {
@@ -49,6 +50,7 @@ export default function App() {
           onPieceSlot={studio.setSelectedPieceSlot}
           onPieceShape={studio.updatePieceShape}
           onPieceColor={studio.updatePieceColor}
+          onPieceCellColor={studio.updatePieceCellColor}
           onSelectTake={studio.selectTake}
           onDeleteTake={studio.deleteTake}
         />
@@ -56,8 +58,8 @@ export default function App() {
         <section className="stage-column">
           <div className="stage-header">
             <div>
-              <span className="eyebrow">LIVE CREATIVE CANVAS</span>
-              <h1>{studio.mode === 'edit' ? '设计牌面' : studio.mode === 'play' ? '录制真人试玩' : '导演与高画质重放'}</h1>
+              <span className="eyebrow">REFERENCE-FIRST CREATIVE CANVAS</span>
+              <h1>{studio.mode === 'edit' ? '拆解并设计 2D 牌面' : studio.mode === 'play' ? '录制真人试玩' : '导演与固定帧重放'}</h1>
             </div>
             <div className="stage-metrics">
               <span><strong>8×8</strong>棋盘</span>
@@ -68,17 +70,31 @@ export default function App() {
 
           <div className="stage-frame">
             <div className="phone-frame">
-              <ThreeViewport
-                mode={studio.mode}
-                snapshot={studio.liveSnapshot}
-                frame={studio.presentationFrame}
-                style={studio.project.style}
-                fps={studio.project.render.fps}
-                clearSignal={studio.clearSignal}
-                onEditCell={studio.editBoardCell}
-                onPlace={studio.commitHumanPlacement}
-                isPlacementValid={placementValid}
-              />
+              {studio.project.style.renderer === 'reference-2d' ? (
+                <Reference2DViewport
+                  mode={studio.mode}
+                  snapshot={studio.liveSnapshot}
+                  frame={studio.presentationFrame}
+                  style={studio.project.style}
+                  fps={studio.project.render.fps}
+                  clearSignal={studio.clearSignal}
+                  onEditCell={studio.editBoardCell}
+                  onPlace={studio.commitHumanPlacement}
+                  isPlacementValid={placementValid}
+                />
+              ) : (
+                <ThreeViewport
+                  mode={studio.mode}
+                  snapshot={studio.liveSnapshot}
+                  frame={studio.presentationFrame}
+                  style={studio.project.style}
+                  fps={studio.project.render.fps}
+                  clearSignal={studio.clearSignal}
+                  onEditCell={studio.editBoardCell}
+                  onPlace={studio.commitHumanPlacement}
+                  isPlacementValid={placementValid}
+                />
+              )}
             </div>
 
             {studio.mode === 'play' && (

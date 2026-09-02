@@ -32,6 +32,15 @@ describe('game engine', () => {
     expect(canPlace(transition!.after.board, pieces[1]!, { row: 0, col: 0 })).toBe(false);
   });
 
+  it('places reference-style multi-color cells in shape order', () => {
+    const pieces = createPieceSet(5, 0, ['tri-h', 'single', 'single']);
+    pieces[0]!.cellColors = ['coral', 'lime', 'blue'];
+    const game = createGame(createEmptyBoard(), 5, pieces);
+    const transition = applyPlacement(game, action(pieces[0]!.id, 2, 3));
+    expect(transition).not.toBeNull();
+    expect(transition!.after.board.cells[2]!.slice(3, 6)).toEqual(['coral', 'lime', 'blue']);
+  });
+
   it('clears a row and a column simultaneously', () => {
     const pieces = createPieceSet(8, 0, ['single', 'tri-h', 'square-2']);
     const game = createGame(createCrossClearBoard(), 8, pieces);

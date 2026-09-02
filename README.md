@@ -28,55 +28,48 @@ npm install
 npm run dev
 ```
 
-开发服务地址为 `http://127.0.0.1:4173`。
-
-运行时源码不引用公共 CDN；`npm install` 完成后，Vite 会从本地依赖构建。首次安装依赖需要网络，之后可在本机离线开发、预览和渲染。
+开发服务地址：`http://127.0.0.1:4173`。
 
 ## 校验与构建
 
 ```bash
-npm run check        # 无依赖源码完整性检查 + 严格玩法/Replay 烟雾检查
-npm run check:core   # 仅运行核心玩法/Replay 检查
-npm test             # Vitest 单元测试
+npm run check
+npm test
 npm run typecheck
 npm run build
-npm run preview
 ```
 
-## 使用流程
+GitHub Actions 会在每次 Push 和 Pull Request 中执行同一组检查。
 
-1. 在左侧选择牌面模板，点击棋盘绘制或擦除。
-2. 选择三个候选槽位，设置形状和颜色。
-3. 点击“真人试玩”拖拽落子，或点击“机器试玩”。
-4. 保存 Take，进入导演回放。
-5. 在右侧独立替换彩块几何、材质、灯光、镜头、3D 清除特效和节奏。
-6. 在底部事件时间线检查动作与清除帧位。
-7. 点击“生成 1080P MP4”。导出过程不是实时录屏，而是逐帧重演。
-8. 导出工程码后，同一 Take 可在另一台机器继续换风格和出片。
+## 推荐 Review 流程
+
+1. 在 `Edit` 模式选择牌面模板，逐格绘制棋盘。
+2. 设置三个候选块，使用“逐格牌面颜色”编辑器制造多色 Piece。
+3. 进入真人试玩并拖拽落子，确认拾取放大、上移和预消除整行填充。
+4. 保存 Take，切换四种节奏，确认玩法结果不变。
+5. 在右侧分别关闭/替换材质、牌面纹样、预消除、清除演出、评价/Combo 和环境粒子。
+6. 使用同一个 Take 导出标准或高画质视频，无需重新试玩。
+7. 对照 [`docs/reference/VIDEO_ANALYSIS_V1.md`](docs/reference/VIDEO_ANALYSIS_V1.md) 记录视觉偏差，而不是凭“像不像”笼统评价。
 
 ## 代码结构
 
 ```text
-src/domain       纯 TypeScript 玩法、形状、牌面与确定性随机
-src/director     Take → 固定帧 PresentationFrame
-src/renderer     Three.js 场景、PBR 材质、灯光、镜头、3D 破碎
-src/exporter     Mediabunny / WebCodecs / MP4
-src/components   人用工作台
-src/state        项目、试玩、Take、回放和导出编排
-src/extensions   下一期 DCC/外部资产扩展缝
-schemas          工程码 JSON Schema
+src/domain        纯 TypeScript 玩法、形状、计分分解、工程校验
+src/director      Take → 固定帧表现状态；逻辑与 VFX 时间解耦
+src/reference2d   真机参考 2D 布局、Canvas 渲染和交互
+src/renderer      旧 Three.js 3D 实验后端
+src/exporter      固定帧 Canvas → WebCodecs → MP4
+src/components    Human-first 工作台
+src/state         项目、试玩、Take、回放与导出编排
+docs/reference    视频观察、布局、原子目录、时间和计分证据
+schemas           工程码 JSON Schema
 ```
-
-进一步设计见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)、[`docs/IMPLEMENTATION_MAP.md`](docs/IMPLEMENTATION_MAP.md)、[`docs/PHASE1_STATUS.md`](docs/PHASE1_STATUS.md)、[`docs/VALIDATION.md`](docs/VALIDATION.md)、[`docs/REVIEW_CHECKLIST.md`](docs/REVIEW_CHECKLIST.md) 和 [`docs/ROADMAP.md`](docs/ROADMAP.md)。
 
 ## 当前限制
 
-- 受控环境优先支持桌面 Chrome；尚未承诺 Safari、Firefox 和移动浏览器导出。
-- 视频导出当前为无声 MP4，音频事件接口将在后续加入混音层。
-- 当前使用 Three.js WebGL2 稳定后端；WebGPU 后端属于后续性能升级。
-- 当前只编辑首组三个候选块；多组候选序列编辑器与自定义形状绘制器列入 v0.2。
-- Blender/AE 仅保留接口，本期不导入 DCC 资产。
-
-## GitHub 发布
-
-v0.1.4 交付可通过源码 ZIP 或保留提交历史的 Git Bundle 发布到 `dongyuan21` 名下；命令见 [`docs/GITHUB_PUBLISH.md`](docs/GITHUB_PUBLISH.md)。
+- 2D 渲染器是第一版参考骨架，还没有达到像素级复刻。
+- 当前只确认“落下一格至少 +1”；清除奖励、评价阈值和 Combo 规则仍需受控样本标定。
+- 清除特效已拆成原子，但候选刷新、复杂心形反馈、VFX 与下一次输入的完全异步重叠仍需继续实现。
+- 导出当前为无声 MP4；音频事件轨仍未接入。
+- 当前只保证桌面 Chrome；移动浏览器、Safari 和 Firefox 不在本阶段承诺范围。
+- Blender/AE 接口保留，但 DCC 资产导入推迟到 2D 闭环通过视觉验收之后。

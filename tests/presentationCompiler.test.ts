@@ -55,6 +55,42 @@ describe('presentation compiler', () => {
     expect(evaluateCompiledTake(compiled, compiled.totalFrames - 1, rhythm).snapshot.turn).toBe(2);
   });
 
+  it('exposes stepped placement score and temporary placement feedback before clear VFX', () => {
+    const board = createEmptyBoard();
+    for (let col = 0; col < 7; col += 1) board.cells[3]![col] = 'lime';
+    const pieces = createPieceSet(31, 0, ['single', 'single', 'single']);
+    const initial = createGame(board, 31, pieces);
+    const take: Take = {
+      id: 'take-placement-feedback',
+      name: 'placement feedback',
+      createdAt: '2026-09-01T00:00:00.000Z',
+      initial,
+      actions: [{
+        id: 'a1', actor: 'human', pieceId: pieces[0]!.id,
+        anchor: { row: 3, col: 7 }, durationFrames: 18, pointerPath: [],
+      }],
+    };
+    const rhythm = RHYTHM_PRESETS['human-natural'];
+    const compiled = compileTake(take, rhythm, 30);
+    const action = compiled.actions[0]!;
+    const afterRelease = evaluateCompiledTake(compiled, action.releaseFrame + 1, rhythm);
+    expect(afterRelease.placementFeedback?.cells).toHaveLength(1);
+    expect(afterRelease.placementFeedback?.placementPoints).toBe(1);
+    expect(afterRelease.snapshot.score).toBe(1);
+
+    const duringClear = evaluateCompiledTake(
+      compiled,
+      Math.round((action.clearStartFrame + action.clearEndFrame) / 2),
+      rhythm,
+    );
+    expect(duringClear.clearing?.clear.rows).toEqual([3]);
+    expect(duringClear.snapshot.score).toBeGreaterThanOrEqual(1);
+    expect(duringClear.snapshot.score).toBeLessThanOrEqual(action.transition.after.score);
+
+    const afterClear = evaluateCompiledTake(compiled, action.clearEndFrame, rhythm);
+    expect(afterClear.snapshot.score).toBe(action.transition.after.score);
+  });
+
   it('reserves the configured camera recovery interval after a clear', () => {
     const pieces = createPieceSet(8, 0, ['single', 'tri-h', 'square-2']);
     const initial = createGame(

@@ -5,7 +5,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { boardFingerprint, canPlace } from '../domain/gameEngine';
+import { boardFingerprint, canPlace, pieceCellColor } from '../domain/gameEngine';
 import { seededFloat } from '../domain/rng';
 import { getShape, getShapeBounds } from '../domain/shapes';
 import type {
@@ -536,7 +536,7 @@ export class StudioScene {
     }
 
     const rackKey = `${this.frame.snapshot.pieces
-      .map((piece) => `${piece.id}:${piece.shapeId}:${piece.color}:${piece.used ? 1 : 0}`)
+      .map((piece) => `${piece.id}:${piece.shapeId}:${piece.color}:${piece.cellColors?.join('.') ?? ''}:${piece.used ? 1 : 0}`)
       .join(',')}:${this.frame.hiddenPieceId ?? ''}:${this.currentGeometryKey}:${this.style.material}`;
     if (rackKey !== this.currentRackKey) {
       this.rebuildRack();
@@ -544,7 +544,7 @@ export class StudioScene {
     }
 
     const dragKey = this.frame.draggedPiece
-      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${this.style.material}`
+      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.piece.cellColors?.join('.') ?? ''}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${this.style.material}`
       : 'none';
     if (dragKey !== this.currentDragKey) {
       this.rebuildDraggedPiece();
@@ -715,8 +715,8 @@ export class StudioScene {
       group.position.copy(this.rackPosition(piece.slotIndex));
       group.scale.setScalar(0.62);
 
-      for (const [row, col] of shape.cells) {
-        const mesh = new THREE.Mesh(this.blockGeometry, this.getMaterial(piece.color));
+      for (const [[row, col], cellIndex] of shape.cells.map((cell, index) => [cell, index] as const)) {
+        const mesh = new THREE.Mesh(this.blockGeometry, this.getMaterial(pieceCellColor(piece, cellIndex)));
         mesh.position.set(
           (col - (bounds.cols - 1) / 2) * CELL_PITCH,
           ((bounds.rows - 1) / 2 - row) * CELL_PITCH,
@@ -758,8 +758,8 @@ export class StudioScene {
     const group = new THREE.Group();
     group.position.copy(position);
     group.scale.setScalar(0.62 + clamp01(progress) * 0.38);
-    for (const [row, col] of shape.cells) {
-      const baseMaterial = this.getMaterial(piece.color, valid ? 0.86 : 0.58);
+    for (const [[row, col], cellIndex] of shape.cells.map((cell, index) => [cell, index] as const)) {
+      const baseMaterial = this.getMaterial(pieceCellColor(piece, cellIndex), valid ? 0.86 : 0.58);
       const material = valid ? baseMaterial : this.invalidPlacementMaterial;
       const mesh = new THREE.Mesh(this.blockGeometry, material);
       mesh.position.set(

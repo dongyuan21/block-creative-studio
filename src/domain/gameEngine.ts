@@ -22,7 +22,10 @@ export function cloneSnapshot(snapshot: GameSnapshot): GameSnapshot {
   return {
     ...snapshot,
     board: cloneBoard(snapshot.board),
-    pieces: snapshot.pieces.map((piece) => ({ ...piece })),
+    pieces: snapshot.pieces.map((piece) => ({
+      ...piece,
+      ...(piece.cellColors ? { cellColors: [...piece.cellColors] } : {}),
+    })),
   };
 }
 
@@ -56,6 +59,18 @@ export function createPieceSet(seed: number, setIndex: number, shapeIds?: string
     ];
     if (!color) throw new Error('Unable to select a generated tile color.');
 
+    const generatedCellColors = requestedShape
+      ? undefined
+      : shape.cells.map((_, cellIndex) =>
+          TILE_COLORS[
+            seededInt(
+              hash32(seed + setIndex * 1297 + slotIndex * 131),
+              cellIndex * 43 + 19,
+              TILE_COLORS.length,
+            )
+          ] ?? color,
+        );
+
     return {
       id: `piece-${setIndex}-${slotIndex}-${shape.id}`,
       shapeId: shape.id,
@@ -63,6 +78,7 @@ export function createPieceSet(seed: number, setIndex: number, shapeIds?: string
       used: false,
       setIndex,
       slotIndex,
+      ...(generatedCellColors ? { cellColors: generatedCellColors } : {}),
     };
   });
 }
@@ -74,7 +90,11 @@ export function createGame(
 ): GameSnapshot {
   const snapshot: GameSnapshot = {
     board: cloneBoard(board),
-    pieces: pieces.map((piece) => ({ ...piece, used: false })),
+    pieces: pieces.map((piece) => ({
+      ...piece,
+      used: false,
+      ...(piece.cellColors ? { cellColors: [...piece.cellColors] } : {}),
+    })),
     seed,
     setIndex: pieces[0]?.setIndex ?? 0,
     turn: 0,
@@ -91,6 +111,14 @@ export function pieceCells(piece: PieceInstance, anchor: GridCell): GridCell[] {
     row: anchor.row + row,
     col: anchor.col + col,
   }));
+}
+
+export function pieceCellColor(piece: PieceInstance, cellIndex: number): TileColor {
+  return piece.cellColors?.[cellIndex] ?? piece.color;
+}
+
+export function pieceColors(piece: PieceInstance): TileColor[] {
+  return getShape(piece.shapeId).cells.map((_, index) => pieceCellColor(piece, index));
 }
 
 export function canPlace(board: BoardState, piece: PieceInstance, anchor: GridCell): boolean {
@@ -121,7 +149,7 @@ export function hasAnyLegalMove(snapshot: GameSnapshot): boolean {
   return snapshot.status !== 'game-over' && hasLegalMoveIgnoringStatus(snapshot);
 }
 
-function detectClear(board: BoardState): ClearResult {
+export function detectClear(board: BoardState): ClearResult {
   const rows: number[] = [];
   const cols: number[] = [];
 
@@ -162,12 +190,18 @@ function detectClear(board: BoardState): ClearResult {
   return { rows, cols, cells };
 }
 
-function scoreTransition(pieceSize: number, clear: ClearResult, combo: number): number {
+function scoreTransition(
+  pieceSize: number,
+  clear: ClearResult,
+  combo: number,
+): { placementPoints: number; clearBonusPoints: number; total: number } {
+  const placementPoints = pieceSize;
   const lineCount = clear.rows.length + clear.cols.length;
-  if (lineCount === 0) return pieceSize;
+  if (lineCount === 0) return { placementPoints, clearBonusPoints: 0, total: placementPoints };
   const lineBonus = lineCount * lineCount * 12;
   const comboBonus = Math.max(0, combo - 1) * 18;
-  return pieceSize + clear.cells.length * 2 + lineBonus + comboBonus;
+  const clearBonusPoints = clear.cells.length * 2 + lineBonus + comboBonus;
+  return { placementPoints, clearBonusPoints, total: placementPoints + clearBonusPoints };
 }
 
 export function applyPlacement(snapshot: GameSnapshot, action: PlacementAction): GameTransition | null {
@@ -177,10 +211,10 @@ export function applyPlacement(snapshot: GameSnapshot, action: PlacementAction):
 
   const before = cloneSnapshot(snapshot);
   const placedBoard = cloneBoard(snapshot.board);
-  for (const { row, col } of pieceCells(piece, action.anchor)) {
+  for (const [cellIndex, { row, col }] of pieceCells(piece, action.anchor).entries()) {
     const targetRow = placedBoard.cells[row];
     if (!targetRow) throw new Error(`Invalid board row ${row}.`);
-    targetRow[col] = piece.color;
+    targetRow[col] = pieceCellColor(piece, cellIndex);
   }
 
   const clear = detectClear(placedBoard);
@@ -191,10 +225,13 @@ export function applyPlacement(snapshot: GameSnapshot, action: PlacementAction):
   }
 
   const combo = clear.cells.length > 0 ? snapshot.combo + 1 : 0;
-  const points = scoreTransition(getShape(piece.shapeId).cells.length, clear, combo);
+  const score = scoreTransition(getShape(piece.shapeId).cells.length, clear, combo);
+  const points = score.total;
   let setIndex = snapshot.setIndex;
   let pieces = snapshot.pieces.map((candidate) =>
-    candidate.id === piece.id ? { ...candidate, used: true } : { ...candidate },
+    candidate.id === piece.id
+      ? { ...candidate, used: true, ...(candidate.cellColors ? { cellColors: [...candidate.cellColors] } : {}) }
+      : { ...candidate, ...(candidate.cellColors ? { cellColors: [...candidate.cellColors] } : {}) },
   );
 
   if (pieces.every((candidate) => candidate.used)) {
@@ -224,6 +261,8 @@ export function applyPlacement(snapshot: GameSnapshot, action: PlacementAction):
       pointerPath: action.pointerPath.map((sample) => ({ ...sample })),
     },
     clear,
+    placementPoints: score.placementPoints,
+    clearBonusPoints: score.clearBonusPoints,
     points,
   };
 }
@@ -364,6 +403,7 @@ export function replacePieceShape(
           id: `piece-${piece.setIndex}-${slotIndex}-${shapeId}`,
           shapeId,
           color: color ?? piece.color,
+          cellColors: getShape(shapeId).cells.map(() => color ?? piece.color),
           used: false,
         }
       : { ...piece },

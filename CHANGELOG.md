@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.2.0-alpha.1 — 2026-09-02
+
+### Added
+
+- Reference-first Canvas 2D renderer calibrated from the supplied 1064×1788 gameplay recording.
+- Machine-readable layout, atom catalog, timing observations and scoring evidence under `docs/reference/`.
+- Per-cell colors for candidate pieces, placement, replay, serialization and both render backends.
+- Independent 2D controls for tile material, face motif, pre-clear tint, clear performance, praise/Combo and ambient particles.
+- Placement feedback state with stepped score increments, tile glow and temporary thumbs.
+- Reference-style HUD, board frame, rack scale/lift, line preview, sweep, score glyphs, praise, Combo and continue modal.
+
+### Changed
+
+- Made `reference-2d` the default renderer and reclassified Three.js 3D as an experimental backend.
+- Split placement points from clear bonus points so observed placement scoring can be calibrated independently.
+- Extended project import validation and JSON Schema for per-cell colors and reference 2D style atoms.
+- Reframed the roadmap: establish a faithful 2D baseline before 3D generalization and DCC integration.
+
+### Known gaps
+
+- Exact clear scoring, praise thresholds, Combo rules, tray generation and several overlapping VFX timings remain unresolved from a single recording.
+
 ## 0.1.4 — 2026-09-01
 
 ### Changed

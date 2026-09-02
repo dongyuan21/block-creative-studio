@@ -36,12 +36,9 @@ npm run check
 npm test
 npm run typecheck
 npm run build
+npm run dev
 ```
 
-提交合并前还应完成：
+当前交付环境已经执行并通过 `npm run check`、离线语法检查和严格核心 TypeScript 编译；受 npm registry DNS 隔离影响，完整依赖安装、Vitest、生产构建与 Chrome MP4 真机基准需要在联网开发机完成。
 
-- 桌面 Chrome 中的真人拖拽回归；
-- 参考 2D 与录像截图并排对比；
-- 1080×1920、30fps MP4 实际导出；
-- 15 秒素材导出耗时；
-- 同一 Take 多次导出的帧一致性。
+随后完成三项真机基准：连续试玩 P95 帧时间、15 秒 1080×1920 导出耗时、H.264 MP4 播放兼容性。

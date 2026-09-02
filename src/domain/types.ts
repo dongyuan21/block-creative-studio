@@ -10,6 +10,13 @@ export type CameraPresetId = 'flat-gameplay' | 'premium-perspective' | 'dynamic-
 export type FxPresetId = 'clean-pop' | 'crystal-shatter' | 'energy-burst';
 export type RhythmPresetId = 'human-natural' | 'tight-fast' | 'suspense-burst' | 'combo-rush';
 export type GeometryPresetId = 'soft-cube' | 'premium-beveled' | 'candy-rounded';
+export type RenderBackendId = 'reference-2d' | 'three-3d';
+export type ReferenceTileMaterialId = 'soft-bevel' | 'flat-matte';
+export type ReferenceTileFaceSetId = 'botanical-reference' | 'none';
+export type ReferencePreviewFxId = 'full-line-tint' | 'cells-only';
+export type ReferenceClearFxId = 'sweep-score-spark' | 'sweep-only';
+export type ReferenceFeedbackFxId = 'praise-combo' | 'score-only';
+export type ReferenceAmbientFxId = 'garden-petals' | 'none';
 
 export interface GridCell { row: number; col: number }
 
@@ -32,6 +39,8 @@ export interface PieceInstance {
   used: boolean;
   setIndex: number;
   slotIndex: number;
+  /** Optional per-cell colors in the same order as PieceShape.cells. */
+  cellColors?: TileColor[];
 }
 
 export interface GameSnapshot {
@@ -69,6 +78,8 @@ export interface GameTransition {
   after: GameSnapshot;
   action: PlacementAction;
   clear: ClearResult;
+  placementPoints: number;
+  clearBonusPoints: number;
   points: number;
 }
 
@@ -102,7 +113,21 @@ export interface GeometryStyle {
   gap: number;
 }
 
+
+export interface Reference2DStyleSpec {
+  profile: 'block-garden-reference-v1';
+  tileMaterial: ReferenceTileMaterialId;
+  tileFaceSet: ReferenceTileFaceSetId;
+  previewFx: ReferencePreviewFxId;
+  clearFx: ReferenceClearFxId;
+  feedbackFx: ReferenceFeedbackFxId;
+  ambientFx: ReferenceAmbientFxId;
+  bestScore: number;
+}
+
 export interface StyleSpec {
+  renderer: RenderBackendId;
+  reference2d: Reference2DStyleSpec;
   material: MaterialPresetId;
   lighting: LightingPresetId;
   camera: CameraPresetId;
@@ -161,6 +186,12 @@ export interface CompiledTake {
 
 export interface ClearingFrame { clear: ClearResult; progress: number; seed: number }
 
+export interface PlacementFeedbackFrame {
+  cells: Array<GridCell & { color: TileColor }>;
+  progress: number;
+  placementPoints: number;
+}
+
 export interface PresentationFrame {
   frame: number;
   fps: number;
@@ -170,6 +201,7 @@ export interface PresentationFrame {
   hiddenPieceId?: string;
   draggedPiece?: { piece: PieceInstance; anchor: GridCell; progress: number; pointerDriven?: boolean };
   pointer?: { x: number; y: number; pressed: boolean };
+  placementFeedback?: PlacementFeedbackFrame;
   clearing?: ClearingFrame;
   cameraPunch: number;
 }

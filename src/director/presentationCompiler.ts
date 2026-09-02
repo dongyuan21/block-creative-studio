@@ -1,4 +1,4 @@
-import { applyPlacement, cloneSnapshot } from '../domain/gameEngine';
+import { applyPlacement, cloneSnapshot, pieceCellColor, pieceCells } from '../domain/gameEngine';
 import type {
   BoardState,
   CompiledAction,
@@ -168,7 +168,7 @@ export function evaluateCompiledTake(
         ...(piece
           ? {
               draggedPiece: {
-                piece: { ...piece },
+                piece: { ...piece, ...(piece.cellColors ? { cellColors: [...piece.cellColors] } : {}) },
                 anchor: { ...action.anchor },
                 progress,
               },
@@ -179,19 +179,49 @@ export function evaluateCompiledTake(
       };
     }
 
-    const placedFrame = (): PresentationFrame => ({
-      frame: safeFrame,
-      fps: compiled.fps,
-      totalFrames: compiled.totalFrames,
-      snapshot: snapshotWithBoard(transition.after, transition.placedBoard),
-      board: cloneBoard(transition.placedBoard),
-      pointer: {
-        x: 0.16 + (action.anchor.col / 7) * 0.68,
-        y: 0.16 + (action.anchor.row / 7) * 0.54,
-        pressed: false,
-      },
-      cameraPunch: 0,
-    });
+    const placedPiece = transition.before.pieces.find((candidate) => candidate.id === action.pieceId);
+    const placedCells = placedPiece
+      ? pieceCells(placedPiece, action.anchor).map((cell, index) => ({
+          ...cell,
+          color: pieceCellColor(placedPiece, index),
+        }))
+      : [];
+
+    const placedFrame = (): PresentationFrame => {
+      const placementProgress = clamp01(
+        (safeFrame - compiledAction.releaseFrame) /
+          Math.max(1, Math.round(rhythm.placementSettleFrames / rhythm.globalSpeed)),
+      );
+      const scoreSteps = Math.min(
+        transition.placementPoints,
+        Math.max(0, Math.ceil(placementProgress * transition.placementPoints)),
+      );
+      const snapshot = snapshotWithBoard(transition.after, transition.placedBoard);
+      snapshot.score = transition.before.score + scoreSteps;
+      snapshot.combo = transition.before.combo;
+      return {
+        frame: safeFrame,
+        fps: compiled.fps,
+        totalFrames: compiled.totalFrames,
+        snapshot,
+        board: cloneBoard(transition.placedBoard),
+        ...(placedCells.length > 0
+          ? {
+              placementFeedback: {
+                cells: placedCells,
+                progress: placementProgress,
+                placementPoints: transition.placementPoints,
+              },
+            }
+          : {}),
+        pointer: {
+          x: 0.16 + (action.anchor.col / 7) * 0.68,
+          y: 0.16 + (action.anchor.row / 7) * 0.54,
+          pressed: false,
+        },
+        cameraPunch: 0,
+      };
+    };
 
     if (transition.clear.cells.length === 0) {
       // A non-clearing placement only owns the timeline through its settle interval.
@@ -208,11 +238,16 @@ export function evaluateCompiledTake(
         (safeFrame - compiledAction.clearStartFrame) /
           Math.max(1, compiledAction.clearEndFrame - compiledAction.clearStartFrame),
       );
+      const snapshot = snapshotWithBoard(transition.after, transition.placedBoard);
+      snapshot.score =
+        transition.before.score +
+        transition.placementPoints +
+        Math.round(transition.clearBonusPoints * progress);
       return {
         frame: safeFrame,
         fps: compiled.fps,
         totalFrames: compiled.totalFrames,
-        snapshot: snapshotWithBoard(transition.after, transition.placedBoard),
+        snapshot,
         board: cloneBoard(transition.placedBoard),
         clearing: {
           clear: transition.clear,

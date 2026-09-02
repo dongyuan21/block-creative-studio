@@ -3,12 +3,14 @@ import { createGreedyAgentTake } from '../director/botDirector';
 import { compileTake, evaluateCompiledTake } from '../director/presentationCompiler';
 import { RHYTHM_PRESETS } from '../director/rhythmPresets';
 import { BOARD_PRESETS, createCrossClearBoard } from '../domain/boardPresets';
+import { getShape } from '../domain/shapes';
 import {
   applyPlacement,
   canPlace,
   cloneSnapshot,
   createGame,
   createPieceSet,
+  pieceCellColor,
   recolorBoardCell,
   replayActions,
   replacePieceShape,
@@ -50,6 +52,9 @@ const AUTOSAVE_KEY = 'block-creative-studio/autosave/v1';
 function makeInitialProject(): ProjectSpec {
   const seed = 41782;
   const pieces = createPieceSet(seed, 0, ['single', 'tri-h', 'square-2']);
+  pieces[0]!.cellColors = ['cyan'];
+  pieces[1]!.cellColors = ['violet', 'amber', 'blue'];
+  pieces[2]!.cellColors = ['lime', 'amber', 'coral', 'cyan'];
   return {
     schemaVersion: '1.0.0',
     id: 'block-creative-demo',
@@ -338,8 +343,31 @@ export function useStudioModel() {
     (slotIndex: number, color: TileColor): void => {
       if (mode !== 'edit') return;
       const pieces = project.setupPieces.map((piece) =>
-        piece.slotIndex === slotIndex ? { ...piece, color, used: false } : { ...piece },
+        piece.slotIndex === slotIndex
+          ? { ...piece, color, cellColors: getShape(piece.shapeId).cells.map(() => color), used: false }
+          : { ...piece, ...(piece.cellColors ? { cellColors: [...piece.cellColors] } : {}) },
       );
+      const nextProject = { ...project, setupPieces: pieces };
+      setProject(nextProject);
+      invalidateTakesForSetupChange();
+      setLiveSnapshot(initialStateFor(nextProject));
+    },
+    [invalidateTakesForSetupChange, mode, project, setLiveSnapshot],
+  );
+
+  const updatePieceCellColor = useCallback(
+    (slotIndex: number, cellIndex: number, color: TileColor): void => {
+      if (mode !== 'edit') return;
+      const pieces = project.setupPieces.map((piece) => {
+        if (piece.slotIndex !== slotIndex) {
+          return { ...piece, ...(piece.cellColors ? { cellColors: [...piece.cellColors] } : {}) };
+        }
+        const shape = getShape(piece.shapeId);
+        if (cellIndex < 0 || cellIndex >= shape.cells.length) return { ...piece };
+        const cellColors = shape.cells.map((_, index) => pieceCellColor(piece, index));
+        cellColors[cellIndex] = color;
+        return { ...piece, color: cellColors[0] ?? piece.color, cellColors, used: false };
+      });
       const nextProject = { ...project, setupPieces: pieces };
       setProject(nextProject);
       invalidateTakesForSetupChange();
@@ -551,6 +579,7 @@ export function useStudioModel() {
     editBoardCell,
     updatePieceShape,
     updatePieceColor,
+    updatePieceCellColor,
     runAgent,
     selectTake,
     deleteTake,

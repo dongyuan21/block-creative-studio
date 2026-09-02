@@ -6,6 +6,7 @@ import type {
   PieceInstance,
   PlacementAction,
   ProjectSpec,
+  Reference2DStyleSpec,
   RhythmProfile,
   StyleSpec,
   Take,
@@ -25,13 +26,28 @@ const CAMERAS = new Set(['flat-gameplay', 'premium-perspective', 'dynamic-clear'
 const EFFECTS = new Set(['clean-pop', 'crystal-shatter', 'energy-burst']);
 const GEOMETRIES = new Set(['soft-cube', 'premium-beveled', 'candy-rounded']);
 const RHYTHMS = new Set(['human-natural', 'tight-fast', 'suspense-burst', 'combo-rush']);
+const RENDERERS = new Set(['reference-2d', 'three-3d']);
+const REFERENCE_TILE_MATERIALS = new Set(['soft-bevel', 'flat-matte']);
+const REFERENCE_TILE_FACE_SETS = new Set(['botanical-reference', 'none']);
+const REFERENCE_PREVIEW_FX = new Set(['full-line-tint', 'cells-only']);
+const REFERENCE_CLEAR_FX = new Set(['sweep-score-spark', 'sweep-only']);
+const REFERENCE_FEEDBACK_FX = new Set(['praise-combo', 'score-only']);
+const REFERENCE_AMBIENT_FX = new Set(['garden-petals', 'none']);
 const COLORS = new Set<string>(TILE_COLORS);
 
 function piecesFingerprint(pieces: PieceInstance[]): string {
   return [...pieces]
     .sort((left, right) => left.slotIndex - right.slotIndex)
     .map((piece) =>
-      [piece.id, piece.shapeId, piece.color, piece.used ? 1 : 0, piece.setIndex, piece.slotIndex].join(':'),
+      [
+        piece.id,
+        piece.shapeId,
+        piece.color,
+        piece.cellColors?.join(',') ?? '',
+        piece.used ? 1 : 0,
+        piece.setIndex,
+        piece.slotIndex,
+      ].join(':'),
     )
     .join('|');
 }
@@ -102,11 +118,24 @@ function parseBoard(value: unknown, path: string): BoardState {
 function parsePiece(value: unknown, path: string): PieceInstance {
   const source = record(value, path);
   const shapeId = string(source.shapeId, `${path}.shapeId`, 80);
+  let shape: ReturnType<typeof getShape>;
   try {
-    getShape(shapeId);
+    shape = getShape(shapeId);
   } catch {
     fail(`${path}.shapeId`, `未知形状 ${shapeId}。`);
   }
+
+  let cellColors: TileColor[] | undefined;
+  if (source.cellColors !== undefined) {
+    if (!Array.isArray(source.cellColors)) fail(`${path}.cellColors`, '必须是颜色数组。');
+    if (source.cellColors.length !== shape.cells.length) {
+      fail(`${path}.cellColors`, `必须与形状单元数量一致（${shape.cells.length}）。`);
+    }
+    cellColors = source.cellColors.map((color, index) =>
+      enumeration<TileColor>(color, COLORS, `${path}.cellColors[${index}]`),
+    );
+  }
+
   return {
     id: string(source.id, `${path}.id`, 160),
     shapeId,
@@ -114,6 +143,7 @@ function parsePiece(value: unknown, path: string): PieceInstance {
     used: typeof source.used === 'boolean' ? source.used : fail(`${path}.used`, '必须是布尔值。'),
     setIndex: integer(source.setIndex, `${path}.setIndex`, 0, 100_000),
     slotIndex: integer(source.slotIndex, `${path}.slotIndex`, 0, 2),
+    ...(cellColors ? { cellColors } : {}),
   };
 }
 
@@ -213,12 +243,50 @@ function parseTake(value: unknown, path: string): Take {
   return take;
 }
 
+const LEGACY_REFERENCE_2D_STYLE: Reference2DStyleSpec = {
+  profile: 'block-garden-reference-v1',
+  tileMaterial: 'soft-bevel',
+  tileFaceSet: 'botanical-reference',
+  previewFx: 'full-line-tint',
+  clearFx: 'sweep-score-spark',
+  feedbackFx: 'praise-combo',
+  ambientFx: 'garden-petals',
+  bestScore: 22634,
+};
+
+function parseReference2DStyle(value: unknown, path: string): Reference2DStyleSpec {
+  if (value === undefined) return { ...LEGACY_REFERENCE_2D_STYLE };
+  const source = record(value, path);
+  return {
+    profile: source.profile === 'block-garden-reference-v1'
+      ? 'block-garden-reference-v1'
+      : fail(`${path}.profile`, '仅支持 block-garden-reference-v1。'),
+    tileMaterial: source.tileMaterial === undefined
+      ? 'soft-bevel'
+      : enumeration(source.tileMaterial, REFERENCE_TILE_MATERIALS, `${path}.tileMaterial`),
+    tileFaceSet: source.tileFaceSet === undefined
+      ? source.tileSkin === 'solid-color' ? 'none' : 'botanical-reference'
+      : enumeration(source.tileFaceSet, REFERENCE_TILE_FACE_SETS, `${path}.tileFaceSet`),
+    previewFx: enumeration(source.previewFx, REFERENCE_PREVIEW_FX, `${path}.previewFx`),
+    clearFx: enumeration(source.clearFx, REFERENCE_CLEAR_FX, `${path}.clearFx`),
+    feedbackFx: enumeration(source.feedbackFx, REFERENCE_FEEDBACK_FX, `${path}.feedbackFx`),
+    ambientFx: enumeration(source.ambientFx, REFERENCE_AMBIENT_FX, `${path}.ambientFx`),
+    bestScore: integer(source.bestScore, `${path}.bestScore`, 0, 2_147_483_647),
+  };
+}
+
 function parseStyle(value: unknown, path: string): StyleSpec {
   const source = record(value, path);
   const geometry = record(source.geometry, `${path}.geometry`);
   const background = string(source.background, `${path}.background`, 32);
   if (!/^#[0-9a-f]{6}$/iu.test(background)) fail(`${path}.background`, '必须是 #RRGGBB。');
   return {
+    // Bundles exported before the reference-first rebuild had no renderer field.
+    // Preserve their appearance by treating them as the original experimental 3D backend.
+    renderer: source.renderer === undefined
+      ? 'three-3d'
+      : enumeration(source.renderer, RENDERERS, `${path}.renderer`),
+    reference2d: parseReference2DStyle(source.reference2d, `${path}.reference2d`),
     material: enumeration(source.material, MATERIALS, `${path}.material`),
     lighting: enumeration(source.lighting, LIGHTS, `${path}.lighting`),
     camera: enumeration(source.camera, CAMERAS, `${path}.camera`),

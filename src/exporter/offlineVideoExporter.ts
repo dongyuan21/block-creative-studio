@@ -7,8 +7,9 @@ import {
   Quality,
 } from 'mediabunny';
 import { compileTake, evaluateCompiledTake } from '../director/presentationCompiler';
-import type { RenderSpec, RhythmProfile, StyleSpec, Take } from '../domain/types';
+import type { PresentationFrame, RenderSpec, RhythmProfile, StyleSpec, Take } from '../domain/types';
 import { StudioScene } from '../renderer/StudioScene';
+import { Reference2DScene } from '../reference2d/Reference2DScene';
 import { safeFileName } from '../utils/download';
 
 export interface RenderProgress {
@@ -40,6 +41,20 @@ export interface ExportVideoResult {
 interface QualitySettings {
   bitrate: number;
   renderScale: number;
+}
+
+interface OfflineRenderStage {
+  readonly canvas: HTMLCanvasElement;
+  resize(width: number, height: number, pixelRatio?: number): void;
+  warmup(frame: PresentationFrame, style: StyleSpec): Promise<void>;
+  renderAt(frame: PresentationFrame, style: StyleSpec): void;
+  dispose(): void;
+}
+
+function createOfflineStage(canvas: HTMLCanvasElement, style: StyleSpec): OfflineRenderStage {
+  return style.renderer === 'reference-2d'
+    ? new Reference2DScene(canvas, { quality: 'cinematic' })
+    : new StudioScene(canvas, { quality: 'cinematic' });
 }
 
 const QUALITY_SETTINGS: Record<RenderSpec['quality'], QualitySettings> = {
@@ -89,7 +104,7 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
   outputContext.imageSmoothingEnabled = true;
   outputContext.imageSmoothingQuality = 'high';
 
-  const stage = new StudioScene(renderCanvas, { quality: 'cinematic' });
+  const stage = createOfflineStage(renderCanvas, options.style);
   stage.resize(options.render.width, options.render.height, quality.renderScale);
 
   const target = new BufferTarget();
@@ -102,7 +117,7 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
   output.setMetadataTags({
     title: `${options.projectName} · ${options.take.name}`,
     artist: 'Block Creative Studio',
-    comment: `Deterministic browser render · ${quality.renderScale}x supersampling`,
+    comment: `Deterministic browser render · ${options.style.renderer} · ${quality.renderScale}x supersampling`,
   });
 
   report(options.onProgress, {

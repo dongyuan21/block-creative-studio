@@ -1,4 +1,5 @@
-import { SHAPES, TILE_COLORS } from '../domain/shapes';
+import { getShape, getShapeBounds, SHAPES, TILE_COLORS } from '../domain/shapes';
+import { pieceCellColor } from '../domain/gameEngine';
 import type { PieceInstance, Take, TileColor } from '../domain/types';
 import { TILE_COLOR_HEX } from '../renderer/materialPresets';
 import { PieceMini } from './PieceMini';
@@ -22,6 +23,7 @@ interface AssetPanelProps {
   onPieceSlot(slot: number): void;
   onPieceShape(shapeId: string): void;
   onPieceColor(slot: number, color: TileColor): void;
+  onPieceCellColor(slot: number, cellIndex: number, color: TileColor): void;
   onSelectTake(id: string): void;
   onDeleteTake(id: string): void;
 }
@@ -40,9 +42,17 @@ export function AssetPanel({
   onPieceSlot,
   onPieceShape,
   onPieceColor,
+  onPieceCellColor,
   onSelectTake,
   onDeleteTake,
 }: AssetPanelProps) {
+  const selectedPiece = pieces.find((piece) => piece.slotIndex === selectedPieceSlot) ?? null;
+  const selectedShape = selectedPiece ? getShape(selectedPiece.shapeId) : null;
+  const selectedBounds = selectedShape ? getShapeBounds(selectedShape) : null;
+  const selectedCells = new Map(
+    selectedShape?.cells.map(([row, col], cellIndex) => [`${row}:${col}`, cellIndex] as const) ?? [],
+  );
+
   return (
     <aside className="panel asset-panel">
       <section>
@@ -109,6 +119,41 @@ export function AssetPanel({
             </div>
           ))}
         </div>
+        {selectedPiece && selectedShape && selectedBounds && (
+          <div className="piece-cell-editor-block">
+            <div className="piece-cell-editor-copy">
+              <strong>逐格牌面颜色</strong>
+              <span>先选上方色板，再点击候选块中的单元。</span>
+            </div>
+            <div
+              className="piece-cell-editor"
+              style={{
+                gridTemplateColumns: `repeat(${selectedBounds.cols}, 34px)`,
+                gridTemplateRows: `repeat(${selectedBounds.rows}, 34px)`,
+              }}
+              aria-label={`槽位 ${selectedPiece.slotIndex + 1} 逐格颜色`}
+            >
+              {Array.from({ length: selectedBounds.rows * selectedBounds.cols }, (_, index) => {
+                const row = Math.floor(index / selectedBounds.cols);
+                const col = index % selectedBounds.cols;
+                const cellIndex = selectedCells.get(`${row}:${col}`);
+                if (cellIndex === undefined) return <span key={`${row}:${col}`} className="piece-cell-editor__empty" />;
+                const color = pieceCellColor(selectedPiece, cellIndex);
+                return (
+                  <button
+                    key={`${row}:${col}`}
+                    type="button"
+                    className="piece-cell-editor__cell"
+                    title={`单元 ${cellIndex + 1}: ${color}`}
+                    disabled={!setupEditable}
+                    style={{ background: `#${TILE_COLOR_HEX[color].toString(16).padStart(6, '0')}` }}
+                    onClick={() => onPieceCellColor(selectedPiece.slotIndex, cellIndex, selectedColor)}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="shape-grid">
           {SHAPES.map((shape) => (
             <button

@@ -104,6 +104,15 @@ button:disabled, input:disabled, select:disabled, .file-button.is-disabled { opa
 .piece-mini--compact { width: 30px; height: 30px; gap: 1px; }
 .piece-mini__cell { min-width: 8px; min-height: 8px; border-radius: 2px; }
 .piece-mini__cell.is-filled { box-shadow: inset 0 1px 1px rgba(255,255,255,.46), inset 0 -2px 3px rgba(0,0,0,.18); }
+.piece-cell-editor-block { margin-top: 10px; padding: 9px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 9px; background: rgba(255,255,255,.018); }
+.piece-cell-editor-copy { display: flex; flex-direction: column; gap: 3px; }
+.piece-cell-editor-copy strong { font-size: 9px; }
+.piece-cell-editor-copy span { color: var(--muted); font-size: 7px; line-height: 1.45; }
+.piece-cell-editor { display: grid; gap: 3px; place-content: center; }
+.piece-cell-editor__cell, .piece-cell-editor__empty { width: 34px; height: 34px; border-radius: 6px; }
+.piece-cell-editor__cell { padding: 0; border: 2px solid rgba(255,255,255,.2); cursor: pointer; box-shadow: inset 0 2px 2px rgba(255,255,255,.42), inset 0 -3px 5px rgba(0,0,0,.18); }
+.piece-cell-editor__cell:hover:not(:disabled) { border-color: #fff; transform: translateY(-1px); }
+.piece-cell-editor__empty { display: block; border: 1px dashed rgba(255,255,255,.035); }
 .shape-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 10px; }
 .shape-card { height: 40px; display: grid; place-items: center; padding: 3px; border: 1px solid var(--line); border-radius: 7px; background: rgba(255,255,255,.025); cursor: pointer; }
 .shape-card:hover:not(:disabled) { border-color: rgba(125,117,255,.55); background: rgba(125,117,255,.08); }

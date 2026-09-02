@@ -22,6 +22,7 @@ const {
   chooseGreedyMove,
   createGame,
   createPieceSet,
+  pieceCellColor,
   replayActions,
   replacePieceShape,
 } = require(resolve(output, 'domain/gameEngine.js'));
@@ -70,6 +71,19 @@ assert(
   applyPlacement(occupiedGame, makeAction(occupiedGame.pieces[0].id, 0, 0)) === null,
   'an invalid placement must not produce a transition',
 );
+
+const multiColorPieces = createPieceSet(44, 0, ['tri-h', 'single', 'single']);
+multiColorPieces[0].cellColors = ['coral', 'lime', 'blue'];
+const multiColorInitial = createGame(createEmptyBoard(), 44, multiColorPieces);
+const multiColorTransition = applyPlacement(
+  multiColorInitial,
+  makeAction(multiColorPieces[0].id, 2, 2),
+);
+assert(multiColorTransition, 'multi-color candidate must place');
+assert(multiColorTransition.placedBoard.cells[2][2] === 'coral', 'first per-cell color must be preserved');
+assert(multiColorTransition.placedBoard.cells[2][3] === 'lime', 'second per-cell color must be preserved');
+assert(multiColorTransition.placedBoard.cells[2][4] === 'blue', 'third per-cell color must be preserved');
+assert(pieceCellColor(multiColorPieces[0], 1) === 'lime', 'pieceCellColor must resolve per-cell overrides');
 
 let refreshGame = createGame(createEmptyBoard(), 9, createPieceSet(9, 0, ['single', 'single', 'single']));
 for (let slot = 0; slot < 3; slot += 1) {
@@ -124,7 +138,13 @@ const activeClear = evaluateCompiledTake(
   Math.round((clearAction.clearStartFrame + clearAction.clearEndFrame) / 2),
   rhythm,
 );
-assert(activeClear.clearing, 'frame evaluator must expose the active 3D clear interval');
+assert(activeClear.clearing, 'frame evaluator must expose the active clear interval');
+const placementFeedback = evaluateCompiledTake(compiled, clearAction.releaseFrame + 1, rhythm);
+assert(placementFeedback.placementFeedback, 'placement settle must expose cell feedback');
+assert(
+  placementFeedback.placementFeedback.cells.length === 1 && placementFeedback.snapshot.score >= 1,
+  'placement feedback must carry placed cells and stepped score state',
+);
 assert(
   clearAction.endFrame - clearAction.clearEndFrame ===
     Math.max(1, Math.round(rhythm.cameraRecoveryFrames / rhythm.globalSpeed)),
@@ -275,11 +295,11 @@ const exampleBundle = JSON.parse(
 );
 parseStudioBundle(exampleBundle);
 
-console.log('✓ 8×8 placement, overlap rejection and simultaneous row/column clear');
+console.log('✓ 8×8 placement, per-cell colors, overlap rejection and simultaneous row/column clear');
 console.log('✓ three-piece tray refresh and terminal game-over detection');
 console.log('✓ deterministic piece generation, set indexes, ids, and machine-player action API');
 console.log('✓ semantic Replay reproduces the same board state');
-console.log('✓ Raw Take advances across non-clearing actions and fixed-frame 3D clear intervals');
+console.log('✓ Raw Take advances across non-clearing actions, placement feedback, and fixed-frame clear intervals');
 console.log('✓ 12 deterministic multi-step simulations replay without state drift');
 console.log('✓ project import rejects stale Takes, invalid trajectories, odd H.264 sizes, and duplicate ids');
 console.log('✓ committed example project passes runtime validation');

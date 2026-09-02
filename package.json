@@ -1,9 +1,9 @@
 {
   "name": "block-creative-studio",
-  "version": "0.1.4",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "type": "module",
-  "description": "A browser-first block-placement gameplay director and deterministic video renderer for IAA creative production.",
+  "description": "A reference-first browser studio for block-placement gameplay authoring, replay direction, and deterministic video rendering.",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173",
     "build": "tsc -b && vite build",

@@ -6,6 +6,13 @@ import type {
   LightingPresetId,
   MaterialPresetId,
   ProjectSpec,
+  ReferenceAmbientFxId,
+  ReferenceClearFxId,
+  ReferenceFeedbackFxId,
+  ReferencePreviewFxId,
+  ReferenceTileFaceSetId,
+  ReferenceTileMaterialId,
+  RenderBackendId,
   RhythmPresetId,
   RhythmProfile,
   StyleSpec,
@@ -19,6 +26,13 @@ import {
   GEOMETRY_OPTIONS,
   LIGHTING_OPTIONS,
   MATERIAL_OPTIONS,
+  REFERENCE_AMBIENT_OPTIONS,
+  REFERENCE_CLEAR_OPTIONS,
+  REFERENCE_FEEDBACK_OPTIONS,
+  REFERENCE_PREVIEW_OPTIONS,
+  REFERENCE_TILE_FACE_OPTIONS,
+  REFERENCE_TILE_MATERIAL_OPTIONS,
+  RENDERER_OPTIONS,
 } from '../renderer/stylePresets';
 import { RHYTHM_PRESET_LIST } from '../director/rhythmPresets';
 
@@ -126,59 +140,137 @@ export function InspectorPanel({
     <aside className="panel inspector-panel">
       <section>
         <div className="section-heading">
-          <span>视觉质感</span>
-          <small>Look</small>
+          <span>表现基线</span>
+          <small>Renderer</small>
         </div>
-        <SelectField<GeometryPresetId>
-          label="彩块几何"
-          value={style.geometry.id}
-          options={GEOMETRY_OPTIONS}
+        <SelectField<RenderBackendId>
+          label="渲染模式"
+          value={style.renderer}
+          options={RENDERER_OPTIONS}
           disabled={locked}
-          onChange={(id) => onGeometry(GEOMETRY_DEFAULTS[id])}
+          onChange={(renderer) => onStyle({ renderer })}
         />
-        <SelectField<MaterialPresetId>
-          label="材质"
-          value={style.material}
-          options={MATERIAL_OPTIONS}
-          disabled={locked}
-          onChange={(material) => onStyle({ material })}
-        />
-        <div className="inline-ranges">
-          <RangeField label="厚度" value={style.geometry.depth} min={0.18} max={0.72} step={0.01} disabled={locked} onChange={(depth) => onGeometry({ depth })} />
-          <RangeField label="倒角" value={style.geometry.bevel} min={0.04} max={0.24} step={0.01} disabled={locked} onChange={(bevel) => onGeometry({ bevel })} />
-          <RangeField label="间隙" value={style.geometry.gap} min={0.04} max={0.18} step={0.01} disabled={locked} onChange={(gap) => onGeometry({ gap })} />
-        </div>
-        <SelectField<LightingPresetId>
-          label="灯光"
-          value={style.lighting}
-          options={LIGHTING_OPTIONS}
-          disabled={locked}
-          onChange={(lighting) => onStyle({ lighting })}
-        />
-        <SelectField<CameraPresetId>
-          label="摄像机"
-          value={style.camera}
-          options={CAMERA_OPTIONS}
-          disabled={locked}
-          onChange={(camera) => onStyle({ camera })}
-        />
-        <SelectField<FxPresetId>
-          label="3D 清除特效"
-          value={style.fx}
-          options={FX_OPTIONS}
-          disabled={locked}
-          onChange={(fx) => onStyle({ fx })}
-        />
-        <div className="two-column-field">
-          <label className="compact-field">
-            <span>背景</span>
-            <input type="color" value={style.background} disabled={locked} onChange={(event) => onStyle({ background: event.target.value })} />
-          </label>
-          <label className="compact-field checkbox-field">
-            <input type="checkbox" checked={style.showPointer} disabled={locked} onChange={(event) => onStyle({ showPointer: event.target.checked })} />
-            <span>显示指针</span>
-          </label>
-        </div>
+
+        {style.renderer === 'reference-2d' ? (
+          <>
+            <SelectField<ReferenceTileMaterialId>
+              label="方块材质"
+              value={style.reference2d.tileMaterial}
+              options={REFERENCE_TILE_MATERIAL_OPTIONS}
+              disabled={locked}
+              onChange={(tileMaterial) => onStyle({ reference2d: { ...style.reference2d, tileMaterial } })}
+            />
+            <SelectField<ReferenceTileFaceSetId>
+              label="牌面纹样"
+              value={style.reference2d.tileFaceSet}
+              options={REFERENCE_TILE_FACE_OPTIONS}
+              disabled={locked}
+              onChange={(tileFaceSet) => onStyle({ reference2d: { ...style.reference2d, tileFaceSet } })}
+            />
+            <SelectField<ReferencePreviewFxId>
+              label="预消除填充"
+              value={style.reference2d.previewFx}
+              options={REFERENCE_PREVIEW_OPTIONS}
+              disabled={locked}
+              onChange={(previewFx) => onStyle({ reference2d: { ...style.reference2d, previewFx } })}
+            />
+            <SelectField<ReferenceClearFxId>
+              label="清除演出"
+              value={style.reference2d.clearFx}
+              options={REFERENCE_CLEAR_OPTIONS}
+              disabled={locked}
+              onChange={(clearFx) => onStyle({ reference2d: { ...style.reference2d, clearFx } })}
+            />
+            <SelectField<ReferenceFeedbackFxId>
+              label="评价与连击"
+              value={style.reference2d.feedbackFx}
+              options={REFERENCE_FEEDBACK_OPTIONS}
+              disabled={locked}
+              onChange={(feedbackFx) => onStyle({ reference2d: { ...style.reference2d, feedbackFx } })}
+            />
+            <SelectField<ReferenceAmbientFxId>
+              label="背景环境粒子"
+              value={style.reference2d.ambientFx}
+              options={REFERENCE_AMBIENT_OPTIONS}
+              disabled={locked}
+              onChange={(ambientFx) => onStyle({ reference2d: { ...style.reference2d, ambientFx } })}
+            />
+            <label className="field-stack">
+              <span>历史最高分</span>
+              <input
+                type="number"
+                min={0}
+                max={2_147_483_647}
+                value={style.reference2d.bestScore}
+                disabled={locked}
+                onChange={(event) => onStyle({
+                  reference2d: {
+                    ...style.reference2d,
+                    bestScore: Math.max(0, Math.trunc(Number(event.target.value) || 0)),
+                  },
+                })}
+              />
+              <small>对应参考视频左上角皇冠数字，独立于本局实时得分。</small>
+            </label>
+            <label className="compact-field checkbox-field">
+              <input type="checkbox" checked={style.showPointer} disabled={locked} onChange={(event) => onStyle({ showPointer: event.target.checked })} />
+              <span>显示操作指针</span>
+            </label>
+          </>
+        ) : (
+          <>
+            <SelectField<GeometryPresetId>
+              label="彩块几何"
+              value={style.geometry.id}
+              options={GEOMETRY_OPTIONS}
+              disabled={locked}
+              onChange={(id) => onGeometry(GEOMETRY_DEFAULTS[id])}
+            />
+            <SelectField<MaterialPresetId>
+              label="材质"
+              value={style.material}
+              options={MATERIAL_OPTIONS}
+              disabled={locked}
+              onChange={(material) => onStyle({ material })}
+            />
+            <div className="inline-ranges">
+              <RangeField label="厚度" value={style.geometry.depth} min={0.18} max={0.72} step={0.01} disabled={locked} onChange={(depth) => onGeometry({ depth })} />
+              <RangeField label="倒角" value={style.geometry.bevel} min={0.04} max={0.24} step={0.01} disabled={locked} onChange={(bevel) => onGeometry({ bevel })} />
+              <RangeField label="间隙" value={style.geometry.gap} min={0.04} max={0.18} step={0.01} disabled={locked} onChange={(gap) => onGeometry({ gap })} />
+            </div>
+            <SelectField<LightingPresetId>
+              label="灯光"
+              value={style.lighting}
+              options={LIGHTING_OPTIONS}
+              disabled={locked}
+              onChange={(lighting) => onStyle({ lighting })}
+            />
+            <SelectField<CameraPresetId>
+              label="摄像机"
+              value={style.camera}
+              options={CAMERA_OPTIONS}
+              disabled={locked}
+              onChange={(camera) => onStyle({ camera })}
+            />
+            <SelectField<FxPresetId>
+              label="3D 清除特效"
+              value={style.fx}
+              options={FX_OPTIONS}
+              disabled={locked}
+              onChange={(fx) => onStyle({ fx })}
+            />
+            <div className="two-column-field">
+              <label className="compact-field">
+                <span>背景</span>
+                <input type="color" value={style.background} disabled={locked} onChange={(event) => onStyle({ background: event.target.value })} />
+              </label>
+              <label className="compact-field checkbox-field">
+                <input type="checkbox" checked={style.showPointer} disabled={locked} onChange={(event) => onStyle({ showPointer: event.target.checked })} />
+                <span>显示指针</span>
+              </label>
+            </div>
+          </>
+        )}
       </section>
 
       <section>

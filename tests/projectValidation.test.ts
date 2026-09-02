@@ -37,6 +37,43 @@ describe('project validation', () => {
     expect(parsed.takes).toHaveLength(1);
   });
 
+
+  it('accepts per-cell colors and preserves the reference 2D renderer profile', () => {
+    const payload = structuredClone(bundle());
+    payload.project.setupPieces[1]!.cellColors = ['coral', 'lime', 'blue'];
+    payload.takes[0]!.initial.pieces[1]!.cellColors = ['coral', 'lime', 'blue'];
+    payload.project.style.renderer = 'reference-2d';
+    payload.project.style.reference2d.bestScore = 22634;
+    const parsed = parseStudioBundle(payload);
+    expect(parsed.project.setupPieces[1]!.cellColors).toEqual(['coral', 'lime', 'blue']);
+    expect(parsed.project.style.renderer).toBe('reference-2d');
+  });
+
+  it('rejects a per-cell color array that does not match the selected shape', () => {
+    const payload = structuredClone(bundle());
+    payload.project.setupPieces[1]!.cellColors = ['coral'];
+    expect(() => parseStudioBundle(payload)).toThrow(/形状单元数量/);
+  });
+
+  it('rejects unknown colors in a per-cell color array', () => {
+    const payload = structuredClone(bundle()) as unknown as {
+      project: { setupPieces: Array<{ cellColors?: string[] }> };
+    };
+    payload.project.setupPieces[1]!.cellColors = ['coral', 'unknown', 'blue'];
+    expect(() => parseStudioBundle(payload)).toThrow(/cellColors/);
+  });
+
+  it('loads legacy v0.1 style payloads with the original 3D renderer', () => {
+    const payload = structuredClone(bundle()) as unknown as {
+      project: { style: Record<string, unknown> };
+    };
+    delete payload.project.style.renderer;
+    delete payload.project.style.reference2d;
+    const parsed = parseStudioBundle(payload);
+    expect(parsed.project.style.renderer).toBe('three-3d');
+    expect(parsed.project.style.reference2d.profile).toBe('block-garden-reference-v1');
+  });
+
   it('rejects a take whose initial candidate tray no longer matches the project', () => {
     const payload = structuredClone(bundle());
     payload.takes[0]!.initial.pieces[0]!.color = 'violet';
