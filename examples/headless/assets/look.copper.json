@@ -1,0 +1,71 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "look.copper",
+  "version": "1.0.0",
+  "kind": "look-pack",
+  "origin": "generated",
+  "contentHash": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+  "runtime": {
+    "renderers": [
+      "fixed-camera-cinematic"
+    ],
+    "deterministic": true
+  },
+  "slots": {
+    "background.base": {
+      "id": "background.dark",
+      "version": "1.0.0",
+      "kind": "background",
+      "contentHash": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "board.skin": {
+      "id": "board.dark",
+      "version": "1.0.0",
+      "kind": "board-skin",
+      "contentHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "tile.material": {
+      "id": "material.copper",
+      "version": "1.0.0",
+      "kind": "material-pack",
+      "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "interaction.preview": {
+      "id": "preview.default",
+      "version": "1.0.0",
+      "kind": "animation-asset",
+      "contentHash": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    },
+    "placement.confirmation": {
+      "id": "placement.default",
+      "version": "1.0.0",
+      "kind": "animation-asset",
+      "contentHash": "sha256:3333333333333333333333333333333333333333333333333333333333333333"
+    },
+    "clear.primary": {
+      "id": "effect.copper-clear",
+      "version": "1.0.0",
+      "kind": "effect-pack",
+      "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    },
+    "clear.tile-exit": {
+      "id": "clear.exit",
+      "version": "1.0.0",
+      "kind": "animation-asset",
+      "contentHash": "sha256:4444444444444444444444444444444444444444444444444444444444444444"
+    },
+    "hud.current-score": {
+      "id": "hud.score",
+      "version": "1.0.0",
+      "kind": "ui-theme",
+      "contentHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555"
+    },
+    "endgame.presentation": {
+      "id": "endgame.default",
+      "version": "1.0.0",
+      "kind": "ui-theme",
+      "contentHash": "sha256:6666666666666666666666666666666666666666666666666666666666666666"
+    }
+  }
+}

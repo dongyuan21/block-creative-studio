@@ -2,7 +2,7 @@
 
 Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
 
-> 当前版本为 `0.2.0-alpha.2`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+> 当前版本为 `0.3.0-alpha.0`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
 
 本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
@@ -44,6 +44,36 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - WebCodecs + Mediabunny 的浏览器固定帧 H.264/MP4 导出；
 - 工程 JSON 导入/导出、运行时校验、自动保存和 CI；
 - 固定机位 Camera Profile 与语义资产类型契约，为后续混合渲染器留出稳定接口。
+
+
+## Headless Core 与外部 Agent 边界
+
+BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 LLM 或 Prompt 面板；外部 Agent、设计师、DCC 或生成工具先生产版本化资产与 Recipe，BCS 再负责严格校验、变体编译、质量门禁和后续确定性渲染。
+
+已加入：
+
+- 开放 `AssetManifest / MaterialPack / EffectPack / LookPack / PluginPackage` 契约；
+- `CreativeMaster + VariantRecipe → ResolvedRenderPlan` 编译器；
+- `frame-exact / semantic / rule-only` 三种不变量锁定模式；
+- 材质外观与破坏行为分离，以及 Material-aware Effect 兼容检查；
+- 结构、确定性、权限和资源预算型 Quality Gate；
+- 机器可读的 `bcs` CLI 与 JSON Schema；
+- 批量矩阵编译时单变体失败隔离。
+
+```bash
+npm run build:cli
+node dist-cli/cli/bcs.js capabilities
+node dist-cli/cli/bcs.js variant compile \
+  --master examples/headless/master.demo.json \
+  --recipe examples/headless/variant.copper.demo.json \
+  --assets examples/headless/assets \
+  --renderer fixed-camera-cinematic \
+  --require-hashes \
+  --out /tmp/copper-plan.json
+node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
+```
+
+详见 [`docs/architecture/AGENT_OPERABLE_BOUNDARY.md`](docs/architecture/AGENT_OPERABLE_BOUNDARY.md)、[`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md) 和 [`docs/cli/README.md`](docs/cli/README.md)。当前 CLI 只完成契约、编译与结构质量门禁；插件执行、MCP、云端渲染和 Web UI 的开放资产接入仍是后续工作。
 
 ## 运行
 
@@ -101,6 +131,8 @@ python tools/reference_audit/extract_golden_frames.py \
 
 ```text
 src/domain          纯 TypeScript 玩法、形状、计分分解、工程校验
+src/headless        开放资产契约、Registry、变体编译与质量门禁
+src/cli             外部 Agent / CI 使用的机器可读 CLI
 src/director        Take → 固定帧表现状态；逻辑与 VFX 时间解耦
 src/assets          语义资产与固定机位 Camera Profile 契约
 src/reference2d     真机参考 2D 布局、Canvas 渲染和交互

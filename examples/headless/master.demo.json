@@ -1,0 +1,35 @@
+{
+  "contract": "bcs.creative-master",
+  "contractVersion": "1.0.0",
+  "id": "master.demo",
+  "ruleProfile": "block-placement-classic-v1",
+  "board": {
+    "rows": 8,
+    "cols": 8
+  },
+  "replay": {
+    "takeId": "take.demo",
+    "semanticHash": "sha256:semantic-demo",
+    "frameHash": "sha256:frame-demo",
+    "fps": 30,
+    "totalFrames": 450
+  },
+  "layoutProfileRef": {
+    "id": "layout.vertical",
+    "version": "1.0.0",
+    "kind": "ui-theme",
+    "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  "cameraProfileRef": {
+    "id": "camera.fixed",
+    "version": "1.0.0",
+    "kind": "camera-profile",
+    "contentHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "baseOutput": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "quality": "cinematic"
+  }
+}

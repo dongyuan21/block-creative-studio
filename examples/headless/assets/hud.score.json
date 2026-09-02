@@ -1,0 +1,15 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "hud.score",
+  "version": "1.0.0",
+  "kind": "ui-theme",
+  "origin": "builtin",
+  "contentHash": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+  "runtime": {
+    "renderers": [
+      "fixed-camera-cinematic"
+    ],
+    "deterministic": true
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "board.dark",
+  "version": "1.0.0",
+  "kind": "board-skin",
+  "origin": "builtin",
+  "contentHash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "runtime": {
+    "renderers": [
+      "fixed-camera-cinematic"
+    ],
+    "deterministic": true,
+    "budget": {
+      "textureMemoryMiB": 12,
+      "triangleCount": 16000
+    }
+  }
+}

@@ -1,0 +1,244 @@
+#!/usr/bin/env node
+
+import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
+import { dirname, extname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  AssetRegistry,
+  BCS_CAPABILITIES,
+  BcsHeadlessError,
+  compileVariant,
+  runQualityGate,
+  validateAssetManifest,
+  type AssetManifest,
+  type CreativeMaster,
+  type HeadlessRendererId,
+  type ResolvedRenderPlan,
+  type VariantRecipe,
+} from '../headless/index.js';
+
+interface ParsedArgs {
+  positionals: string[];
+  flags: Map<string, string | boolean>;
+}
+
+const SCHEMAS: Record<string, string> = {
+  'asset-manifest@1': 'asset-manifest.schema.json',
+  'creative-master@1': 'creative-master.schema.json',
+  'variant-recipe@1': 'variant-recipe.schema.json',
+  'resolved-render-plan@1': 'resolved-render-plan.schema.json',
+};
+
+function parseArgs(values: string[]): ParsedArgs {
+  const positionals: string[] = [];
+  const flags = new Map<string, string | boolean>();
+  for (let index = 0; index < values.length; index += 1) {
+    const value = values[index]!;
+    if (!value.startsWith('--')) {
+      positionals.push(value);
+      continue;
+    }
+    const equals = value.indexOf('=');
+    if (equals > 2) {
+      flags.set(value.slice(2, equals), value.slice(equals + 1));
+      continue;
+    }
+    const key = value.slice(2);
+    const next = values[index + 1];
+    if (next && !next.startsWith('--')) {
+      flags.set(key, next);
+      index += 1;
+    } else {
+      flags.set(key, true);
+    }
+  }
+  return { positionals, flags };
+}
+
+function flagString(args: ParsedArgs, name: string, required = false): string | undefined {
+  const value = args.flags.get(name);
+  if (typeof value === 'string') return value;
+  if (required) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', `--${name} is required.`, { path: `--${name}` });
+  return undefined;
+}
+
+function flagNumber(args: ParsedArgs, name: string): number | undefined {
+  const value = flagString(args, name);
+  if (value === undefined) return undefined;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) throw new BcsHeadlessError('CLI_ARGUMENT_INVALID', `--${name} must be numeric.`, { path: `--${name}` });
+  return parsed;
+}
+
+function flagBoolean(args: ParsedArgs, name: string): boolean {
+  return args.flags.get(name) === true;
+}
+
+async function readJson<T>(path: string): Promise<T> {
+  try {
+    return JSON.parse(await readFile(path, 'utf8')) as T;
+  } catch (error) {
+    throw new BcsHeadlessError('JSON_READ_FAILED', `Unable to read JSON file ${path}.`, {
+      path,
+      details: error instanceof Error ? error.message : error,
+    });
+  }
+}
+
+async function collectJsonFiles(root: string): Promise<string[]> {
+  const info = await stat(root).catch(() => null);
+  if (!info) throw new BcsHeadlessError('ASSET_PATH_NOT_FOUND', `Asset path ${root} does not exist.`, { path: root });
+  if (info.isFile()) return extname(root).toLowerCase() === '.json' ? [root] : [];
+  const files: string[] = [];
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const child = join(root, entry.name);
+    if (entry.isDirectory()) files.push(...await collectJsonFiles(child));
+    else if (entry.isFile() && extname(entry.name).toLowerCase() === '.json') files.push(child);
+  }
+  return files.sort();
+}
+
+async function loadRegistry(root: string): Promise<AssetRegistry> {
+  const registry = new AssetRegistry();
+  for (const file of await collectJsonFiles(root)) {
+    const value = await readJson<unknown>(file);
+    if (
+      typeof value === 'object'
+      && value !== null
+      && (value as { contract?: unknown }).contract === 'bcs.asset-manifest'
+    ) {
+      try {
+        registry.register(value as AssetManifest);
+      } catch (error) {
+        if (error instanceof BcsHeadlessError) {
+          throw new BcsHeadlessError(error.code, `${file}: ${error.message}`, {
+            path: error.path ?? file,
+            recoverable: error.recoverable,
+            details: error.details,
+          });
+        }
+        throw error;
+      }
+    }
+  }
+  return registry;
+}
+
+function schemaRoot(): string {
+  const currentFile = fileURLToPath(import.meta.url);
+  return resolve(dirname(currentFile), '../../schemas/headless');
+}
+
+async function commandSchema(args: ParsedArgs): Promise<unknown> {
+  const action = args.positionals[0];
+  if (action === 'list') return { ok: true, schemas: Object.keys(SCHEMAS).sort() };
+  if (action === 'get') {
+    const name = args.positionals[1];
+    if (!name || !SCHEMAS[name]) {
+      throw new BcsHeadlessError('SCHEMA_NOT_FOUND', `Unknown schema ${name ?? '(missing)'}.`, { path: 'schema' });
+    }
+    return { ok: true, name, schema: await readJson<unknown>(join(schemaRoot(), SCHEMAS[name])) };
+  }
+  throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `schema list` or `schema get <name>`.', { path: 'schema' });
+}
+
+async function commandAsset(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'validate') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `asset validate <manifest.json>`.', { path: 'asset' });
+  }
+  const path = args.positionals[1];
+  if (!path) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Asset manifest path is required.', { path: 'asset' });
+  const manifest = await readJson<unknown>(path);
+  const issues = validateAssetManifest(manifest);
+  return {
+    ok: !issues.some((candidate) => candidate.severity === 'error'),
+    file: resolve(path),
+    issues,
+  };
+}
+
+async function commandVariant(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'compile') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `variant compile --master … --recipe … --assets …`.', { path: 'variant' });
+  }
+  const masterPath = flagString(args, 'master', true)!;
+  const recipePath = flagString(args, 'recipe', true)!;
+  const assetsPath = flagString(args, 'assets', true)!;
+  const renderer = (flagString(args, 'renderer') ?? 'fixed-camera-cinematic') as HeadlessRendererId;
+  if (!BCS_CAPABILITIES.renderers.includes(renderer)) {
+    throw new BcsHeadlessError('RENDERER_UNSUPPORTED', `Renderer ${renderer} is not supported.`, { path: '--renderer' });
+  }
+  const registry = await loadRegistry(assetsPath);
+  const master = await readJson<CreativeMaster>(masterPath);
+  const recipe = await readJson<VariantRecipe>(recipePath);
+  const plan = compileVariant(master, recipe, registry, {
+    renderer,
+    requireHashes: flagBoolean(args, 'require-hashes'),
+  });
+  const out = flagString(args, 'out');
+  if (out) await writeFile(out, `${JSON.stringify(plan, null, 2)}\n`, 'utf8');
+  return { ok: true, registryAssets: registry.size, out: out ? resolve(out) : null, plan };
+}
+
+async function commandQuality(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'check') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `quality check --plan …`.', { path: 'quality' });
+  }
+  const planPath = flagString(args, 'plan', true)!;
+  const plan = await readJson<ResolvedRenderPlan>(planPath);
+  const maxTextureMemoryMiB = flagNumber(args, 'max-texture-mib');
+  const maxTriangleCount = flagNumber(args, 'max-triangles');
+  const maxPluginMemoryMiB = flagNumber(args, 'max-plugin-mib');
+  const report = runQualityGate(plan, {
+    strict: flagBoolean(args, 'strict'),
+    requireHashes: flagBoolean(args, 'require-hashes'),
+    ...(maxTextureMemoryMiB !== undefined ? { maxTextureMemoryMiB } : {}),
+    ...(maxTriangleCount !== undefined ? { maxTriangleCount } : {}),
+    ...(maxPluginMemoryMiB !== undefined ? { maxPluginMemoryMiB } : {}),
+  });
+  const out = flagString(args, 'out');
+  if (out) await writeFile(out, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  return { ok: report.passed, out: out ? resolve(out) : null, report };
+}
+
+async function execute(argv: string[]): Promise<unknown> {
+  const [command, ...rest] = argv;
+  const args = parseArgs(rest);
+  if (command === 'capabilities') return { ok: true, capabilities: BCS_CAPABILITIES };
+  if (command === 'schema') return commandSchema(args);
+  if (command === 'asset') return commandAsset(args);
+  if (command === 'variant') return commandVariant(args);
+  if (command === 'quality') return commandQuality(args);
+  throw new BcsHeadlessError(
+    'CLI_COMMAND_INVALID',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check.',
+    { path: command ?? '(missing command)' },
+  );
+}
+
+try {
+  const result = await execute(process.argv.slice(2));
+  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (
+    typeof result === 'object'
+    && result !== null
+    && 'ok' in result
+    && (result as { ok: unknown }).ok === false
+  ) process.exitCode = 1;
+} catch (error) {
+  const normalized = error instanceof BcsHeadlessError
+    ? {
+        code: error.code,
+        message: error.message,
+        ...(error.path !== undefined ? { path: error.path } : {}),
+        recoverable: error.recoverable,
+        ...(error.details !== undefined ? { details: error.details } : {}),
+      }
+    : {
+        code: 'UNEXPECTED_ERROR',
+        message: error instanceof Error ? error.message : String(error),
+        recoverable: false,
+      };
+  process.stderr.write(`${JSON.stringify({ ok: false, error: normalized }, null, 2)}\n`);
+  process.exitCode = 1;
+}

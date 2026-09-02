@@ -1,0 +1,14 @@
+{
+  "contract": "bcs.variant-recipe",
+  "contractVersion": "1.0.0",
+  "id": "variant.copper",
+  "masterId": "master.demo",
+  "lockMode": "frame-exact",
+  "lookPackRef": {
+    "id": "look.copper",
+    "version": "1.0.0",
+    "kind": "look-pack",
+    "contentHash": "sha256:8888888888888888888888888888888888888888888888888888888888888888"
+  },
+  "seed": 20260902
+}

@@ -18,3 +18,5 @@ reference-frames/
 
 __pycache__/
 *.py[cod]
+
+dist-cli/

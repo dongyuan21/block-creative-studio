@@ -1,0 +1,21 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "layout.vertical",
+  "version": "1.0.0",
+  "kind": "ui-theme",
+  "origin": "builtin",
+  "contentHash": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+  "runtime": {
+    "renderers": [
+      "fixed-camera-cinematic"
+    ],
+    "deterministic": true
+  },
+  "metadata": {
+    "designResolution": {
+      "width": 1080,
+      "height": 1920
+    }
+  }
+}
