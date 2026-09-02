@@ -189,6 +189,7 @@
 - Rotation-aware TapTile blocker compiler, graph overrides, validation diagnostics and browser debugging UI.
 - Production-only deterministic seven-slot match-3 engine with incremental unlock, warning/win/loss semantics and immutable transitions.
 - TapTile play mode, semantic Take recording, state-verified replay/seek and a browser-verified Gate A example project and Take.
+- Deterministic TapTile Beam Search with safe-win, danger-rescue, combo-heavy, fast-clear and intentional-fail Agent Take profiles.
 - Reference-first Canvas 2D renderer calibrated from the supplied 1064×1788 gameplay recording.
 - Machine-readable layout, atom catalog, timing observations and scoring evidence under `docs/reference/`.
 - Per-cell colors for candidate pieces, placement, replay, serialization and both render backends.
@@ -206,7 +207,7 @@
 
 ### Known gaps
 
-- TapTile Agent solving, SkinPack validation, director compilation, fixed-frame MP4, audio mixing and batch rendering remain staged behind Gates B–D.
+- TapTile SkinPack validation, director compilation, fixed-frame MP4, audio mixing and batch rendering remain staged behind Gates B–D.
 - Exact clear scoring, praise thresholds, Combo rules, tray generation and several overlapping VFX timings remain unresolved from a single recording.
 
 ## 0.1.4 — 2026-09-01

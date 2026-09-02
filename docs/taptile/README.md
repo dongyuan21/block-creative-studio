@@ -20,6 +20,7 @@
 - `src/taptile/gameplay/compiler/`：旋转牌块遮挡图、覆盖修正、关卡校验和稳定 `levelHash`。
 - `src/taptile/gameplay/`：正式 `taptile-tray-match3-v1` 7 槽三消状态机；历史多模式研究实现隔离在 `experimental/`。
 - `src/taptile/gameplay/take/`：语义 Take 录制、确定性重放、逐动作校验和 Seek。
+- `src/taptile/gameplay/solver/`：确定性 Beam Search、五类素材剧情 Profile 和正式引擎验证后的 Agent Take。
 - `src/taptile/play/`：试玩台、7 槽 UI、可点击提示和回放交互。
 - `src/taptile/pixelGeometry.ts`：编辑坐标到 1080×1920 输出整数像素的唯一换算入口。
 - `src/taptile/stackModel.ts`：堆叠编辑模型。

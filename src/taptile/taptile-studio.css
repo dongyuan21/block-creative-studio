@@ -620,6 +620,9 @@
 .tpt-session-bar > div { display: flex; align-items: center; gap: 9px; min-width: 0; }
 .tpt-session-bar strong { font-size: 10px; }
 .tpt-session-bar small { color: #8290a4; font-size: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tpt-session-actions { flex-wrap: wrap; justify-content: flex-end; }
+.tpt-agent-profile { display: flex; align-items: center; gap: 6px; color: #8290a4; font-size: 8px; }
+.tpt-agent-profile select { min-width: 104px; min-height: 30px; border: 1px solid var(--tpt-line); border-radius: 8px; padding: 0 8px; color: #dce6f2; background: #182435; font: inherit; }
 .tpt-session-bar button, .tpt-override-actions button, .tpt-validation-play {
   min-height: 30px;
   padding: 0 10px;

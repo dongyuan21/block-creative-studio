@@ -49,6 +49,9 @@ import {
 import {
   compileTapTileLevel,
   playableTapTileIds,
+  solveTapTileTake,
+  TAPTILE_SCENARIO_PROFILES,
+  type TapTileScenarioProfileId,
 } from './gameplay';
 import { GameplayStageOverlay } from './play/GameplayStage';
 import { GameplayTray } from './play/GameplayTray';
@@ -224,6 +227,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const rejectClearTimerRef = useRef<number | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<TapTileWorkspaceMode>('edit');
   const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
+  const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('safe-win');
+  const [agentBusy, setAgentBusy] = useState(false);
   const gameplay = useGameplaySession();
 
   const commit = useCallback((mutate: (draft: TapTileProjectV2) => void): void => {
@@ -706,6 +711,37 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     setNotice(`Take 已保存并通过确定性重放：${take.finalStateHash}`);
   };
 
+  const generateAgentTake = (): void => {
+    if (agentBusy) return;
+    if (!compiledLevel.validation.valid) {
+      setWorkspaceMode('validate');
+      setNotice('Agent 只接受通过关卡校验的编译结果');
+      return;
+    }
+    setAgentBusy(true);
+    setNotice(`Agent 正在按 ${agentProfile} 搜索语义动作路径…`);
+    window.setTimeout(() => {
+      const result = solveTapTileTake(compiledLevel, {
+        profile: agentProfile,
+        seed: project.director.seed,
+        beamWidth: agentProfile === 'safe-win' ? 80 : agentProfile === 'danger-rescue' ? 800 : 260,
+      });
+      setAgentBusy(false);
+      if (result.status !== 'solved' || !result.take || !result.validation?.valid) {
+        setNotice(result.diagnostic ?? 'Agent 在当前搜索预算内未找到目标路径');
+        return;
+      }
+      commit((draft) => {
+        draft.takes = draft.takes.filter((take) => take.id !== result.take!.id);
+        draft.takes.push(result.take!);
+        draft.selectedTakeId = result.take!.id;
+      });
+      gameplay.openReplay(compiledLevel, result.take);
+      setWorkspaceMode('replay');
+      setNotice(`${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`);
+    }, 0);
+  };
+
   const switchWorkspaceMode = (mode: TapTileWorkspaceMode): void => {
     if (mode === 'play') {
       beginPlay();
@@ -1117,7 +1153,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               data-unlock-count={gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)}
             >
               <div><span className="tpt-record-dot" /><strong>正在记录 Take</strong><small>{gameplay.recordedActions.length} 个动作 · 三消 {gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 {gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 {gameplay.gameState.trayIds.length}/7</small></div>
-              <div><button onClick={gameplay.restart}>重新开始</button><button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button></div>
+              <div className="tpt-session-actions">
+                <label className="tpt-agent-profile"><span>Agent 剧情</span><select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)}>{TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
+                <button data-action="generate-agent-take" onClick={generateAgentTake} disabled={agentBusy}>{agentBusy ? '搜索中…' : 'Agent 生成'}</button>
+                <button onClick={gameplay.restart}>重新开始</button>
+                <button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
+              </div>
             </div>
           )}
 

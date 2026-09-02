@@ -25,8 +25,8 @@
 | M3 7 槽引擎 | complete | 本阶段提交 | 7 槽顺序、拒绝、解锁、6/7、胜负与 100 次确定性通过 | 浏览器交互归 Gate A | 旧多模式研究代码仅保留在 experimental |
 | M4 Play + Take | complete | 本阶段提交 | 13 个测试文件、58/58；check/type/build 通过 | 试玩与回放闭环通过 | 编辑态布局变更在试玩中锁定 |
 | Gate A | complete | 随 M4 | 13 个测试文件、58/58；check/type/build 通过 | 48 张初始牌；修正遮挡边 `91→90`；6 次动作完成 2 组三消并解锁 4 张；Replay `6/6`；终态 `state-c91f0b62`；控制台 0 错误 | 截图与示例已固化 |
-| M5 Solver | in progress |  |  |  |  |
-| M6 SkinPack | pending |  |  |  |  |
+| M5 Solver | complete | 本阶段提交 | 14 个测试文件、64/64；小关卡、正式沙漏、同 Seed、danger-rescue、intentional-fail、证据边界通过 | 48 步 `safe-win` Agent Take 胜利并确定性回放；终态 `state-8ba1e269`；控制台 0 错误 | Beam Search 的 `not-found` 不宣称数学无解 |
+| M6 SkinPack | in progress |  |  |  |  |
 | Gate B | pending |  |  |  |  |
 | M7 Director | pending |  |  |  |  |
 | Gate C | pending |  |  |  |  |
@@ -49,3 +49,9 @@
 - `artifacts/design-qa/taptile/gate-a-deterministic-replay.png`
 - `examples/taptile-gate-a-project.json`
 - `examples/taptile-gate-a-take.json`
+
+## M5 证据
+
+- `artifacts/design-qa/taptile/m5-agent-safe-win-replay.png`
+- 浏览器结果：48 个动作、全部 actor=`agent`、结果 `won`、Replay valid、控制台 0 错误。
+- `danger-rescue` 固定关卡会先触发一次 `tray.warning`，随后以三消降回 6 槽以下并最终通关。
