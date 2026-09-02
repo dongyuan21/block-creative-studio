@@ -1,4 +1,4 @@
-import { centeredPixelRect, pixelRectIntersectionArea } from '../pixelGeometry';
+import { centeredPixelRect, pixelRectIntersectionArea } from '../../pixelGeometry';
 import type { GameplayTile, TapTileGameplayState } from './types';
 
 function tileRect(tile: GameplayTile) {
@@ -31,4 +31,3 @@ export function playableTileIds(state: TapTileGameplayState): string[] {
 export function buildBlockerGraph(state: TapTileGameplayState): Record<string, string[]> {
   return Object.fromEntries(state.boardIds.map((tileId) => [tileId, blockerIdsForTile(state, tileId)]));
 }
-

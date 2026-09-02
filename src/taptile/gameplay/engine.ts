@@ -1,217 +1,155 @@
-import { blockerIdsForTile, playableTileIds } from './blockers';
-import { insertIntoGroupedTray, resolveTrayMatch } from './tray';
+import type { CompiledTapTileLevel } from '../project';
+import { TAPTILE_MATCH3_PROFILE } from './profile';
+import { insertIntoGroupedTray, resolveGroupedTrayMatch } from './tray';
 import type {
-  GameplayEvent,
-  GameplayGoal,
-  GameplayTile,
-  GameplayTransition,
-  TapTileGameplayMode,
-  TapTileGameplayRules,
-  TapTileGameplayState,
+  TapTileAction,
+  TapTileGameState,
+  TapTileRejectReason,
+  TapTileSemanticEvent,
+  TapTileTransition,
 } from './types';
 
-export interface CreateGameplayOptions {
-  mode?: TapTileGameplayMode;
-  matchSize?: number;
-  trayCapacity?: number;
-  minimumOcclusionAreaPx?: number;
-  directClearAllCopies?: boolean;
-  loseOnTrayFull?: boolean;
-  winCondition?: TapTileGameplayRules['winCondition'];
-  goals?: Array<Partial<Pick<GameplayGoal, 'current' | 'progressOn'>> & Pick<GameplayGoal, 'id' | 'kind' | 'faceId' | 'target'>>;
-}
-
-const DEFAULT_RULES: TapTileGameplayRules = {
-  mode: 'tray-match-3',
-  matchSize: 3,
-  trayCapacity: 7,
-  minimumOcclusionAreaPx: 16,
-  directClearAllCopies: true,
-  loseOnTrayFull: true,
-  winCondition: 'clear-board',
-};
-
-function normalizeGameplayTile(tile: Omit<GameplayTile, 'order' | 'locked'> & Partial<Pick<GameplayTile, 'order' | 'locked'>>, order: number): GameplayTile {
-  const pixelValues = [tile.centerXPx, tile.centerYPx, tile.widthPx, tile.heightPx];
-  if (!pixelValues.every(Number.isInteger)) throw new Error(`Tile ${tile.id} must use integer export-pixel geometry.`);
-  if (tile.widthPx <= 0 || tile.heightPx <= 0) throw new Error(`Tile ${tile.id} must have positive dimensions.`);
-  if (!Number.isInteger(tile.layer) || tile.layer < 0) throw new Error(`Tile ${tile.id} must use a non-negative integer layer.`);
+function cloneState(state: TapTileGameState): TapTileGameState {
   return {
-    ...tile,
-    order: tile.order ?? order,
-    locked: tile.locked ?? false,
-  };
-}
-
-export function createGameplayState(
-  inputTiles: Array<Omit<GameplayTile, 'order' | 'locked'> & Partial<Pick<GameplayTile, 'order' | 'locked'>>>,
-  options: CreateGameplayOptions = {},
-): TapTileGameplayState {
-  const { goals: goalOptions = [], ...ruleOptions } = options;
-  const rules: TapTileGameplayRules = { ...DEFAULT_RULES, ...ruleOptions };
-  rules.matchSize = Math.max(2, Math.round(rules.matchSize));
-  rules.trayCapacity = Math.max(rules.matchSize, Math.round(rules.trayCapacity));
-  rules.minimumOcclusionAreaPx = Math.max(1, Math.round(rules.minimumOcclusionAreaPx));
-  const tiles = inputTiles.map(normalizeGameplayTile);
-  if (new Set(tiles.map((tile) => tile.id)).size !== tiles.length) throw new Error('Gameplay tile ids must be unique.');
-  const goals = goalOptions.map((goal) => ({
-    ...goal,
-    current: Math.max(0, Math.min(goal.target, Math.round(goal.current ?? 0))),
-    progressOn: goal.progressOn ?? 'selected',
-  }));
-  return {
-    rules,
-    status: 'playing',
-    turn: 0,
-    tiles: Object.fromEntries(tiles.map((tile) => [tile.id, tile])),
-    boardIds: tiles.map((tile) => tile.id),
-    trayIds: [],
-    selectedInPlaceIds: [],
-    clearedIds: [],
-    goals,
-  };
-}
-
-function cloneState(state: TapTileGameplayState): TapTileGameplayState {
-  return {
-    ...state,
-    rules: { ...state.rules },
+    status: state.status,
+    turn: state.turn,
     boardIds: [...state.boardIds],
     trayIds: [...state.trayIds],
-    selectedInPlaceIds: [...state.selectedInPlaceIds],
     clearedIds: [...state.clearedIds],
-    goals: state.goals.map((goal) => ({ ...goal })),
+    activeBlockerCount: { ...state.activeBlockerCount },
   };
 }
 
-function advanceGoals(
-  state: TapTileGameplayState,
-  trigger: 'selected' | 'cleared',
-  faceIds: readonly string[],
-  events: GameplayEvent[],
-): void {
-  for (const goal of state.goals) {
-    if (goal.progressOn !== trigger) continue;
-    const amount = faceIds.filter((faceId) => faceId === goal.faceId).length;
-    if (amount === 0 || goal.current >= goal.target) continue;
-    const previous = goal.current;
-    goal.current = Math.min(goal.target, goal.current + amount);
-    events.push({ type: 'goal-progress', goalId: goal.id, previous, current: goal.current, target: goal.target });
-  }
+export function createInitialTapTileGameState(level: CompiledTapTileLevel): TapTileGameState {
+  return {
+    status: 'playing',
+    turn: 0,
+    boardIds: [...level.initialBoardIds],
+    trayIds: [],
+    clearedIds: [],
+    activeBlockerCount: { ...level.initialBlockerCount },
+  };
 }
 
-function removeBoardTiles(state: TapTileGameplayState, tileIds: readonly string[]): void {
-  const removed = new Set(tileIds);
-  state.boardIds = state.boardIds.filter((tileId) => !removed.has(tileId));
-  state.clearedIds = [...new Set([...state.clearedIds, ...tileIds])];
+export function activeBlockerIds(
+  level: CompiledTapTileLevel,
+  state: TapTileGameState,
+  tileId: string,
+): string[] {
+  const board = new Set(state.boardIds);
+  return (level.blockersByTile[tileId] ?? []).filter((id) => board.has(id));
 }
 
-function appendUnlockEvent(before: Set<string>, state: TapTileGameplayState, events: GameplayEvent[]): void {
-  const unlocked = playableTileIds(state).filter((tileId) => !before.has(tileId));
-  if (unlocked.length > 0) events.push({ type: 'tiles-unlocked', tileIds: unlocked });
+export function playableTapTileIds(level: CompiledTapTileLevel, state: TapTileGameState): string[] {
+  return state.boardIds.filter((id) => (state.activeBlockerCount[id] ?? 0) === 0);
 }
 
-function settleTerminalState(state: TapTileGameplayState, events: GameplayEvent[]): void {
-  const boardCleared = state.boardIds.length === 0 && (state.rules.mode !== 'tray-match-3' || state.trayIds.length === 0);
-  const goalsComplete = state.goals.length > 0 && state.goals.every((goal) => goal.current >= goal.target);
-  const won = state.rules.winCondition === 'clear-board'
-    ? boardCleared
-    : state.rules.winCondition === 'complete-goals'
-      ? goalsComplete
-      : state.rules.winCondition === 'clear-board-or-goals'
-        ? boardCleared || goalsComplete
-        : boardCleared && goalsComplete;
-
-  if (won) {
-    state.status = 'won';
-    events.push({ type: 'game-won' });
-    return;
-  }
-
-  if (state.rules.mode === 'tray-match-3') {
-    if (state.rules.loseOnTrayFull && state.trayIds.length >= state.rules.trayCapacity) {
-      state.status = 'lost';
-      events.push({ type: 'game-lost', reason: 'tray-full' });
-      return;
-    }
-    if (state.boardIds.length === 0) {
-      if (state.trayIds.length > 0) {
-        state.status = 'lost';
-        events.push({ type: 'game-lost', reason: 'board-empty-with-unmatched-tray' });
-      }
-      return;
-    }
-    if (state.trayIds.length === state.rules.trayCapacity - 1) {
-      events.push({ type: 'tray-warning', occupied: state.trayIds.length, capacity: state.rules.trayCapacity });
-    }
-    return;
-  }
+function reject(
+  level: CompiledTapTileLevel,
+  state: TapTileGameState,
+  action: TapTileAction,
+  reason: TapTileRejectReason,
+): TapTileTransition {
+  const before = cloneState(state);
+  const after = cloneState(state);
+  const blockerIds = reason === 'blocked' ? activeBlockerIds(level, state, action.tileId) : undefined;
+  const event: TapTileSemanticEvent = {
+    type: 'tap.rejected',
+    tileId: action.tileId,
+    reason,
+    ...(blockerIds && blockerIds.length > 0 ? { blockerIds } : {}),
+  };
+  return {
+    before,
+    after,
+    action: { ...action },
+    accepted: false,
+    rejectReason: reason,
+    ...(blockerIds && blockerIds.length > 0 ? { blockerIds } : {}),
+    trayBefore: [...state.trayIds],
+    trayAfterInsert: [...state.trayIds],
+    trayAfterResolve: [...state.trayIds],
+    matchedTileIds: [],
+    newlyUnlockedTileIds: [],
+    events: [event],
+  };
 }
 
-function rejected(state: TapTileGameplayState, tileId: string, reason: Extract<GameplayEvent, { type: 'click-rejected' }>['reason'], blockerIds?: string[]): GameplayTransition {
-  return { state, events: [{ type: 'click-rejected', tileId, reason, ...(blockerIds ? { blockerIds } : {}) }] };
-}
+export function applyTapAction(
+  level: CompiledTapTileLevel,
+  state: TapTileGameState,
+  action: TapTileAction,
+): TapTileTransition {
+  if (state.status !== 'playing') return reject(level, state, action, 'not-playing');
+  if (!state.boardIds.includes(action.tileId) || !level.tiles[action.tileId]) return reject(level, state, action, 'not-on-board');
+  if ((state.activeBlockerCount[action.tileId] ?? 0) > 0) return reject(level, state, action, 'blocked');
 
-export function clickGameplayTile(state: TapTileGameplayState, tileId: string): GameplayTransition {
-  if (state.status !== 'playing') return rejected(state, tileId, 'not-playing');
-  if (!state.boardIds.includes(tileId)) return rejected(state, tileId, 'not-on-board');
-  const tile = state.tiles[tileId];
-  if (!tile) return rejected(state, tileId, 'not-on-board');
-  if (tile.locked) return rejected(state, tileId, 'locked');
-  const blockers = blockerIdsForTile(state, tileId);
-  if (blockers.length > 0) return rejected(state, tileId, 'blocked', blockers);
-  if (state.rules.mode === 'manual-in-place-match' && state.selectedInPlaceIds.includes(tileId)) {
-    return rejected(state, tileId, 'already-selected');
-  }
-
-  const beforePlayable = new Set(playableTileIds(state));
+  const before = cloneState(state);
   const next = cloneState(state);
   next.turn += 1;
-  const events: GameplayEvent[] = [{ type: 'click-accepted', tileId, turn: next.turn }];
-
-  if (next.rules.mode === 'tray-match-3') {
-    next.boardIds = next.boardIds.filter((id) => id !== tileId);
-    const inserted = insertIntoGroupedTray(next.trayIds, tileId, next.tiles);
-    next.trayIds = inserted.trayIds;
-    events.push({ type: 'tile-moved-to-tray', tileId, trayIndex: inserted.insertedIndex });
-    advanceGoals(next, 'selected', [tile.faceId], events);
-    const resolved = resolveTrayMatch(next.trayIds, tile.faceId, next.rules.matchSize, next.tiles);
-    next.trayIds = resolved.trayIds;
-    if (resolved.clearedIds.length > 0) {
-      next.clearedIds = [...new Set([...next.clearedIds, ...resolved.clearedIds])];
-      events.push({ type: 'match-resolved', faceId: tile.faceId, tileIds: resolved.clearedIds, source: next.rules.mode });
-      advanceGoals(next, 'cleared', resolved.clearedIds.map((id) => next.tiles[id]?.faceId ?? ''), events);
-    }
-  } else if (next.rules.mode === 'direct-set-clear') {
-    const matching = next.boardIds.filter((id) => next.tiles[id]?.faceId === tile.faceId);
-    if (matching.length < next.rules.matchSize) return rejected(state, tileId, 'no-complete-set');
-    const clickedFirst = [tileId, ...matching.filter((id) => id !== tileId)];
-    const clearedIds = next.rules.directClearAllCopies ? clickedFirst : clickedFirst.slice(0, next.rules.matchSize);
-    removeBoardTiles(next, clearedIds);
-    events.push({ type: 'match-resolved', faceId: tile.faceId, tileIds: clearedIds, source: next.rules.mode });
-    advanceGoals(next, 'selected', [tile.faceId], events);
-    advanceGoals(next, 'cleared', clearedIds.map((id) => next.tiles[id]?.faceId ?? ''), events);
-  } else {
-    const currentFace = next.selectedInPlaceIds.length > 0
-      ? next.tiles[next.selectedInPlaceIds[0] ?? '']?.faceId
-      : null;
-    if (currentFace && currentFace !== tile.faceId) {
-      events.push({ type: 'in-place-selection-reset', previousTileIds: [...next.selectedInPlaceIds], nextFaceId: tile.faceId });
-      next.selectedInPlaceIds = [];
-    }
-    next.selectedInPlaceIds.push(tileId);
-    events.push({ type: 'in-place-selection-changed', tileIds: [...next.selectedInPlaceIds] });
-    advanceGoals(next, 'selected', [tile.faceId], events);
-    if (next.selectedInPlaceIds.length >= next.rules.matchSize) {
-      const clearedIds = next.selectedInPlaceIds.slice(0, next.rules.matchSize);
-      next.selectedInPlaceIds = [];
-      removeBoardTiles(next, clearedIds);
-      events.push({ type: 'match-resolved', faceId: tile.faceId, tileIds: clearedIds, source: next.rules.mode });
-      advanceGoals(next, 'cleared', clearedIds.map((id) => next.tiles[id]?.faceId ?? ''), events);
-    }
+  next.boardIds = next.boardIds.filter((id) => id !== action.tileId);
+  const trayBefore = [...next.trayIds];
+  const inserted = insertIntoGroupedTray(next.trayIds, action.tileId, level);
+  const trayAfterInsert = [...inserted.trayIds];
+  const resolved = resolveGroupedTrayMatch(trayAfterInsert, action.tileId, level);
+  const trayAfterResolve = [...resolved.trayIds];
+  next.trayIds = trayAfterResolve;
+  if (resolved.matchedTileIds.length > 0) {
+    next.clearedIds = [...next.clearedIds, ...resolved.matchedTileIds.filter((id) => !next.clearedIds.includes(id))];
   }
 
-  appendUnlockEvent(beforePlayable, next, events);
-  settleTerminalState(next, events);
-  return { state: next, events };
+  const newlyUnlockedTileIds: string[] = [];
+  const boardSet = new Set(next.boardIds);
+  for (const dependentId of level.dependentsByTile[action.tileId] ?? []) {
+    if (!boardSet.has(dependentId)) continue;
+    const previous = next.activeBlockerCount[dependentId] ?? 0;
+    const current = Math.max(0, previous - 1);
+    next.activeBlockerCount[dependentId] = current;
+    if (previous > 0 && current === 0) newlyUnlockedTileIds.push(dependentId);
+  }
+
+  const events: TapTileSemanticEvent[] = [
+    { type: 'tap.accepted', tileId: action.tileId, turn: next.turn },
+    { type: 'tile.fly-to-tray', tileId: action.tileId, trayIndex: inserted.insertedIndex },
+    { type: 'tray.reordered', before: trayBefore, afterInsert: trayAfterInsert, afterResolve: trayAfterResolve },
+  ];
+  const matchKey = level.tiles[action.tileId]?.matchKey ?? '';
+  if (resolved.matchedTileIds.length > 0) events.push({ type: 'match.resolved', matchKey, tileIds: [...resolved.matchedTileIds] });
+  if (newlyUnlockedTileIds.length > 0) events.push({ type: 'tiles.unlocked', tileIds: [...newlyUnlockedTileIds] });
+
+  let terminal: TapTileTransition['terminal'];
+  let terminalReason: TapTileTransition['terminalReason'];
+  if (next.boardIds.length === 0 && next.trayIds.length === 0) {
+    next.status = 'won';
+    terminal = 'won';
+    events.push({ type: 'game.won' });
+  } else if (next.trayIds.length >= TAPTILE_MATCH3_PROFILE.trayCapacity) {
+    next.status = 'lost';
+    terminal = 'lost';
+    terminalReason = 'tray-full';
+    events.push({ type: 'game.lost', reason: terminalReason });
+  } else if (next.boardIds.length === 0) {
+    next.status = 'lost';
+    terminal = 'lost';
+    terminalReason = 'board-empty-with-unmatched-tray';
+    events.push({ type: 'game.lost', reason: terminalReason });
+  } else if (next.trayIds.length === TAPTILE_MATCH3_PROFILE.warningAt) {
+    events.push({ type: 'tray.warning', occupied: TAPTILE_MATCH3_PROFILE.warningAt, capacity: TAPTILE_MATCH3_PROFILE.trayCapacity });
+  }
+
+  return {
+    before,
+    after: next,
+    action: { ...action },
+    accepted: true,
+    trayBefore,
+    trayAfterInsert,
+    trayAfterResolve,
+    insertedIndex: inserted.insertedIndex,
+    matchedTileIds: [...resolved.matchedTileIds],
+    newlyUnlockedTileIds,
+    ...(terminal ? { terminal } : {}),
+    ...(terminalReason ? { terminalReason } : {}),
+    events,
+  };
 }

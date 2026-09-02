@@ -1,157 +1,170 @@
 import { describe, expect, it } from 'vitest';
 import {
-  blockerIdsForTile,
-  clickGameplayTile,
-  createGameplayState,
-  playableTileIds,
-  type GameplayTile,
-  type TapTileGameplayState,
+  applyTapAction,
+  compileTapTileLevel,
+  createInitialTapTileGameState,
+  playableTapTileIds,
+  tapTileStateHash,
+  type TapTileAction,
+  type TapTileGameState,
 } from '../src/taptile/gameplay';
+import {
+  createDefaultTapTileProject,
+  type TapTileProjectV2,
+} from '../src/taptile/project';
 
-function tile(
-  id: string,
-  faceId: string,
-  centerXPx: number,
-  centerYPx: number,
-  layer = 0,
-): Omit<GameplayTile, 'order' | 'locked'> {
-  return { id, faceId, centerXPx, centerYPx, widthPx: 170, heightPx: 170, layer };
+interface TestTile {
+  id: string;
+  matchKey: string;
+  x?: number;
+  y?: number;
+  layer?: number;
+  editorLocked?: boolean;
+  rotationDeg?: number;
 }
 
-function click(state: TapTileGameplayState, tileId: string) {
-  return clickGameplayTile(state, tileId);
+function makeProject(input: TestTile[]): TapTileProjectV2 {
+  const project = createDefaultTapTileProject('free');
+  const matchKeys = [...new Set(input.map((tile) => tile.matchKey))];
+  project.visuals.archetypes = {};
+  project.visuals.faceAssemblies = {};
+  const bindings: Record<string, { faceAssemblyId: string; bodyStyleId: string }> = {};
+  for (const [index, matchKey] of matchKeys.entries()) {
+    const archetypeId = `archetype-${matchKey}`;
+    const faceAssemblyId = `face-${matchKey}`;
+    project.visuals.archetypes[archetypeId] = { id: archetypeId, displayName: matchKey, matchKey };
+    project.visuals.faceAssemblies[faceAssemblyId] = {
+      id: faceAssemblyId,
+      name: matchKey,
+      mode: 'overlay-on-body',
+      bodyInteraction: 'show-body',
+      parts: [{
+        id: `${faceAssemblyId}-glyph`,
+        source: { kind: 'glyph', value: String.fromCodePoint(0x1f330 + index) },
+        transform: { x: 0.5, y: 0.5, scaleX: 1, scaleY: 1, rotationDeg: 0, opacity: 1 },
+      }],
+    };
+    bindings[archetypeId] = { faceAssemblyId, bodyStyleId: 'body-warm' };
+  }
+  project.visuals.themes = { test: { id: 'test', name: 'Test', bindings } };
+  project.visuals.selectedThemeId = 'test';
+  project.level.tileInstances = input.map((tile, order) => ({
+    id: tile.id,
+    archetypeId: `archetype-${tile.matchKey}`,
+    geometry: {
+      centerXPx: tile.x ?? 100 + order * 190,
+      centerYPx: tile.y ?? 800,
+      widthPx: 170,
+      heightPx: 170,
+      rotationDeg: tile.rotationDeg ?? 0,
+      layer: tile.layer ?? 0,
+      order,
+    },
+    authoring: { editorLocked: tile.editorLocked ?? false },
+  }));
+  project.level.blockerPolicy = { minimumOverlapAreaPx: 100, minimumOverlapRatio: 0.01, epsilonPx: 0.001 };
+  project.level.blockerOverrides = { forced: [], ignored: [] };
+  return project;
 }
 
-describe('TapTile gameplay engine', () => {
-  it('uses the same pixel overlap graph for playability and post-click unlocking', () => {
-    const initial = createGameplayState([
-      tile('lower', 'frog', 500, 700, 0),
-      tile('upper', 'bear', 530, 700, 1),
+function action(tileId: string, index = 0): TapTileAction {
+  return { id: `action-${index}-${tileId}`, type: 'tap', actor: 'script', tileId };
+}
+
+function tap(level: ReturnType<typeof compileTapTileLevel>, state: TapTileGameState, tileId: string, index = 0) {
+  return applyTapAction(level, state, action(tileId, index));
+}
+
+describe('TapTile tray-match3-v1 engine', () => {
+  it('uses the frozen blocker graph and incrementally unlocks dependents', () => {
+    const project = makeProject([
+      { id: 'lower', matchKey: 'frog', x: 500, y: 700, layer: 0 },
+      { id: 'upper', matchKey: 'bear', x: 530, y: 700, layer: 1 },
     ]);
-    expect(blockerIdsForTile(initial, 'lower')).toEqual(['upper']);
-    expect(playableTileIds(initial)).toEqual(['upper']);
-    expect(click(initial, 'lower').events[0]).toMatchObject({ type: 'click-rejected', reason: 'blocked' });
+    const level = compileTapTileLevel(project);
+    const initial = createInitialTapTileGameState(level);
+    expect(level.blockersByTile.lower).toEqual(['upper']);
+    expect(playableTapTileIds(level, initial)).toEqual(['upper']);
+    const rejected = tap(level, initial, 'lower');
+    expect(rejected).toMatchObject({ accepted: false, rejectReason: 'blocked', blockerIds: ['upper'] });
+    expect(rejected.after).toEqual(initial);
 
-    const moved = click(initial, 'upper');
-    expect(moved.state.boardIds).toEqual(['lower']);
-    expect(moved.events).toContainEqual({ type: 'tiles-unlocked', tileIds: ['lower'] });
+    const moved = tap(level, initial, 'upper');
+    expect(moved.after.boardIds).toEqual(['lower']);
+    expect(moved.newlyUnlockedTileIds).toEqual(['lower']);
+    expect(moved.events).toContainEqual({ type: 'tiles.unlocked', tileIds: ['lower'] });
   });
 
-  it('groups equal faces in the tray and resolves the third copy before capacity checks', () => {
-    let state = createGameplayState([
-      tile('frog-1', 'frog', 100, 300),
-      tile('bear-1', 'bear', 300, 300),
-      tile('frog-2', 'frog', 500, 300),
-      tile('frog-3', 'frog', 700, 300),
+  it('groups by matchKey and exposes insert and resolve tray states', () => {
+    const project = makeProject([
+      { id: 'frog-1', matchKey: 'frog' },
+      { id: 'bear-1', matchKey: 'bear' },
+      { id: 'frog-2', matchKey: 'frog' },
+      { id: 'frog-3', matchKey: 'frog' },
+      { id: 'bear-2', matchKey: 'bear' },
+      { id: 'bear-3', matchKey: 'bear' },
     ]);
-    state = click(state, 'frog-1').state;
-    state = click(state, 'bear-1').state;
-    state = click(state, 'frog-2').state;
-    expect(state.trayIds).toEqual(['frog-1', 'frog-2', 'bear-1']);
-    const third = click(state, 'frog-3');
-    expect(third.state.trayIds).toEqual(['bear-1']);
-    expect(third.state.clearedIds).toEqual(expect.arrayContaining(['frog-1', 'frog-2', 'frog-3']));
-    expect(third.events).toContainEqual({
-      type: 'match-resolved',
-      faceId: 'frog',
-      tileIds: ['frog-1', 'frog-2', 'frog-3'],
-      source: 'tray-match-3',
-    });
+    const level = compileTapTileLevel(project);
+    let state = createInitialTapTileGameState(level);
+    state = tap(level, state, 'frog-1', 1).after;
+    state = tap(level, state, 'bear-1', 2).after;
+    const second = tap(level, state, 'frog-2', 3);
+    expect(second.trayAfterInsert).toEqual(['frog-1', 'frog-2', 'bear-1']);
+    const third = tap(level, second.after, 'frog-3', 4);
+    expect(third.trayBefore).toEqual(['frog-1', 'frog-2', 'bear-1']);
+    expect(third.trayAfterInsert).toEqual(['frog-1', 'frog-2', 'frog-3', 'bear-1']);
+    expect(third.trayAfterResolve).toEqual(['bear-1']);
+    expect(third.matchedTileIds).toEqual(['frog-1', 'frog-2', 'frog-3']);
   });
 
-  it('warns at six of seven tray slots and loses only after an unresolved seventh tile', () => {
-    const tiles = Array.from({ length: 7 }, (_, index) => tile(`tile-${index}`, `face-${index}`, 80 + index * 140, 400));
-    let state = createGameplayState(tiles);
-    let transition = click(state, 'tile-0');
-    for (let index = 1; index < 6; index += 1) transition = click(transition.state, `tile-${index}`);
-    expect(transition.state.status).toBe('playing');
-    expect(transition.events).toContainEqual({ type: 'tray-warning', occupied: 6, capacity: 7 });
-    transition = click(transition.state, 'tile-6');
-    expect(transition.state.status).toBe('lost');
-    expect(transition.events).toContainEqual({ type: 'game-lost', reason: 'tray-full' });
+  it('warns at six and loses only after an unresolved seventh tile', () => {
+    const project = makeProject(Array.from({ length: 8 }, (_, index) => ({ id: `tile-${index}`, matchKey: `face-${index}` })));
+    const level = compileTapTileLevel(project);
+    let state = createInitialTapTileGameState(level);
+    let transition = tap(level, state, 'tile-0', 0);
+    for (let index = 1; index < 6; index += 1) transition = tap(level, transition.after, `tile-${index}`, index);
+    expect(transition.after.status).toBe('playing');
+    expect(transition.events).toContainEqual({ type: 'tray.warning', occupied: 6, capacity: 7 });
+    const lost = tap(level, transition.after, 'tile-6', 6);
+    expect(lost.after.status).toBe('lost');
+    expect(lost.terminalReason).toBe('tray-full');
   });
 
-  it('tracks collection goals on selection independently from triple elimination', () => {
-    let state = createGameplayState([
-      tile('heart-1', 'heart', 120, 500),
-      tile('heart-2', 'heart', 360, 500),
-      tile('heart-3', 'heart', 600, 500),
-    ], {
-      goals: [{ id: 'heart-goal', kind: 'collect-face', faceId: 'heart', target: 3, progressOn: 'selected' }],
-    });
-    state = click(state, 'heart-1').state;
-    state = click(state, 'heart-2').state;
-    const completed = click(state, 'heart-3');
-    expect(completed.state.goals[0]?.current).toBe(3);
-    expect(completed.state.status).toBe('won');
-    expect(completed.events.some((event) => event.type === 'goal-progress')).toBe(true);
-    expect(completed.events.some((event) => event.type === 'match-resolved')).toBe(true);
+  it('resolves a triple before checking the seventh tray slot', () => {
+    const keys = ['a', 'b', 'c', 'd', 'e', 'a', 'a', 'z'];
+    const project = makeProject(keys.map((matchKey, index) => ({ id: `tile-${index}`, matchKey })));
+    const level = compileTapTileLevel(project);
+    let state = createInitialTapTileGameState(level);
+    for (let index = 0; index < 6; index += 1) state = tap(level, state, `tile-${index}`, index).after;
+    expect(state.trayIds).toHaveLength(6);
+    const rescue = tap(level, state, 'tile-6', 6);
+    expect(rescue.trayAfterInsert).toHaveLength(7);
+    expect(rescue.trayAfterResolve).toHaveLength(4);
+    expect(rescue.after.status).toBe('playing');
   });
 
-  it('can use an observed collection goal as the terminal condition without requiring a board clear', () => {
-    const state = createGameplayState([
-      tile('heart-1', 'heart', 120, 500),
-      tile('heart-2', 'heart', 360, 500),
-      tile('coin-1', 'coin', 600, 500),
-    ], {
-      matchSize: 2,
-      winCondition: 'complete-goals',
-      goals: [{ id: 'heart-goal', kind: 'collect-face', faceId: 'heart', target: 1, progressOn: 'selected' }],
-    });
-    const completed = click(state, 'heart-1');
-    expect(completed.state.status).toBe('won');
-    expect(completed.state.boardIds).toEqual(['heart-2', 'coin-1']);
-    expect(completed.events).toContainEqual({ type: 'game-won' });
+  it('does not treat editorLocked as a gameplay blocker', () => {
+    const project = makeProject([
+      { id: 'locked-1', matchKey: 'a', editorLocked: true },
+      { id: 'locked-2', matchKey: 'a', editorLocked: true },
+      { id: 'locked-3', matchKey: 'a', editorLocked: true },
+    ]);
+    const level = compileTapTileLevel(project);
+    const state = createInitialTapTileGameState(level);
+    expect(playableTapTileIds(level, state)).toContain('locked-1');
+    expect(tap(level, state, 'locked-1').accepted).toBe(true);
   });
 
-  it('keeps full-tray failure switchable because the audited videos do not show a complete loss sample', () => {
-    const tiles = Array.from({ length: 8 }, (_, index) => tile(`safe-${index}`, `face-${index}`, 50 + index * 130, 400));
-    let state = createGameplayState(tiles, { loseOnTrayFull: false });
-    for (let index = 0; index < 7; index += 1) state = click(state, `safe-${index}`).state;
-    expect(state.status).toBe('playing');
-    expect(state.trayIds).toHaveLength(7);
-    expect(state.boardIds).toEqual(['safe-7']);
-  });
-
-  it('supports the observed tap-one auto-clear-set variant without a tray', () => {
-    const state = createGameplayState([
-      tile('shoe-1', 'shoe', 120, 400),
-      tile('shoe-2', 'shoe', 420, 400),
-      tile('shoe-3', 'shoe', 720, 400),
-    ], { mode: 'direct-set-clear' });
-    const transition = click(state, 'shoe-2');
-    expect(transition.state.boardIds).toEqual([]);
-    expect(transition.state.trayIds).toEqual([]);
-    expect(transition.state.status).toBe('won');
-    expect(transition.events).toContainEqual({
-      type: 'match-resolved',
-      faceId: 'shoe',
-      tileIds: ['shoe-2', 'shoe-1', 'shoe-3'],
-      source: 'direct-set-clear',
-    });
-  });
-
-  it('supports manual in-place triple selection and resets a mixed-face attempt', () => {
-    let state = createGameplayState([
-      tile('kiwi-1', 'kiwi', 120, 400),
-      tile('kiwi-2', 'kiwi', 360, 400),
-      tile('kiwi-3', 'kiwi', 600, 400),
-      tile('pear-1', 'pear', 840, 400),
-    ], { mode: 'manual-in-place-match' });
-    state = click(state, 'kiwi-1').state;
-    const reset = click(state, 'pear-1');
-    expect(reset.state.selectedInPlaceIds).toEqual(['pear-1']);
-    expect(reset.events.some((event) => event.type === 'in-place-selection-reset')).toBe(true);
-    state = click(reset.state, 'kiwi-1').state;
-    state = click(state, 'kiwi-2').state;
-    const matched = click(state, 'kiwi-3');
-    expect(matched.state.boardIds).toEqual(['pear-1']);
-    expect(matched.state.selectedInPlaceIds).toEqual([]);
-  });
-
-  it('rejects fractional export geometry instead of hiding subpixel drift', () => {
-    expect(() => createGameplayState([
-      { ...tile('fractional', 'frog', 100, 300), centerXPx: 100.5 },
-    ])).toThrow(/integer export-pixel geometry/);
+  it('replays the same input 100 times to the same state hash', () => {
+    const project = makeProject(Array.from({ length: 9 }, (_, index) => ({ id: `tile-${index}`, matchKey: `key-${Math.floor(index / 3)}` })));
+    const level = compileTapTileLevel(project);
+    const run = (): string => {
+      let state = createInitialTapTileGameState(level);
+      for (let index = 0; index < 9; index += 1) state = tap(level, state, `tile-${index}`, index).after;
+      expect(state.status).toBe('won');
+      return tapTileStateHash(state);
+    };
+    const expected = run();
+    for (let index = 0; index < 100; index += 1) expect(run()).toBe(expected);
   });
 });

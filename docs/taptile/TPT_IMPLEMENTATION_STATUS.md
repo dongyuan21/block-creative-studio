@@ -22,7 +22,7 @@
 | M0 基线与文档 | complete | 本状态文档首次提交 | 49/49；check/type/build 通过 | 基线截图完成；原冒烟脚本有已记录失败 | npm 不在 PATH；使用等价运行时 |
 | M1 Schema V2 | complete | 本阶段提交 | 55/55；check/type/build 通过 | 编辑器已接 V2；完整闭环归 Gate A | IndexedDB 资产上传留到资产阶段 |
 | M2 Level Compiler | complete | 本阶段提交 | 旋转几何、覆盖、hash 与验证测试通过 | 调试 UI 将随 Gate A 验证 | 阈值为显式工程默认值，不声称为官方公式 |
-| M3 7 槽引擎 | in progress |  |  |  |  |
+| M3 7 槽引擎 | complete | 本阶段提交 | 7 槽顺序、拒绝、解锁、6/7、胜负与 100 次确定性通过 | 浏览器交互归 Gate A | 旧多模式研究代码仅保留在 experimental |
 | M4 Play + Take | pending |  |  |  |  |
 | Gate A | pending |  |  |  |  |
 | M5 Solver | pending |  |  |  |  |

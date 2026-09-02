@@ -1,18 +1,19 @@
-import type { GameplayTile } from './types';
+import type { CompiledTapTileLevel } from '../project';
 
 export function insertIntoGroupedTray(
   trayIds: readonly string[],
   tileId: string,
-  tiles: Readonly<Record<string, GameplayTile>>,
+  level: CompiledTapTileLevel,
 ): { trayIds: string[]; insertedIndex: number } {
-  const faceId = tiles[tileId]?.faceId;
-  if (!faceId) return { trayIds: [...trayIds, tileId], insertedIndex: trayIds.length };
+  const matchKey = level.tiles[tileId]?.matchKey;
   let insertedIndex = trayIds.length;
-  for (let index = trayIds.length - 1; index >= 0; index -= 1) {
-    const existing = tiles[trayIds[index] ?? ''];
-    if (existing?.faceId === faceId) {
-      insertedIndex = index + 1;
-      break;
+  if (matchKey) {
+    for (let index = trayIds.length - 1; index >= 0; index -= 1) {
+      const existingId = trayIds[index];
+      if (existingId && level.tiles[existingId]?.matchKey === matchKey) {
+        insertedIndex = index + 1;
+        break;
+      }
     }
   }
   const next = [...trayIds];
@@ -20,19 +21,19 @@ export function insertIntoGroupedTray(
   return { trayIds: next, insertedIndex };
 }
 
-export function resolveTrayMatch(
+export function resolveGroupedTrayMatch(
   trayIds: readonly string[],
-  faceId: string,
-  matchSize: number,
-  tiles: Readonly<Record<string, GameplayTile>>,
-): { trayIds: string[]; clearedIds: string[] } {
-  const matching = trayIds.filter((tileId) => tiles[tileId]?.faceId === faceId);
-  if (matching.length < matchSize) return { trayIds: [...trayIds], clearedIds: [] };
-  const clearedIds = matching.slice(0, matchSize);
-  const cleared = new Set(clearedIds);
+  tileId: string,
+  level: CompiledTapTileLevel,
+): { trayIds: string[]; matchedTileIds: string[] } {
+  const matchKey = level.tiles[tileId]?.matchKey;
+  if (!matchKey) return { trayIds: [...trayIds], matchedTileIds: [] };
+  const matching = trayIds.filter((candidateId) => level.tiles[candidateId]?.matchKey === matchKey);
+  if (matching.length < 3) return { trayIds: [...trayIds], matchedTileIds: [] };
+  const matchedTileIds = matching.slice(0, 3);
+  const matched = new Set(matchedTileIds);
   return {
-    trayIds: trayIds.filter((tileId) => !cleared.has(tileId)),
-    clearedIds,
+    trayIds: trayIds.filter((candidateId) => !matched.has(candidateId)),
+    matchedTileIds,
   };
 }
-
