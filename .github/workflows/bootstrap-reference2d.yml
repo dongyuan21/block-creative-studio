@@ -32,6 +32,15 @@ jobs:
           base64 --decode /tmp/reference2d.patch.gz.b64 | gzip -dc > /tmp/reference2d.patch
           patch --batch --forward -p5 < /tmp/reference2d.patch || true
           rm -f README.md.rej docs/PHASE1_STATUS.md.rej
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('scripts/check-source.mjs')
+          source = path.read_text(encoding='utf-8')
+          marker = "    '--noEmit',\n"
+          if "    '--ignoreConfig',\n" not in source:
+              source = source.replace(marker, marker + "    '--ignoreConfig',\n", 1)
+          path.write_text(source, encoding='utf-8')
+          PY
           rm -rf .seed-reference2d
           git diff --check
           npm run check:source
