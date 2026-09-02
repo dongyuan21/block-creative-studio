@@ -8,7 +8,6 @@ coverage/
 .core-dist/
 *.zip
 *.bundle
-
 # Local full-video audit inputs and generated evidence. Reference footage and
 # extracted frames are intentionally never committed to the public repository.
 .reference-audit-work/
@@ -26,3 +25,4 @@ dist-pages-smoke/
 
 # Capture writes this-run evidence here. Git-tracked frames/videos are stale.
 review-package/run/
+artifacts/design-qa/
