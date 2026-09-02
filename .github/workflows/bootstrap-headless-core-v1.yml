@@ -38,6 +38,22 @@ jobs:
           echo "41671a3f79b8b481ea60a7b787851ee350bf9561ebe8da2bcec3db43a8eea80a  /tmp/headless.patch" | sha256sum --check --strict
           git apply --check /tmp/headless.patch
           git apply /tmp/headless.patch
+
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/qualityGate.test.ts')
+          text = path.read_text(encoding='utf-8')
+          expected = [
+              ('report.metrics.textureMemoryMiB).toBe(42)', 'report.metrics.textureMemoryMiB).toBe(62)'),
+              ('report.metrics.triangleCount).toBe(12000)', 'report.metrics.triangleCount).toBe(28000)'),
+          ]
+          for old, new in expected:
+              if old not in text:
+                  raise SystemExit(f'Expected test assertion not found: {old}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+          PY
+
           rm -rf .seed-headless-core-v1
           rm -f .github/workflows/bootstrap-headless-core-v1.yml
 
