@@ -18,6 +18,7 @@ import type {
   StyleSpec,
   TileColor,
 } from '../domain/types';
+import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
 
 export interface StudioSceneOptions {
@@ -36,6 +37,14 @@ const BOARD_CENTER_OFFSET = (BOARD_SIZE - 1) / 2;
 const RACK_Y = -5.3;
 const MAX_SHARDS = 1536;
 const MAX_PARTICLES = 3072;
+
+// Fixed composition envelope used by the legacy experimental 3D preview.
+// The board is 8.68 world units wide; the extra margin protects the bevel,
+// shadow, rack pieces and small camera-shake offsets.
+const CAMERA_FRAME_WIDTH = 9.05;
+const CAMERA_FRAME_HEIGHT = 13.8;
+const CAMERA_FRAME_WIDTH_FILL = 0.89;
+const CAMERA_FRAME_HEIGHT_FILL = 0.9;
 
 interface LiveBurst {
   clearing: ClearingFrame;
@@ -331,6 +340,7 @@ export class StudioScene {
     this.composer.setSize(this.width, this.height);
     this.camera.aspect = this.width / this.height;
     this.camera.updateProjectionMatrix();
+    if (this.style) this.syncCamera(this.frame?.cameraPunch ?? 0);
   }
 
   start(): void {
@@ -817,16 +827,50 @@ export class StudioScene {
     const shakeX = Math.sin(frame * 2.13) * effectivePunch * 0.08;
     const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055;
 
+    let preferredDistance: number;
+    let cameraX: number;
+    let cameraY: number;
+    let punchDepth: number;
+
     if (this.style.camera === 'flat-gameplay') {
       this.camera.fov = 39;
-      this.camera.position.set(shakeX, -0.15 + shakeY, 18.7 - effectivePunch * 0.22);
+      preferredDistance = 18.7;
+      cameraX = 0;
+      cameraY = -0.15;
+      punchDepth = 0.22;
     } else if (this.style.camera === 'premium-perspective') {
       this.camera.fov = 42;
-      this.camera.position.set(0.12 + shakeX, -1.1 + shakeY, 17.6 - effectivePunch * 0.35);
+      preferredDistance = 17.6;
+      cameraX = 0.12;
+      cameraY = -1.1;
+      punchDepth = 0.35;
     } else {
       this.camera.fov = 43;
-      this.camera.position.set(-0.15 + shakeX, -1.45 + shakeY, 17.1 - effectivePunch * 0.62);
+      preferredDistance = 17.1;
+      cameraX = -0.15;
+      cameraY = -1.45;
+      punchDepth = 0.62;
     }
+
+    // PerspectiveCamera.fov is vertical. The old preview used fixed distances,
+    // so a portrait 9:16 viewport had a horizontal frustum narrower than the
+    // 8.68-unit board and clipped both sides. Fit the fixed composition against
+    // the actual viewport aspect before applying the small reactive punch.
+    const fittedDistance = perspectiveDistanceToFitFrame({
+      verticalFovDegrees: this.camera.fov,
+      aspect: this.camera.aspect,
+      contentWidth: CAMERA_FRAME_WIDTH,
+      contentHeight: CAMERA_FRAME_HEIGHT,
+      widthFill: CAMERA_FRAME_WIDTH_FILL,
+      heightFill: CAMERA_FRAME_HEIGHT_FILL,
+      minimumDistance: preferredDistance,
+    });
+
+    this.camera.position.set(
+      cameraX + shakeX,
+      cameraY + shakeY,
+      fittedDistance - effectivePunch * punchDepth,
+    );
     this.camera.lookAt(0, -0.05, 0.15);
     this.camera.updateProjectionMatrix();
   }
