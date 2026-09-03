@@ -23,6 +23,7 @@ import {
 } from '../src/taptile/render';
 import { tapTileTraySlotRect } from '../src/taptile/trayLayout';
 import { TAPTILE_POINTER_ASSET_ID } from '../src/taptile/presentation/assets';
+import { tapTileMaterialAppearance } from '../src/taptile/visual/materialAppearance';
 
 const ACTION_IDS = ['hourglass-43', 'hourglass-44', 'hourglass-45', 'hourglass-46', 'hourglass-47', 'hourglass-48'];
 
@@ -154,6 +155,36 @@ describe('TapTile Canvas render pipeline', () => {
       const slot = tapTileTraySlotRect(index, tray);
       expect(trace.items.find((item) => item.id === `tray-slot:${index}`)?.bounds)
         .toEqual({ x: slot.left, y: slot.top, width: slot.width, height: slot.height });
+    }
+  });
+
+  it('composites each board layer as one shared shadow pass followed by one surface pass', () => {
+    const { project, level, compiled } = renderFixture();
+    const cache = new TapTileAssetCache(project, { image: async () => ({} as CanvasImageSource) });
+    const presentation = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) }).evaluate(0);
+    const trace = renderTapTilePresentationFrame(fakeCanvas(), presentation, { project, level, assets: cache });
+    const layers = [...new Set(presentation.gameState.boardIds
+      .map((tileId) => level.tiles[tileId]!.geometry.layer))]
+      .sort((left, right) => left - right);
+    let previousSurfaceIndex = -1;
+    for (const layer of layers) {
+      const tileIds = presentation.gameState.boardIds.filter((tileId) => level.tiles[tileId]!.geometry.layer === layer);
+      const shadowIndexes = tileIds.map((tileId) => trace.items.findIndex((item) => item.id === `board-shadow:${tileId}`));
+      const surfaceIndexes = tileIds.map((tileId) => trace.items.findIndex((item) => item.id === `board:${tileId}`));
+      expect(shadowIndexes.every((index) => index >= 0)).toBe(true);
+      expect(surfaceIndexes.every((index) => index >= 0)).toBe(true);
+      expect(Math.max(...shadowIndexes)).toBeLessThan(Math.min(...surfaceIndexes));
+      expect(Math.min(...shadowIndexes)).toBeGreaterThan(previousSurfaceIndex);
+      previousSurfaceIndex = Math.max(...surfaceIndexes);
+    }
+  });
+
+  it('keeps every material edge inside the snapped tile geometry', () => {
+    for (const material of ['porcelain', 'ice', 'jelly', 'paper'] as const) {
+      const appearance = tapTileMaterialAppearance(material);
+      expect(appearance.surfaceOffsetYRatio).toBe(0);
+      expect(appearance.edgeDepthRatio).toBeGreaterThan(0);
+      expect(appearance.edgeDepthRatio).toBeLessThanOrEqual(0.032);
     }
   });
 

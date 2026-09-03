@@ -366,6 +366,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     () => new Set(displayState?.boardIds ?? tiles.map((tile) => tile.id)),
     [displayState, tiles],
   );
+  const displayedTiles = useMemo(
+    () => tiles.filter((tile) => displayedBoardIds.has(tile.id)),
+    [displayedBoardIds, tiles],
+  );
   const displayedPlayableIds = useMemo(() => new Set(
     displayState
       ? playableTapTileIds(compiledLevel, displayState)
@@ -1376,7 +1380,30 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               ))}
 
               <div className="tpt-board-layer">
-              {tiles.filter((tile) => displayedBoardIds.has(tile.id)).map((tile, index) => {
+              {displayedTiles.map((tile) => {
+                const layerRank = layerRanks.get(tile.layer) ?? 0;
+                const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
+                const shadowOffsetY = 3.2 + Math.min(4, layerRank) * 0.6;
+                const shadowOpacity = 0.62 + Math.min(4, layerRank) * 0.055;
+                return (
+                  <span
+                    key={`depth-shadow-${tile.id}`}
+                    className={`tpt-tile-depth-shadow material-${project.authoring.material}${dimmed ? ' is-dimmed' : ''}`}
+                    data-depth-layer={tile.layer}
+                    style={{
+                      left: `${(tile.x / STACK_STAGE.width) * 100}%`,
+                      top: `${(tile.y / STACK_STAGE.height) * 100}%`,
+                      width: `${((STACK_STAGE.tileSize * tile.scale) / STACK_STAGE.width) * 100}%`,
+                      zIndex: 100 + layerRank * 2,
+                      transform: `translate(-50%, -50%) rotate(${tile.rotation}deg) translate(1%, ${shadowOffsetY}%) scale(0.97)`,
+                      '--tile-depth-shadow-blur': `${1.4 + Math.min(4, layerRank) * 0.3}px`,
+                      '--tile-depth-shadow-opacity': shadowOpacity,
+                    } as CSSProperties}
+                    aria-hidden="true"
+                  />
+                );
+              })}
+              {displayedTiles.map((tile) => {
                 const selected = selectedIds.includes(tile.id);
                 const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
                 const snapTarget = snapTargetIds.includes(tile.id);
@@ -1402,7 +1429,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                       left: `${(tile.x / STACK_STAGE.width) * 100}%`,
                       top: `${(tile.y / STACK_STAGE.height) * 100}%`,
                       width: `${((STACK_STAGE.tileSize * tile.scale) / STACK_STAGE.width) * 100}%`,
-                      zIndex: 100 + (layerRanks.get(tile.layer) ?? 0) * (tiles.length + 1) + index,
+                      zIndex: 101 + (layerRanks.get(tile.layer) ?? 0) * 2,
                       transform: `translate(-50%, -50%) rotate(${tile.rotation}deg)`,
                       '--tile-accent': faceAccent(tile.faceId),
                     } as React.CSSProperties}

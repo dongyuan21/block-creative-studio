@@ -67,6 +67,27 @@ function drawCover(context: CanvasRenderingContext2D, image: CanvasImageSource, 
   context.drawImage(image, round(x), round(y), round(width), round(height));
 }
 
+function drawMaterialCastShadow(
+  context: CanvasRenderingContext2D,
+  material: ReturnType<typeof tapTileMaterialAppearance>,
+  role: TapTilePresentationRole,
+  width: number,
+  height: number,
+  elevationRank: number,
+): void {
+  const shortestSide = Math.min(width, height);
+  const safeRank = Math.min(4, Math.max(0, elevationRank));
+  context.save();
+  context.shadowColor = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.92)' : material.shadowColor;
+  context.shadowBlur = shortestSide * (material.shadowBlurRatio + safeRank * 0.0025);
+  context.shadowOffsetX = shortestSide * 0.01;
+  context.shadowOffsetY = shortestSide * (0.026 + safeRank * 0.006);
+  context.fillStyle = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.12)' : 'rgba(5, 18, 43, 0.07)';
+  roundedRect(context, -width / 2, -height / 2, width, height, shortestSide * material.radiusRatio);
+  context.fill();
+  context.restore();
+}
+
 function drawTileMaterial(
   context: CanvasRenderingContext2D,
   bundle: TapTileCanvasRenderBundle,
@@ -74,6 +95,8 @@ function drawTileMaterial(
   role: TapTilePresentationRole,
   width: number,
   height: number,
+  castShadow = true,
+  elevationRank = 0,
 ): number {
   const material = tapTileMaterialAppearance(visual.material);
   const shortestSide = Math.min(width, height);
@@ -81,30 +104,29 @@ function drawTileMaterial(
   const surfaceOffsetY = height * material.surfaceOffsetYRatio;
   const edgeDepth = Math.max(2, height * material.edgeDepthRatio);
   const left = -width / 2;
-  const top = -height / 2 + surfaceOffsetY;
+  const top = -height / 2;
+  const surfaceTop = top + surfaceOffsetY;
+  const surfaceHeight = Math.max(1, height - edgeDepth - Math.max(0, surfaceOffsetY));
 
-  context.save();
-  context.shadowColor = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.92)' : material.shadowColor;
-  context.shadowBlur = shortestSide * material.shadowBlurRatio;
-  context.shadowOffsetY = edgeDepth * 0.8;
+  if (castShadow) drawMaterialCastShadow(context, material, role, width, height, elevationRank);
+
   context.fillStyle = material.edgeColor;
-  roundedRect(context, left, top + edgeDepth, width, height, radius);
+  roundedRect(context, left, top, width, height, radius);
   context.fill();
-  context.restore();
 
-  const surface = context.createLinearGradient(left, top, width / 2, top + height);
+  const surface = context.createLinearGradient(left, surfaceTop, width / 2, surfaceTop + surfaceHeight);
   for (const [offset, color] of material.fillStops) surface.addColorStop(offset, color);
   context.fillStyle = surface;
-  roundedRect(context, left, top, width, height, radius);
+  roundedRect(context, left, surfaceTop, width, surfaceHeight, radius);
   context.fill();
 
   const bodyImage = visual.bodyStyle.bodyAssetId ? bundle.assets.get(visual.bodyStyle.bodyAssetId) : undefined;
   if (bodyImage) {
     context.save();
-    roundedRect(context, left, top, width, height, radius);
+    roundedRect(context, left, surfaceTop, width, surfaceHeight, radius);
     context.clip();
     context.globalAlpha *= material.textureOpacity;
-    drawCover(context, bodyImage, left, top, width, height);
+    drawCover(context, bodyImage, left, surfaceTop, width, surfaceHeight);
     context.restore();
   }
 
@@ -112,7 +134,7 @@ function drawTileMaterial(
   context.shadowColor = 'transparent';
   context.lineWidth = Math.max(1.5, visual.bodyStyle.borderWidthPx * 0.72);
   context.strokeStyle = material.borderColor;
-  roundedRect(context, left, top, width, height, radius);
+  roundedRect(context, left, surfaceTop, width, surfaceHeight, radius);
   context.stroke();
   const highlightInset = shortestSide * material.highlightInsetRatio;
   context.lineWidth = Math.max(1, shortestSide * material.highlightWidthRatio);
@@ -120,14 +142,37 @@ function drawTileMaterial(
   roundedRect(
     context,
     left + highlightInset,
-    top + highlightInset,
+    surfaceTop + highlightInset,
     width - highlightInset * 2,
-    height - highlightInset * 2,
+    surfaceHeight - highlightInset * 2,
     Math.max(0, radius - highlightInset * 0.45),
   );
   context.stroke();
   context.restore();
-  return surfaceOffsetY;
+  return surfaceOffsetY - edgeDepth / 2;
+}
+
+function drawTileCastShadow(
+  context: CanvasRenderingContext2D,
+  bundle: TapTileCanvasRenderBundle,
+  archetypeId: string,
+  role: TapTilePresentationRole,
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  rotationDeg: number,
+  elevationRank: number,
+): void {
+  const visual = resolveTileVisual(bundle.project, archetypeId, bundle.project.visuals.selectedThemeId, role);
+  const drawWidth = round(width * visual.roleScale);
+  const drawHeight = round(height * visual.roleScale);
+  const material = tapTileMaterialAppearance(visual.material);
+  context.save();
+  context.translate(round(centerX), round(centerY));
+  context.rotate(rotationDeg * Math.PI / 180);
+  drawMaterialCastShadow(context, material, role, drawWidth, drawHeight, elevationRank);
+  context.restore();
 }
 
 function drawTile(
@@ -142,6 +187,8 @@ function drawTile(
   rotationDeg: number,
   scale = 1,
   opacity = 1,
+  castShadow = true,
+  elevationRank = 0,
 ): ResolvedTileVisual {
   const visual = resolveTileVisual(bundle.project, archetypeId, bundle.project.visuals.selectedThemeId, role);
   const drawWidth = round(width * scale * visual.roleScale);
@@ -150,7 +197,7 @@ function drawTile(
   context.globalAlpha = opacity;
   context.translate(round(centerX), round(centerY));
   context.rotate(rotationDeg * Math.PI / 180);
-  const surfaceOffsetY = drawTileMaterial(context, bundle, visual, role, drawWidth, drawHeight);
+  const surfaceOffsetY = drawTileMaterial(context, bundle, visual, role, drawWidth, drawHeight, castShadow, elevationRank);
 
   for (const part of visual.renderedFace.parts) {
     const partWidth = Math.abs(part.transform.scaleX) * drawWidth;
@@ -232,9 +279,17 @@ export function renderTapTilePresentationFrame(
     .map((id) => bundle.level.tiles[id])
     .filter((tile): tile is NonNullable<typeof tile> => Boolean(tile))
     .sort((left, right) => left.geometry.layer - right.geometry.layer || left.geometry.order - right.geometry.order || left.id.localeCompare(right.id));
-  for (const tile of boardTiles) {
-    drawTile(context, bundle, tile.archetypeId, 'board', tile.geometry.centerXPx, tile.geometry.centerYPx, tile.geometry.widthPx, tile.geometry.heightPx, tile.geometry.rotationDeg);
-    trace.items.push({ band: TAPTILE_Z_BANDS.board, id: `board:${tile.id}`, bounds: { x: round(tile.geometry.centerXPx - tile.geometry.widthPx / 2), y: round(tile.geometry.centerYPx - tile.geometry.heightPx / 2), width: round(tile.geometry.widthPx), height: round(tile.geometry.heightPx) } });
+  const boardLayers = [...new Set(boardTiles.map((tile) => tile.geometry.layer))];
+  for (const [layerRank, layer] of boardLayers.entries()) {
+    const layerTiles = boardTiles.filter((tile) => tile.geometry.layer === layer);
+    for (const tile of layerTiles) {
+      drawTileCastShadow(context, bundle, tile.archetypeId, 'board', tile.geometry.centerXPx, tile.geometry.centerYPx, tile.geometry.widthPx, tile.geometry.heightPx, tile.geometry.rotationDeg, layerRank);
+      trace.items.push({ band: TAPTILE_Z_BANDS.board, id: `board-shadow:${tile.id}`, bounds: { x: round(tile.geometry.centerXPx - tile.geometry.widthPx / 2), y: round(tile.geometry.centerYPx - tile.geometry.heightPx / 2), width: round(tile.geometry.widthPx), height: round(tile.geometry.heightPx) } });
+    }
+    for (const tile of layerTiles) {
+      drawTile(context, bundle, tile.archetypeId, 'board', tile.geometry.centerXPx, tile.geometry.centerYPx, tile.geometry.widthPx, tile.geometry.heightPx, tile.geometry.rotationDeg, 1, 1, false, layerRank);
+      trace.items.push({ band: TAPTILE_Z_BANDS.board, id: `board:${tile.id}`, bounds: { x: round(tile.geometry.centerXPx - tile.geometry.widthPx / 2), y: round(tile.geometry.centerYPx - tile.geometry.heightPx / 2), width: round(tile.geometry.widthPx), height: round(tile.geometry.heightPx) } });
+    }
   }
   for (const layer of stage.layers.filter((candidate) => candidate.role === 'foreground' || candidate.role === 'overlay')) {
     context.save();
@@ -425,7 +480,6 @@ export function renderTapTilePresentationFrame(
     trace.items.push({ band: TAPTILE_Z_BANDS.outro, id: `status:${frame.gameState.status}`, bounds: { x: 0, y: 0, width, height } });
   }
   context.restore();
-  trace.items.sort((left, right) => left.band - right.band || left.id.localeCompare(right.id));
   return trace;
 }
 
