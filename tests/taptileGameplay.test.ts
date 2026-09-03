@@ -76,6 +76,18 @@ function tap(level: ReturnType<typeof compileTapTileLevel>, state: TapTileGameSt
 }
 
 describe('TapTile tray-match3-v1 engine', () => {
+  it('allows levels whose match groups are not multiples of three', () => {
+    const project = makeProject([
+      { id: 'a-1', matchKey: 'a' },
+      { id: 'a-2', matchKey: 'a' },
+      { id: 'b-1', matchKey: 'b' },
+      { id: 'b-2', matchKey: 'b' },
+    ]);
+    const level = compileTapTileLevel(project);
+    expect(level.validation.valid).toBe(true);
+    expect(level.validation.issues.some((issue) => issue.code === 'MATCH_KEY_COUNT_INVALID')).toBe(false);
+  });
+
   it('uses the frozen blocker graph and incrementally unlocks dependents', () => {
     const project = makeProject([
       { id: 'lower', matchKey: 'frog', x: 500, y: 700, layer: 0 },

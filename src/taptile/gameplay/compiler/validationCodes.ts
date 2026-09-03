@@ -3,7 +3,6 @@ export const LEVEL_VALIDATION_CODES = {
   duplicateTileId: 'TILE_ID_DUPLICATE',
   missingArchetype: 'ARCHETYPE_MISSING',
   missingMatchKey: 'MATCH_KEY_MISSING',
-  unmatchedCount: 'MATCH_KEY_COUNT_INVALID',
   nonIntegerGeometry: 'GEOMETRY_NON_INTEGER',
   invalidSize: 'GEOMETRY_SIZE_INVALID',
   outOfBounds: 'GEOMETRY_OUT_OF_BOUNDS',

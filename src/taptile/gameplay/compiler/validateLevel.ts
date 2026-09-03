@@ -55,7 +55,6 @@ export function validateTapTileLevel(
   const instances = project.level.tileInstances;
   const ids = new Set<string>();
   const orders = new Map<number, string>();
-  const matchCounts = new Map<string, string[]>();
 
   if (instances.length === 0) issues.push(issue('error', CODES.empty, '关卡没有牌。', [], '从模板或牌面库添加至少三张牌。'));
   for (const tile of instances) {
@@ -66,10 +65,6 @@ export function validateTapTileLevel(
       issues.push(issue('error', CODES.missingArchetype, `牌 ${tile.id} 引用了不存在的 archetype ${tile.archetypeId}。`, [tile.id, tile.archetypeId]));
     } else if (!archetype.matchKey) {
       issues.push(issue('error', CODES.missingMatchKey, `牌型 ${archetype.id} 缺少 matchKey。`, [tile.id, archetype.id]));
-    } else {
-      const list = matchCounts.get(archetype.matchKey) ?? [];
-      list.push(tile.id);
-      matchCounts.set(archetype.matchKey, list);
     }
     const geometry = tile.geometry;
     if (![geometry.centerXPx, geometry.centerYPx, geometry.widthPx, geometry.heightPx].every(Number.isInteger)) {
@@ -89,10 +84,6 @@ export function validateTapTileLevel(
     if (!binding || !project.visuals.faceAssemblies[binding.faceAssemblyId] || !project.visuals.bodyStyles[binding.bodyStyleId]) {
       issues.push(issue('error', CODES.missingVisualBinding, `当前主题没有完整覆盖牌 ${tile.id} 的牌型。`, [tile.id, tile.archetypeId], '补齐 FaceAssembly 和 BodyStyle 绑定。'));
     }
-  }
-
-  for (const [matchKey, tileIds] of matchCounts) {
-    if (tileIds.length % 3 !== 0) issues.push(issue('error', CODES.unmatchedCount, `matchKey ${matchKey} 有 ${tileIds.length} 张，不是 3 的倍数。`, tileIds, '调整匹配分组或增删牌，使数量为 3 的倍数。'));
   }
 
   const byId = Object.fromEntries(instances.map((tile) => [tile.id, tile]));
