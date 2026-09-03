@@ -1,12 +1,17 @@
 param(
   [string]$Endpoint = 'http://127.0.0.1:9223/json',
   [string]$PageUrl = 'http://127.0.0.1:4173/',
-  [string]$ArtifactDirectory = 'artifacts/design-qa/taptile'
+  [string]$ArtifactDirectory = 'artifacts/design-qa/taptile',
+  [ValidateSet('max-clear', 'safe-win', 'danger-rescue', 'combo-heavy', 'fast-clear', 'intentional-fail')]
+  [string]$Profile = 'safe-win',
+  [ValidateSet('fast', 'standard', 'deep')]
+  [string]$SearchStrength = 'standard',
+  [switch]$PartialFixture
 )
 
 $ErrorActionPreference = 'Stop'
-$solverTarget = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5 |
-  Where-Object { $_.type -eq 'page' -and $_.url -eq $PageUrl } |
+$solverTargets = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5
+$solverTarget = $solverTargets.Where({ $_.type -eq 'page' -and $_.url -eq $PageUrl }) |
   Select-Object -First 1
 if (-not $solverTarget) { throw "No CDP page target found for $PageUrl" }
 
@@ -64,6 +69,41 @@ Invoke-SolverCdpCommand -Method 'Emulation.setDeviceMetricsOverride' -Params @{
 Invoke-SolverExpression -Expression "localStorage.removeItem('taptile-director-project/autosave/v2'); true" | Out-Null
 Invoke-SolverCdpCommand -Method 'Page.reload' | Out-Null
 Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-studio'))"
+if ($PartialFixture) {
+  Wait-SolverExpression -Expression "Boolean(localStorage.getItem('taptile-director-project/autosave/v2'))"
+  Invoke-SolverExpression -Expression @'
+(() => {
+  const storageKey = 'taptile-director-project/autosave/v2';
+  const project = JSON.parse(localStorage.getItem(storageKey));
+  const archetypeIds = Object.keys(project.visuals.archetypes).sort().slice(0, 6);
+  const copies = [4, 4, 5, 4, 4, 2];
+  const assignments = copies.flatMap((count, index) => Array.from({ length: count }, () => archetypeIds[index]));
+  project.level.tileInstances = project.level.tileInstances.slice(0, assignments.length).map((tile, index) => ({
+    ...tile,
+    archetypeId: assignments[index],
+    geometry: {
+      ...tile.geometry,
+      centerXPx: 165 + (index % 6) * 150,
+      centerYPx: 460 + Math.floor(index / 6) * 150,
+      widthPx: 140,
+      heightPx: 140,
+      rotationDeg: 0,
+      layer: 0,
+      order: index,
+    },
+  }));
+  project.level.blockerOverrides = { forced: [], ignored: [] };
+  project.takes = [];
+  delete project.selectedTakeId;
+  project.revision += 1;
+  project.updatedAt = new Date().toISOString();
+  localStorage.setItem(storageKey, JSON.stringify(project));
+  return assignments.length === 23;
+})()
+'@ | Out-Null
+  Invoke-SolverCdpCommand -Method 'Page.reload' | Out-Null
+  Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-studio'))"
+}
 Invoke-SolverExpression -Expression @'
 (() => {
   window.__tptSolverErrors = [];
@@ -79,16 +119,25 @@ Invoke-SolverExpression -Expression @'
 })()
 '@ | Out-Null
 Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=play]'))"
-Invoke-SolverExpression -Expression @'
+$solverProfileJson = $Profile | ConvertTo-Json -Compress
+$solverStrengthJson = $SearchStrength | ConvertTo-Json -Compress
+Invoke-SolverExpression -Expression @"
 (() => {
-  const select = document.querySelector('[data-agent-profile]');
-  select.value = 'safe-win';
-  select.dispatchEvent(new Event('change', { bubbles: true }));
+  const profileSelect = document.querySelector('[data-agent-profile]');
+  profileSelect.value = $solverProfileJson;
+  profileSelect.dispatchEvent(new Event('change', { bubbles: true }));
+  const strengthSelect = document.querySelector('[data-agent-search-strength]');
+  strengthSelect.value = $solverStrengthJson;
+  strengthSelect.dispatchEvent(new Event('change', { bubbles: true }));
   document.querySelector('[data-action="generate-agent-take"]').click();
   return true;
 })()
-'@ | Out-Null
-Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=replay][data-valid=true]'))" -Attempts 160
+"@ | Out-Null
+Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=replay][data-valid=true]'))" -Attempts 300
+if ($PartialFixture) {
+  Wait-SolverExpression -Expression "document.querySelector('[data-agent-clear-summary]')?.textContent.includes('最大消除 15/23') === true" -Attempts 100
+  Wait-SolverExpression -Expression "document.querySelector('[data-action=toggle-replay-autoplay]')?.textContent.includes('重新播放') === true" -Attempts 100
+}
 Start-Sleep -Milliseconds 500
 
 $solverSummary = Invoke-SolverExpression -Expression @'
@@ -102,19 +151,35 @@ $solverSummary = Invoke-SolverExpression -Expression @'
     allAgent: take?.actions.every((action) => action.actor === 'agent'),
     finalStateHash: take?.finalStateHash,
     replayValid: document.querySelector('.tpt-session-bar[data-mode=replay]')?.dataset.valid === 'true',
+    clearSummary: document.querySelector('[data-agent-clear-summary]')?.textContent || '',
+    autoPlayControl: Boolean(document.querySelector('[data-action="toggle-replay-autoplay"]')),
     consoleErrors: window.__tptSolverErrors.length,
   });
 })()
 '@ | ConvertFrom-Json
-if ($solverSummary.result -ne 'won' -or -not $solverSummary.allAgent -or -not $solverSummary.replayValid) {
+$expectedResult = if ($PartialFixture) { 'unfinished' } elseif ($Profile -eq 'intentional-fail') { 'lost' } else { 'won' }
+if ($solverSummary.result -ne $expectedResult -or -not $solverSummary.allAgent -or -not $solverSummary.replayValid -or -not $solverSummary.autoPlayControl) {
   throw "Agent Take did not pass browser verification: $($solverSummary | ConvertTo-Json -Compress)"
+}
+if ($PartialFixture -and ($solverSummary.name -notlike '*最大消除 15/23*' -or $solverSummary.clearSummary -notlike '*理论上限 15*')) {
+  throw "Maximum-clear summary did not report the proved 15/23 partial path: $($solverSummary | ConvertTo-Json -Compress)"
 }
 if ($solverSummary.consoleErrors -gt 0) { throw "Browser console errors: $($solverSummary.consoleErrors)" }
 
 $solverArtifactRoot = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $ArtifactDirectory))
 [IO.Directory]::CreateDirectory($solverArtifactRoot) | Out-Null
 $solverCapture = Invoke-SolverCdpCommand -Method 'Page.captureScreenshot' -Params @{ format = 'png'; captureBeyondViewport = $false }
-[IO.File]::WriteAllBytes((Join-Path $solverArtifactRoot 'm5-agent-safe-win-replay.png'), [Convert]::FromBase64String([string]$solverCapture.data))
+$solverCaptureName = if ($PartialFixture) { 'agent-max-clear-partial-replay.png' } else { "agent-$Profile-replay.png" }
+[IO.File]::WriteAllBytes((Join-Path $solverArtifactRoot $solverCaptureName), [Convert]::FromBase64String([string]$solverCapture.data))
+if ($PartialFixture) {
+  Invoke-SolverExpression -Expression "document.querySelector('[data-mode-id=direct]').click(); true" | Out-Null
+  Wait-SolverExpression -Expression "document.querySelectorAll('.tpt-director-action').length === 15"
+  $directorActionCount = Invoke-SolverExpression -Expression "document.querySelectorAll('.tpt-director-action').length"
+  Invoke-SolverExpression -Expression "document.querySelector('[data-mode-id=export]').click(); true" | Out-Null
+  Wait-SolverExpression -Expression "Boolean(document.querySelector('.tpt-export-panel'))"
+  $solverSummary | Add-Member -NotePropertyName directorActionCount -NotePropertyValue $directorActionCount
+  $solverSummary | Add-Member -NotePropertyName exportReady -NotePropertyValue $true
+}
 $solverSummary | ConvertTo-Json -Depth 5
 
 Invoke-SolverCdpCommand -Method 'Emulation.clearDeviceMetricsOverride' | Out-Null

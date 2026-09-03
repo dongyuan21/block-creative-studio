@@ -114,6 +114,31 @@ const TAPTILE_STUDIO_STYLE = {
   '--tpt-classic-tile-surface': `url("${resolveTapTileBuiltinAssetUrl('/assets/taptile/classic-tile-surface-v1.png')}")`,
 } as CSSProperties;
 
+const AGENT_SEARCH_STRENGTHS = [
+  { id: 'fast', label: '快速', beamScale: 0.5, maxExpandedStates: 12_000 },
+  { id: 'standard', label: '标准', beamScale: 1, maxExpandedStates: 60_000 },
+  { id: 'deep', label: '深度', beamScale: 2, maxExpandedStates: 180_000 },
+] as const;
+
+type AgentSearchStrengthId = (typeof AGENT_SEARCH_STRENGTHS)[number]['id'];
+
+interface AgentRunSummary {
+  takeId: string;
+  clearedTileCount: number;
+  totalTileCount: number;
+  theoreticalClearableTileCount: number;
+  peakTrayOccupancy: number;
+  provedMaximum: boolean;
+  expandedStates: number;
+}
+
+function agentBaseBeamWidth(profile: TapTileScenarioProfileId): number {
+  if (profile === 'danger-rescue') return 800;
+  if (profile === 'max-clear') return 120;
+  if (profile === 'safe-win') return 80;
+  return 260;
+}
+
 const ALIGNMENT_ACTIONS: Array<{
   command: StackAlignmentCommand;
   label: string;
@@ -323,8 +348,11 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
   const [liveMatchEffects, setLiveMatchEffects] = useState<GameplayMatchEffect[]>([]);
   const liveMatchTimersRef = useRef<Map<string, number>>(new Map());
-  const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('safe-win');
+  const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('max-clear');
+  const [agentSearchStrength, setAgentSearchStrength] = useState<AgentSearchStrengthId>('standard');
   const [agentBusy, setAgentBusy] = useState(false);
+  const [agentRunSummary, setAgentRunSummary] = useState<AgentRunSummary | null>(null);
+  const [replayAutoPlaying, setReplayAutoPlaying] = useState(false);
   const [directorFrame, setDirectorFrame] = useState(0);
   const [directorZoom, setDirectorZoom] = useState(0.7);
   const [selectedDirectorActionId, setSelectedDirectorActionId] = useState<string | null>(null);
@@ -358,6 +386,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     () => project.takes.find((take) => take.id === project.selectedTakeId) ?? project.takes.at(-1) ?? null,
     [project.selectedTakeId, project.takes],
   );
+  const activeAgentRunSummary = agentRunSummary?.takeId === selectedDirectorTake?.id ? agentRunSummary : null;
   const selectedDirectorProfile = project.director.profiles[project.director.selectedProfileId] ?? null;
   const compiledDirector = useMemo(() => {
     if (!selectedDirectorTake || !selectedDirectorProfile) return null;
@@ -426,6 +455,17 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     if (!compiledDirector) return;
     setDirectorFrame((current) => Math.min(current, compiledDirector.totalFrames - 1));
   }, [compiledDirector]);
+
+  useEffect(() => {
+    if (!replayAutoPlaying || workspaceMode !== 'replay' || !gameplay.replayValidation) return;
+    const finalReplayIndex = Math.max(0, gameplay.replayValidation.replay.states.length - 1);
+    if (gameplay.replayIndex >= finalReplayIndex) {
+      setReplayAutoPlaying(false);
+      return;
+    }
+    const timer = window.setTimeout(() => gameplay.seekReplay(gameplay.replayIndex + 1), 420);
+    return () => window.clearTimeout(timer);
+  }, [gameplay.replayIndex, gameplay.replayValidation, gameplay.seekReplay, replayAutoPlaying, workspaceMode]);
 
   useEffect(() => () => {
     tapTileExportAbortRef.current?.abort();
@@ -978,6 +1018,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       setNotice(firstError ? `${firstError.code}：${firstError.message}` : '当前视觉主题无法清楚表达匹配分组');
       return;
     }
+    setReplayAutoPlaying(false);
     clearLiveMatchEffects();
     gameplay.begin(compiledLevel);
     setSelectedIds([]);
@@ -991,6 +1032,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       setNotice('还没有可回放的 Take；请先完成一次试玩并保存');
       return;
     }
+    setReplayAutoPlaying(false);
     const validation = gameplay.openReplay(compiledLevel, take);
     setWorkspaceMode('replay');
     setNotice(validation.valid ? `Take 已验证：${take.finalStateHash}` : validation.issues[0]?.message ?? 'Take 无效');
@@ -1020,15 +1062,19 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       return;
     }
     setAgentBusy(true);
-    setNotice(`Agent 正在按 ${agentProfile} 搜索语义动作路径…`);
+    const strength = AGENT_SEARCH_STRENGTHS.find((candidate) => candidate.id === agentSearchStrength)
+      ?? AGENT_SEARCH_STRENGTHS[1];
+    const beamWidth = Math.max(1, Math.round(agentBaseBeamWidth(agentProfile) * strength.beamScale));
+    setNotice(`Agent 正在按“${TAPTILE_SCENARIO_PROFILES.find((profile) => profile.id === agentProfile)?.name ?? agentProfile}”搜索 · ${strength.label}强度…`);
     window.setTimeout(() => {
       const result = solveTapTileTake(compiledLevel, {
         profile: agentProfile,
         seed: project.director.seed,
-        beamWidth: agentProfile === 'safe-win' ? 80 : agentProfile === 'danger-rescue' ? 800 : 260,
+        beamWidth,
+        maxExpandedStates: strength.maxExpandedStates,
       });
       setAgentBusy(false);
-      if (result.status !== 'solved' || !result.take || !result.validation?.valid) {
+      if ((result.status !== 'solved' && result.status !== 'partial') || !result.take || !result.validation?.valid) {
         setNotice(result.diagnostic ?? 'Agent 在当前搜索预算内未找到目标路径');
         return;
       }
@@ -1039,11 +1085,34 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       });
       gameplay.openReplay(compiledLevel, result.take);
       setWorkspaceMode('replay');
-      setNotice(`${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`);
+      setReplayAutoPlaying(true);
+      if (agentProfile === 'max-clear' && result.metrics) {
+        setAgentRunSummary({
+          takeId: result.take.id,
+          clearedTileCount: result.metrics.clearedTileCount,
+          totalTileCount: compiledLevel.initialBoardIds.length,
+          theoreticalClearableTileCount: result.metrics.theoreticalClearableTileCount,
+          peakTrayOccupancy: result.metrics.peakTrayOccupancy,
+          provedMaximum: result.metrics.provedMaximum,
+          expandedStates: result.expandedStates,
+        });
+      } else {
+        setAgentRunSummary(null);
+      }
+      setNotice(agentProfile === 'max-clear' && result.metrics
+        ? `最大消除轨迹已生成：${result.metrics.clearedTileCount}/${compiledLevel.initialBoardIds.length} 张 · 理论上限 ${result.metrics.theoreticalClearableTileCount} · 槽位峰值 ${result.metrics.peakTrayOccupancy}/7${result.metrics.provedMaximum ? ' · 已证明达到数量上限' : ' · 当前搜索预算内最佳'}`
+        : `${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`);
     }, 0);
   };
 
+  const toggleReplayAutoPlay = (): void => {
+    const finalReplayIndex = Math.max(0, (gameplay.replayValidation?.replay.states.length ?? 1) - 1);
+    if (!replayAutoPlaying && gameplay.replayIndex >= finalReplayIndex) gameplay.seekReplay(0);
+    setReplayAutoPlaying((current) => !current);
+  };
+
   const switchWorkspaceMode = (mode: TapTileWorkspaceMode): void => {
+    if (mode !== 'replay') setReplayAutoPlaying(false);
     if (mode === 'play') {
       beginPlay();
       return;
@@ -1589,7 +1658,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               <div><span className="tpt-record-dot" /><strong>正在记录 Take</strong><small>{gameplay.recordedActions.length} 个动作 · 三消 {gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 {gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 {gameplay.gameState.trayIds.length}/7</small></div>
               <div className="tpt-session-actions">
                 <label className="tpt-agent-profile"><span>Agent 剧情</span><select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)}>{TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-                <button data-action="generate-agent-take" onClick={generateAgentTake} disabled={agentBusy}>{agentBusy ? '搜索中…' : 'Agent 生成'}</button>
+                <label className="tpt-agent-profile"><span>搜索强度</span><select data-agent-search-strength value={agentSearchStrength} disabled={agentBusy} onChange={(event) => setAgentSearchStrength(event.target.value as AgentSearchStrengthId)}>{AGENT_SEARCH_STRENGTHS.map((strength) => <option key={strength.id} value={strength.id}>{strength.label}</option>)}</select></label>
+                <button data-action="generate-agent-take" onClick={generateAgentTake} disabled={agentBusy}>{agentBusy ? '搜索中…' : agentProfile === 'max-clear' ? '规划最大消除' : 'Agent 生成'}</button>
                 <button onClick={() => { clearLiveMatchEffects(); gameplay.restart(); }}>重新开始</button>
                 <button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
               </div>
@@ -1598,11 +1668,14 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
           {workspaceMode === 'replay' && gameplay.replayValidation && (
             <div className="tpt-session-bar" data-mode="replay" data-valid={gameplay.replayValidation.valid ? 'true' : 'false'}>
-              <div><strong>{gameplay.replayValidation.valid ? '确定性回放' : 'Take 校验失败'}</strong><small>{gameplay.replayValidation.issues[0]?.message ?? `finalStateHash 一致 · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`}</small></div>
+              <div><strong>{gameplay.replayValidation.valid ? '确定性回放' : 'Take 校验失败'}</strong><small data-agent-clear-summary={activeAgentRunSummary ? 'true' : undefined}>{gameplay.replayValidation.issues[0]?.message ?? (activeAgentRunSummary
+                ? `最大消除 ${activeAgentRunSummary.clearedTileCount}/${activeAgentRunSummary.totalTileCount} · 理论上限 ${activeAgentRunSummary.theoreticalClearableTileCount} · 槽位峰值 ${activeAgentRunSummary.peakTrayOccupancy}/7 · ${activeAgentRunSummary.provedMaximum ? '已达上限' : `${activeAgentRunSummary.expandedStates} 状态内最佳`} · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`
+                : `finalStateHash 一致 · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`)}</small></div>
               <div className="tpt-replay-controls">
-                <button onClick={() => gameplay.seekReplay(gameplay.replayIndex - 1)} disabled={gameplay.replayIndex === 0}>上一步</button>
-                <input type="range" min={0} max={Math.max(0, gameplay.replayValidation.replay.states.length - 1)} value={gameplay.replayIndex} onChange={(event) => gameplay.seekReplay(Number(event.target.value))} />
-                <button onClick={() => gameplay.seekReplay(gameplay.replayIndex + 1)} disabled={gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1}>下一步</button>
+                <button data-action="toggle-replay-autoplay" onClick={toggleReplayAutoPlay}>{replayAutoPlaying ? '暂停' : gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1 ? '重新播放' : '自动播放'}</button>
+                <button onClick={() => { setReplayAutoPlaying(false); gameplay.seekReplay(gameplay.replayIndex - 1); }} disabled={gameplay.replayIndex === 0}>上一步</button>
+                <input type="range" min={0} max={Math.max(0, gameplay.replayValidation.replay.states.length - 1)} value={gameplay.replayIndex} onChange={(event) => { setReplayAutoPlaying(false); gameplay.seekReplay(Number(event.target.value)); }} />
+                <button onClick={() => { setReplayAutoPlaying(false); gameplay.seekReplay(gameplay.replayIndex + 1); }} disabled={gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1}>下一步</button>
               </div>
             </div>
           )}

@@ -9,7 +9,7 @@ export function solveTapTileTake(
   options: SolveTapTileOptions = {},
 ): SolveTakeResult {
   const solved = solveTapTileLevel(level, options);
-  if (solved.status !== 'solved' || !solved.actions) return solved;
+  if ((solved.status !== 'solved' && solved.status !== 'partial') || !solved.actions || solved.actions.length === 0) return solved;
   let state = createInitialTapTileGameState(level);
   for (const action of solved.actions) {
     const transition = applyTapAction(level, state, action);
@@ -31,9 +31,12 @@ export function solveTapTileTake(
     durationFrames: 1,
   }));
   const identity = stableHash({ levelHash: level.levelHash, profile, seed, actions: takeActions.map((action) => action.tileId) }, 'agent-take');
+  const takeName = profile === 'max-clear' && solved.metrics
+    ? `Agent · 最大消除 ${solved.metrics.clearedTileCount}/${level.initialBoardIds.length}`
+    : `Agent · ${profile} · seed ${seed}`;
   const take = createTapTileTake(level, takeActions, state, {
     id: identity,
-    name: `Agent · ${profile} · seed ${seed}`,
+    name: takeName,
     createdAt: '1970-01-01T00:00:00.000Z',
   });
   const validation = validateTapTileTake(level, take);

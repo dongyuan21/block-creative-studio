@@ -41,6 +41,15 @@ export function scoreSolverCandidate(
     - distinct * 11
     - remaining;
 
+  if (profile === 'max-clear') {
+    return cleared * 100_000
+      + context.matchCount * 4_000
+      + pairs * 240
+      + context.unlockedCount * 70
+      - state.trayIds.length * 180
+      - distinct * 45
+      - context.depth;
+  }
   if (profile === 'intentional-fail') {
     return (state.status === 'lost' ? 1_000_000 : 0)
       + state.trayIds.length * 260

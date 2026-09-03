@@ -9,11 +9,11 @@ import {
 import type { CompiledTapTileLevel } from '../src/taptile/project';
 import { createDefaultTapTileProject } from '../src/taptile/project';
 
-function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
+function flatLevelWithCopies(copiesByGroup: readonly number[]): CompiledTapTileLevel {
   const ids: string[] = [];
   const tiles: CompiledTapTileLevel['tiles'] = {};
-  for (let group = 0; group < groupCount; group += 1) {
-    for (let copy = 0; copy < copies; copy += 1) {
+  for (let group = 0; group < copiesByGroup.length; group += 1) {
+    for (let copy = 0; copy < (copiesByGroup[group] ?? 0); copy += 1) {
       const id = `g${group + 1}-${copy + 1}`;
       ids.push(id);
       tiles[id] = {
@@ -33,7 +33,7 @@ function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
     }
   }
   return {
-    levelHash: `fixture-${groupCount}-${copies}`,
+    levelHash: `fixture-${copiesByGroup.join('-')}`,
     ruleProfileId: 'taptile-tray-match3-v1',
     tiles,
     initialBoardIds: ids,
@@ -45,9 +45,13 @@ function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
     validation: {
       valid: true,
       issues: [],
-      statistics: { tileCount: ids.length, archetypeCount: groupCount, edgeCount: 0, playableCount: ids.length },
+      statistics: { tileCount: ids.length, archetypeCount: copiesByGroup.length, edgeCount: 0, playableCount: ids.length },
     },
   };
+}
+
+function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
+  return flatLevelWithCopies(Array.from({ length: groupCount }, () => copies));
 }
 
 describe('TapTile deterministic Beam Search', () => {
@@ -106,13 +110,66 @@ describe('TapTile deterministic Beam Search', () => {
     expect(solved.actions).toHaveLength(7);
   });
 
+  it('returns a deterministic maximum-clear partial Take when the board cannot be fully cleared', () => {
+    const level = flatLevelWithCopies([4, 4, 5, 4, 4, 2]);
+    const options = {
+      profile: 'max-clear' as const,
+      seed: 240811,
+      beamWidth: 80,
+      maxExpandedStates: 30_000,
+    };
+    const first = solveTapTileTake(level, options);
+    const repeated = solveTapTileTake(level, options);
+    expect(first.status, first.diagnostic).toBe('partial');
+    expect(first.metrics).toMatchObject({
+      clearedTileCount: 15,
+      theoreticalClearableTileCount: 15,
+      provedMaximum: true,
+    });
+    expect(first.take?.result).toBe('unfinished');
+    expect(first.validation?.valid).toBe(true);
+    expect(first.actions).toEqual(repeated.actions);
+    expect(first.take).toEqual(repeated.take);
+    const replay = replayTapTileTake(level, first.take!);
+    expect(replay.states.at(-1)?.status).toBe('playing');
+    expect(replay.states.at(-1)?.clearedIds).toHaveLength(15);
+    expect(replay.states.at(-1)?.trayIds.length).toBeLessThan(7);
+  });
+
+  it('uses maximum-clear mode to fully solve a board when every tile is safely clearable', () => {
+    const level = compileTapTileLevel(createDefaultTapTileProject('free'));
+    const result = solveTapTileTake(level, {
+      profile: 'max-clear',
+      seed: 240811,
+      beamWidth: 120,
+      maxExpandedStates: 60_000,
+    });
+    expect(result.status, result.diagnostic).toBe('solved');
+    expect(result.take?.result).toBe('won');
+    expect(result.metrics).toMatchObject({
+      clearedTileCount: level.initialBoardIds.length,
+      theoreticalClearableTileCount: level.initialBoardIds.length,
+      provedMaximum: true,
+    });
+  });
+
+  it('does not create a maximum-clear Take when no match group contains a triple', () => {
+    const result = solveTapTileTake(flatLevelWithCopies([2, 2, 1]), {
+      profile: 'max-clear',
+      maxExpandedStates: 1_000,
+    });
+    expect(result.status).toBe('not-found');
+    expect(result.take).toBeUndefined();
+    expect(result.diagnostic).toContain('无法组成任何三消');
+  });
+
   it('keeps the invalid/not-found evidence boundary explicit', () => {
     const invalid = flatLevel(1);
     invalid.validation.valid = false;
     invalid.validation.issues.push({ code: 'FIXTURE_INVALID', severity: 'error', message: 'invalid', objectIds: [] });
     expect(solveTapTileLevel(invalid).status).toBe('invalid-level');
 
-    const profiles: TapTileScenarioProfileId[] = ['safe-win', 'danger-rescue', 'combo-heavy', 'fast-clear', 'intentional-fail'];
+    const profiles: TapTileScenarioProfileId[] = ['max-clear', 'safe-win', 'danger-rescue', 'combo-heavy', 'fast-clear', 'intentional-fail'];
     for (const profile of profiles) {
       const result = solveTapTileLevel(flatLevel(3), { profile, maxDepth: 0 });
       expect(result.status).toBe('not-found');
