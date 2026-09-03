@@ -1,6 +1,7 @@
 import type {
   CameraPresetId,
   CompiledTake,
+  DiagnosticViewId,
   FxPresetId,
   GeometryPresetId,
   LightingPresetId,
@@ -22,6 +23,7 @@ import type {
 import type { RenderProgress } from '../exporter/offlineVideoExporter';
 import {
   CAMERA_OPTIONS,
+  DIAGNOSTIC_VIEW_OPTIONS,
   FX_OPTIONS,
   GEOMETRY_DEFAULTS,
   GEOMETRY_OPTIONS,
@@ -239,6 +241,13 @@ export function InspectorPanel({
               options={MATERIAL_OPTIONS}
               disabled={locked}
               onChange={(material) => onStyle({ material })}
+            />
+            <SelectField<DiagnosticViewId>
+              label="材质诊断"
+              value={style.diagnosticView ?? 'beauty'}
+              options={DIAGNOSTIC_VIEW_OPTIONS}
+              disabled={locked}
+              onChange={(diagnosticView) => onStyle({ diagnosticView })}
             />
             <div className="inline-ranges">
               <RangeField label="厚度" value={style.geometry.depth} min={0.18} max={0.72} step={0.01} disabled={locked} onChange={(depth) => onGeometry({ depth })} />

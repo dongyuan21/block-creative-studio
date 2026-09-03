@@ -175,7 +175,7 @@ export function ThreeViewport({
         onPointerCancel={clearDrag}
       />
       <div className="viewport-badges" aria-hidden="true">
-        <span>THREE.JS · {style.lookDev.id.toUpperCase()}</span>
+        <span>{style.renderer === 'fixed-camera-cinematic' ? 'FIXED CAMERA' : 'THREE.JS'} · {style.lookDev.id.toUpperCase()}</span>
         <span>{mode === 'render' ? 'OFFLINE RENDER' : mode.toUpperCase()}</span>
       </div>
       {mode === 'edit' && <div className="viewport-hint">点击格子绘制或擦除牌面</div>}

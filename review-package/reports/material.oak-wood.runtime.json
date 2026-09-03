@@ -1,0 +1,36 @@
+{
+  "contract": "bcs.material-runtime",
+  "contractVersion": "1.0.0",
+  "id": "material.oak-wood",
+  "version": "1.0.0",
+  "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "materialClass": "wood",
+  "baseColor": "#8a5a32",
+  "roughness": 0.62,
+  "metalness": 0.02,
+  "maps": [],
+  "uv": {
+    "repeat": [
+      1,
+      1
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "rotationRadians": 0
+  },
+  "combine": "multiply-factor",
+  "capabilities": {
+    "heightDisplacement": "unsupported",
+    "anisotropy": "unsupported",
+    "subsurface": "unsupported",
+    "complexTransmission": "unsupported",
+    "materialAwareFracture": "pending"
+  },
+  "unsupportedFields": [],
+  "behaviorPending": true,
+  "clearcoat": 0.04,
+  "normalStrength": 0.55,
+  "emission": 0
+}

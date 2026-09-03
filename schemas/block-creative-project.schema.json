@@ -365,7 +365,8 @@
         "renderer": {
           "enum": [
             "reference-2d",
-            "three-3d"
+            "three-3d",
+            "fixed-camera-cinematic"
           ]
         },
         "reference2d": {
@@ -412,6 +413,37 @@
         },
         "lookDev": {
           "$ref": "#/$defs/lookDev"
+        },
+        "diagnosticView": {
+          "enum": [
+            "beauty",
+            "albedo",
+            "world-normal",
+            "roughness",
+            "metalness",
+            "emission",
+            "bloom-contribution",
+            "highlight-clip"
+          ]
+        },
+        "enabledPasses": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "background",
+              "board",
+              "tile",
+              "tray",
+              "interaction",
+              "placement",
+              "clear",
+              "feedback",
+              "endgame"
+            ]
+          }
+        },
+        "materialRuntime": {
+          "type": "object"
         }
       },
       "additionalProperties": false

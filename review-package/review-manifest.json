@@ -1,0 +1,69 @@
+{
+  "templateOnly": false,
+  "taskIds": ["T0", "T1", "T2", "T3", "T4", "T5"],
+  "repository": "dongyuan21/block-creative-studio",
+  "baselineCommit": "74a2fba002fe62643884759b6611af9181330964",
+  "planCommit": "fec24de6764bb50ef082730321b167cf8a29259f",
+  "implementationCommit": null,
+  "pullRequests": [],
+  "status": "ready-for-review",
+  "environment": {
+    "os": "linux 6.12.94+",
+    "node": "22.14.0",
+    "npm": "10.9.7",
+    "browser": null,
+    "browserVersion": null,
+    "threeVersion": "0.185.1",
+    "gpuRenderer": null,
+    "softwareRendering": null
+  },
+  "renderSpec": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "audio": false,
+    "dpr": null
+  },
+  "identities": {
+    "takeHash": "fnv1a32:b4869325",
+    "cameraHash": "block-garden-fixed-shot-v1",
+    "layoutHash": "design-1064x1788",
+    "planHashes": [],
+    "assets": [
+      "examples/headless/materials/material.stainless-steel.json",
+      "examples/headless/materials/material.oak-wood.json",
+      "examples/headless/materials/material.aurora-shell.json"
+    ]
+  },
+  "tests": [
+    { "name": "npm test", "status": "PASS", "count": 79 },
+    { "name": "npm run check", "status": "PASS" },
+    { "name": "npm run typecheck", "status": "PASS" },
+    { "name": "npm run build", "status": "PASS" },
+    { "name": "test:browser-e2e", "status": "NOT_RUN" }
+  ],
+  "artifacts": [
+    { "path": "review-package/reports/golden-report.json", "sha256": "265431a2c46c5bdb728499d379bdbca859e1d9ada20eaabb0407ebf442e3137a", "role": "golden-batch" },
+    { "path": "review-package/reports/golden-report.html", "sha256": "8e7e56afad9cd473c13662534f15f73395af9afa5697d415bbc9f075a99f3d27", "role": "golden-batch-html" },
+    { "path": "review-package/fixtures/public-scenes.json", "sha256": "9777df8ea75c3f1ddc1f1ec29598db4ccf83b429834c18005ee4c736789380a9", "role": "public-fixtures" },
+    { "path": "review-package/reports/material.stainless-steel.runtime.json", "sha256": "6af0be0de268f1a1bbae2a3b18faf4d0cbb114c84b668e26187901e315dffba4", "role": "pbr-runtime" },
+    { "path": "review-package/reports/material.oak-wood.runtime.json", "sha256": "0da7cf0ebca8f2b3b3f6f2ab788b6cd3ef79507c8805ef20bfa091a43f42402a", "role": "pbr-runtime" },
+    { "path": "review-package/reports/material.aurora-shell.runtime.json", "sha256": "52c04809abca50547f16edb3e4735ffd67f036925a1d87e649acce0331bf28e6", "role": "pbr-runtime" },
+    { "path": "review-package/reports/browser-e2e.json", "sha256": "d7ccf6805544fff9d576b0ff1259faf98dc8af31349c2ba7f5d2d8ae016450dd", "role": "e2e-status" }
+  ],
+  "referenceCorrespondence": {
+    "mode": "exact-replay",
+    "sourceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+    "caseManifest": "review-package/reports/golden-report.json",
+    "contentStatus": "BLOCKED"
+  },
+  "technicalReview": "PENDING",
+  "humanVisualApproval": "PENDING",
+  "knownLimitations": [
+    "No public reference frames",
+    "No MP4 evidence in this run",
+    "Threshold bloom only",
+    "PBR GPU sampling not captured"
+  ],
+  "notes": "Do not treat compile/CI success as rendered or visually-approved."
+}

@@ -1,0 +1,2046 @@
+{
+  "contract": "bcs.golden-batch-report",
+  "contractVersion": "1.0.0",
+  "generatedAt": "not-a-wall-clock-render",
+  "designResolution": {
+    "width": 1064,
+    "height": 1788
+  },
+  "cases": [
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "idle-start:start",
+        "targetFrame": 0,
+        "targetFps": 30,
+        "eventId": "idle-start",
+        "eventType": "Initial layout, HUD, empty board and first tray.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 0,
+        "sourcePtsSeconds": 0,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "idle-start:start:exact-replay:0"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "idle-start:peak",
+        "targetFrame": 20,
+        "targetFps": 30,
+        "eventId": "idle-start",
+        "eventType": "Initial layout, HUD, empty board and first tray.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 20,
+        "sourcePtsSeconds": 0.3333333333333333,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "idle-start:peak:exact-replay:20"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "idle-start:end",
+        "targetFrame": 60,
+        "targetFps": 30,
+        "eventId": "idle-start",
+        "eventType": "Initial layout, HUD, empty board and first tray.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 60,
+        "sourcePtsSeconds": 1,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "idle-start:end:exact-replay:60"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-pickup-drag:start",
+        "targetFrame": 60,
+        "targetFps": 30,
+        "eventId": "first-pickup-drag",
+        "eventType": "Rack-to-board scale, lift, shadow and placement.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 60,
+        "sourcePtsSeconds": 1,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-pickup-drag:start:exact-replay:60"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-pickup-drag:peak",
+        "targetFrame": 88,
+        "targetFps": 30,
+        "eventId": "first-pickup-drag",
+        "eventType": "Rack-to-board scale, lift, shadow and placement.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 88,
+        "sourcePtsSeconds": 1.4666666666666666,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-pickup-drag:peak:exact-replay:88"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-pickup-drag:end",
+        "targetFrame": 120,
+        "targetFps": 30,
+        "eventId": "first-pickup-drag",
+        "eventType": "Rack-to-board scale, lift, shadow and placement.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 120,
+        "sourcePtsSeconds": 2,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-pickup-drag:end:exact-replay:120"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-tray-refresh:start",
+        "targetFrame": 185,
+        "targetFps": 30,
+        "eventId": "first-tray-refresh",
+        "eventType": "Flower/halo refresh and three new pieces.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 185,
+        "sourcePtsSeconds": 3.0833333333333335,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-tray-refresh:start:exact-replay:185"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-tray-refresh:peak",
+        "targetFrame": 210,
+        "targetFps": 30,
+        "eventId": "first-tray-refresh",
+        "eventType": "Flower/halo refresh and three new pieces.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 210,
+        "sourcePtsSeconds": 3.5,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-tray-refresh:peak:exact-replay:210"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-tray-refresh:end",
+        "targetFrame": 240,
+        "targetFps": 30,
+        "eventId": "first-tray-refresh",
+        "eventType": "Flower/halo refresh and three new pieces.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 240,
+        "sourcePtsSeconds": 4,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-tray-refresh:end:exact-replay:240"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "placement-thumb-overlap:start",
+        "targetFrame": 340,
+        "targetFps": 30,
+        "eventId": "placement-thumb-overlap",
+        "eventType": "Placement thumb/glow persists while next interaction begins.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 340,
+        "sourcePtsSeconds": 5.666666666666667,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "placement-thumb-overlap:start:exact-replay:340"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "placement-thumb-overlap:peak",
+        "targetFrame": 365,
+        "targetFps": 30,
+        "eventId": "placement-thumb-overlap",
+        "eventType": "Placement thumb/glow persists while next interaction begins.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 365,
+        "sourcePtsSeconds": 6.083333333333333,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "placement-thumb-overlap:peak:exact-replay:365"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "placement-thumb-overlap:end",
+        "targetFrame": 420,
+        "targetFps": 30,
+        "eventId": "placement-thumb-overlap",
+        "eventType": "Placement thumb/glow persists while next interaction begins.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 420,
+        "sourcePtsSeconds": 7,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "placement-thumb-overlap:end:exact-replay:420"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-preclear:start",
+        "targetFrame": 515,
+        "targetFps": 30,
+        "eventId": "first-preclear",
+        "eventType": "Legal ghost and full-row pre-clear fill before release.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 515,
+        "sourcePtsSeconds": 8.583333333333334,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-preclear:start:exact-replay:515"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-preclear:peak",
+        "targetFrame": 540,
+        "targetFps": 30,
+        "eventId": "first-preclear",
+        "eventType": "Legal ghost and full-row pre-clear fill before release.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 540,
+        "sourcePtsSeconds": 9,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-preclear:peak:exact-replay:540"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-preclear:end",
+        "targetFrame": 560,
+        "targetFps": 30,
+        "eventId": "first-preclear",
+        "eventType": "Legal ghost and full-row pre-clear fill before release.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 560,
+        "sourcePtsSeconds": 9.333333333333334,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-preclear:end:exact-replay:560"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-clear-great-combo:start",
+        "targetFrame": 555,
+        "targetFps": 30,
+        "eventId": "first-clear-great-combo",
+        "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 555,
+        "sourcePtsSeconds": 9.25,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-clear-great-combo:start:exact-replay:555"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-clear-great-combo:peak",
+        "targetFrame": 600,
+        "targetFps": 30,
+        "eventId": "first-clear-great-combo",
+        "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 600,
+        "sourcePtsSeconds": 10,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-clear-great-combo:peak:exact-replay:600"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "first-clear-great-combo:end",
+        "targetFrame": 675,
+        "targetFps": 30,
+        "eventId": "first-clear-great-combo",
+        "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 675,
+        "sourcePtsSeconds": 11.25,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "first-clear-great-combo:end:exact-replay:675"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "amazing:start",
+        "targetFrame": 930,
+        "targetFps": 30,
+        "eventId": "amazing",
+        "eventType": "Amazing praise art and surrounding feedback.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 930,
+        "sourcePtsSeconds": 15.5,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "amazing:start:exact-replay:930"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "amazing:peak",
+        "targetFrame": 970,
+        "targetFps": 30,
+        "eventId": "amazing",
+        "eventType": "Amazing praise art and surrounding feedback.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 970,
+        "sourcePtsSeconds": 16.166666666666668,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "amazing:peak:exact-replay:970"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "amazing:end",
+        "targetFrame": 1045,
+        "targetFps": 30,
+        "eventId": "amazing",
+        "eventType": "Amazing praise art and surrounding feedback.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1045,
+        "sourcePtsSeconds": 17.416666666666668,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "amazing:end:exact-replay:1045"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "nice:start",
+        "targetFrame": 1180,
+        "targetFps": 30,
+        "eventId": "nice",
+        "eventType": "Nice praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1180,
+        "sourcePtsSeconds": 19.666666666666668,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "nice:start:exact-replay:1180"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "nice:peak",
+        "targetFrame": 1215,
+        "targetFps": 30,
+        "eventId": "nice",
+        "eventType": "Nice praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1215,
+        "sourcePtsSeconds": 20.25,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "nice:peak:exact-replay:1215"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "nice:end",
+        "targetFrame": 1265,
+        "targetFps": 30,
+        "eventId": "nice",
+        "eventType": "Nice praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1265,
+        "sourcePtsSeconds": 21.083333333333332,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "nice:end:exact-replay:1265"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "unbelievable:start",
+        "targetFrame": 1520,
+        "targetFps": 30,
+        "eventId": "unbelievable",
+        "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1520,
+        "sourcePtsSeconds": 25.333333333333332,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "unbelievable:start:exact-replay:1520"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "unbelievable:peak",
+        "targetFrame": 1575,
+        "targetFps": 30,
+        "eventId": "unbelievable",
+        "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1575,
+        "sourcePtsSeconds": 26.25,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "unbelievable:peak:exact-replay:1575"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "unbelievable:end",
+        "targetFrame": 1645,
+        "targetFps": 30,
+        "eventId": "unbelievable",
+        "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 1645,
+        "sourcePtsSeconds": 27.416666666666668,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "unbelievable:end:exact-replay:1645"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "fantastic:start",
+        "targetFrame": 2240,
+        "targetFps": 30,
+        "eventId": "fantastic",
+        "eventType": "Fantastic praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 2240,
+        "sourcePtsSeconds": 37.333333333333336,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "fantastic:start:exact-replay:2240"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "fantastic:peak",
+        "targetFrame": 2285,
+        "targetFps": 30,
+        "eventId": "fantastic",
+        "eventType": "Fantastic praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 2285,
+        "sourcePtsSeconds": 38.083333333333336,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "fantastic:peak:exact-replay:2285"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "fantastic:end",
+        "targetFrame": 2345,
+        "targetFps": 30,
+        "eventId": "fantastic",
+        "eventType": "Fantastic praise tier.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 2345,
+        "sourcePtsSeconds": 39.083333333333336,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "fantastic:end:exact-replay:2345"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "incredible-multicolumn:start",
+        "targetFrame": 3190,
+        "targetFps": 30,
+        "eventId": "incredible-multicolumn",
+        "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 3190,
+        "sourcePtsSeconds": 53.166666666666664,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "incredible-multicolumn:start:exact-replay:3190"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "incredible-multicolumn:peak",
+        "targetFrame": 3240,
+        "targetFps": 30,
+        "eventId": "incredible-multicolumn",
+        "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 3240,
+        "sourcePtsSeconds": 54,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "incredible-multicolumn:peak:exact-replay:3240"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "incredible-multicolumn:end",
+        "targetFrame": 3300,
+        "targetFps": 30,
+        "eventId": "incredible-multicolumn",
+        "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 3300,
+        "sourcePtsSeconds": 55,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "incredible-multicolumn:end:exact-replay:3300"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "new-high-score:start",
+        "targetFrame": 11745,
+        "targetFps": 30,
+        "eventId": "new-high-score",
+        "eventType": "New high score banner overlaps clear and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 11745,
+        "sourcePtsSeconds": 195.75,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "new-high-score:start:exact-replay:11745"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "new-high-score:peak",
+        "targetFrame": 11800,
+        "targetFps": 30,
+        "eventId": "new-high-score",
+        "eventType": "New high score banner overlaps clear and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 11800,
+        "sourcePtsSeconds": 196.66666666666666,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "new-high-score:peak:exact-replay:11800"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "new-high-score:end",
+        "targetFrame": 11845,
+        "targetFps": 30,
+        "eventId": "new-high-score",
+        "eventType": "New high score banner overlaps clear and Combo.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 11845,
+        "sourcePtsSeconds": 197.41666666666666,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "new-high-score:end:exact-replay:11845"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "endgame-continue:start",
+        "targetFrame": 13448,
+        "targetFps": 30,
+        "eventId": "endgame-continue",
+        "eventType": "Dim overlay, final Combo and rewarded continue card.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 13448,
+        "sourcePtsSeconds": 224.13333333333333,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "endgame-continue:start:exact-replay:13448"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "endgame-continue:peak",
+        "targetFrame": 13470,
+        "targetFps": 30,
+        "eventId": "endgame-continue",
+        "eventType": "Dim overlay, final Combo and rewarded continue card.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 13470,
+        "sourcePtsSeconds": 224.5,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "endgame-continue:peak:exact-replay:13470"
+    },
+    {
+      "case": {
+        "contract": "bcs.calibration-case",
+        "contractVersion": "1.0.0",
+        "id": "endgame-continue:end",
+        "targetFrame": 13545,
+        "targetFps": 30,
+        "eventId": "endgame-continue",
+        "eventType": "Dim overlay, final Combo and rewarded continue card.",
+        "correspondence": "exact-replay",
+        "roi": [
+          {
+            "id": "board",
+            "x": 80,
+            "y": 309,
+            "width": 912,
+            "height": 912
+          },
+          {
+            "id": "grid",
+            "x": 91,
+            "y": 321,
+            "width": 892,
+            "height": 892
+          },
+          {
+            "id": "hud-score",
+            "x": 372,
+            "y": 165,
+            "width": 320,
+            "height": 96
+          },
+          {
+            "id": "tray",
+            "x": 80,
+            "y": 1320,
+            "width": 904,
+            "height": 280
+          }
+        ],
+        "excludedRegions": [],
+        "reviewStatus": "BLOCKED",
+        "unresolvedReasons": [
+          "Reference source video is not in the public repository."
+        ],
+        "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
+        "sourceFrameIndex": 13545,
+        "sourcePtsSeconds": 225.75,
+        "sourceTimeBase": "60/1"
+      },
+      "identity": "endgame-continue:end:exact-replay:13545"
+    }
+  ],
+  "summary": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 39,
+    "NOT_COMPARABLE": 0,
+    "NOT_RUN": 0
+  }
+}

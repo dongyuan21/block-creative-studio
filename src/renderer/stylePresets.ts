@@ -31,6 +31,11 @@ export const RENDERER_OPTIONS: Array<NamedPreset<RenderBackendId>> = [
     description: '按参考视频拆解布局、彩块、预消除、扫光、评价词与 Combo。',
   },
   {
+    id: 'fixed-camera-cinematic',
+    label: '固定机位 3D',
+    description: '锁定 9:16 构图与 Shot Profile，接入 LookDev 诊断和 PBR 运行时。',
+  },
+  {
     id: 'three-3d',
     label: '实验性 3D',
     description: '保留一期 Three.js 体积化实验，不作为当前复刻基线。',
@@ -113,6 +118,17 @@ export const CAMERA_OPTIONS: Array<NamedPreset<CameraPresetId>> = [
   { id: 'flat-gameplay', label: '正视玩法', description: '规则最清楚，接近标准试玩。' },
   { id: 'premium-perspective', label: '高级微透视', description: '轻俯拍，厚度表现更明显。' },
   { id: 'dynamic-clear', label: '动态消除', description: '消除时推近并增强镜头冲击。' },
+];
+
+export const DIAGNOSTIC_VIEW_OPTIONS: Array<NamedPreset<import('../domain/types').DiagnosticViewId>> = [
+  { id: 'beauty', label: 'Beauty', description: '最终合成。' },
+  { id: 'albedo', label: 'Albedo', description: '读取实际底色/贴图，关闭环境反射。' },
+  { id: 'world-normal', label: 'World Normal', description: '法线响应诊断。' },
+  { id: 'roughness', label: 'Roughness', description: '粗糙度通道。' },
+  { id: 'metalness', label: 'Metalness', description: '金属度通道。' },
+  { id: 'emission', label: 'Emission', description: '自发光贡献。' },
+  { id: 'bloom-contribution', label: 'Bloom Contribution', description: '哪些区域会进入 threshold bloom。' },
+  { id: 'highlight-clip', label: 'Highlight Clip', description: '近白高光诊断，测量空间为 LDR 输出。' },
 ];
 
 export const FX_OPTIONS: Array<NamedPreset<FxPresetId>> = [

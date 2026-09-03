@@ -1,0 +1,39 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "material.oak-wood",
+  "version": "1.0.0",
+  "kind": "material-pack",
+  "origin": "generated",
+  "label": "Oak wood",
+  "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "runtime": {
+    "renderers": ["reference-2d", "three-3d", "fixed-camera-cinematic"],
+    "deterministic": true,
+    "budget": { "textureMemoryMiB": 16 }
+  },
+  "appearance": {
+    "baseColor": "#8a5a32",
+    "roughness": 0.62,
+    "metalness": 0.02,
+    "clearcoat": 0.04,
+    "normalStrength": 0.55,
+    "emission": 0
+  },
+  "behavior": {
+    "materialClass": "wood",
+    "density": 0.48,
+    "brittleness": 0.36,
+    "ductility": 0.22,
+    "elasticity": 0.18,
+    "hardness": 0.44,
+    "fractureMode": "splinters",
+    "largeFragmentRatio": 0.55,
+    "dustAmount": 0.22,
+    "sparkAmount": 0.02,
+    "dropletAmount": 0,
+    "gravityScale": 0.95,
+    "drag": 0.16
+  },
+  "provenance": { "createdBy": "tool", "generator": "public-fixture-pbr" }
+}

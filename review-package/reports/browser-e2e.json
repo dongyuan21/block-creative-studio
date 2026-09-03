@@ -1,0 +1,5 @@
+{
+  "status": "NOT_RUN",
+  "reason": "No Playwright/Chrome WebCodecs harness is installed in this environment. Public fixtures and unit tests cover logic; browser drag/export remains a manual or later E2E job.",
+  "renderer": "unknown"
+}

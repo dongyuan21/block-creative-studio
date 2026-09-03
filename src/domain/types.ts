@@ -1,3 +1,6 @@
+export type { DiagnosticViewId, MaterialRuntimeDescriptor, ReferencePassId } from '../headless/contracts';
+import type { DiagnosticViewId, MaterialRuntimeDescriptor, ReferencePassId } from '../headless/contracts';
+
 export const BOARD_SIZE = 8;
 
 export type TileColor = 'coral' | 'amber' | 'lime' | 'cyan' | 'blue' | 'violet' | 'rose';
@@ -11,7 +14,7 @@ export type LookDevPresetId = 'neutral-lookdev' | 'balanced-cinematic' | 'high-e
 export type FxPresetId = 'clean-pop' | 'crystal-shatter' | 'energy-burst';
 export type RhythmPresetId = 'human-natural' | 'tight-fast' | 'suspense-burst' | 'combo-rush';
 export type GeometryPresetId = 'soft-cube' | 'premium-beveled' | 'candy-rounded';
-export type RenderBackendId = 'reference-2d' | 'three-3d';
+export type RenderBackendId = 'reference-2d' | 'three-3d' | 'fixed-camera-cinematic';
 export type ReferenceTileMaterialId = 'soft-bevel' | 'flat-matte';
 export type ReferenceTileFaceSetId = 'botanical-reference' | 'none';
 export type ReferencePreviewFxId = 'full-line-tint' | 'cells-only';
@@ -152,6 +155,9 @@ export interface StyleSpec {
   lookDev: ThreeLookDevStyle;
   background: string;
   showPointer: boolean;
+  diagnosticView?: DiagnosticViewId;
+  enabledPasses?: ReferencePassId[];
+  materialRuntime?: MaterialRuntimeDescriptor;
 }
 
 export interface RenderSpec {

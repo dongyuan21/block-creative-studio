@@ -26,6 +26,9 @@ import {
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
+import { createPbrTileMaterial } from './pbrMaterialFactory';
+import { containedCompositionViewport, FIXED_SHOT_PROFILE, lockedCameraDistance } from './shotProfile';
+import { materialCacheKey } from '../headless/materialRuntime';
 
 export interface StudioSceneOptions {
   quality?: 'interactive' | 'cinematic';
@@ -377,7 +380,17 @@ export class StudioScene {
     this.renderer.setSize(this.width, this.height, false);
     this.composer.setPixelRatio(Math.max(0.5, Math.min(2, pixelRatio)));
     this.composer.setSize(this.width, this.height);
-    this.camera.aspect = this.width / this.height;
+    if (this.style?.renderer === 'fixed-camera-cinematic') {
+      this.camera.aspect = FIXED_SHOT_PROFILE.compositionAspect;
+      const view = containedCompositionViewport(this.width, this.height);
+      this.renderer.setViewport(view.x, view.y, view.width, view.height);
+      this.renderer.setScissor(view.x, view.y, view.width, view.height);
+      this.renderer.setScissorTest(true);
+    } else {
+      this.renderer.setScissorTest(false);
+      this.renderer.setViewport(0, 0, this.width, this.height);
+      this.camera.aspect = this.width / this.height;
+    }
     this.camera.updateProjectionMatrix();
     if (this.style) this.syncCamera(this.frame?.cameraPunch ?? 0);
   }
@@ -612,7 +625,8 @@ export class StudioScene {
     const clearingKey = this.frame.clearing
       ? `${this.frame.clearing.seed}:${Math.round(this.frame.clearing.progress * 90)}`
       : 'none';
-    const boardKey = `${boardFingerprint(this.frame.board)}:${this.currentGeometryKey}:${this.style.material}:${clearingKey}`;
+    const lookKey = `${this.style.material}:${this.style.materialRuntime?.contentHash ?? 'preset'}:${this.style.diagnosticView ?? 'beauty'}`;
+    const boardKey = `${boardFingerprint(this.frame.board)}:${this.currentGeometryKey}:${lookKey}:${clearingKey}`;
     if (boardKey !== this.currentBoardKey) {
       this.rebuildBoardTiles();
       this.currentBoardKey = boardKey;
@@ -620,14 +634,14 @@ export class StudioScene {
 
     const rackKey = `${this.frame.snapshot.pieces
       .map((piece) => `${piece.id}:${piece.shapeId}:${piece.color}:${piece.cellColors?.join('.') ?? ''}:${piece.used ? 1 : 0}`)
-      .join(',')}:${this.frame.hiddenPieceId ?? ''}:${this.currentGeometryKey}:${this.style.material}`;
+      .join(',')}:${this.frame.hiddenPieceId ?? ''}:${this.currentGeometryKey}:${lookKey}`;
     if (rackKey !== this.currentRackKey) {
       this.rebuildRack();
       this.currentRackKey = rackKey;
     }
 
     const dragKey = this.frame.draggedPiece
-      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.piece.cellColors?.join('.') ?? ''}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${this.style.material}`
+      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.piece.cellColors?.join('.') ?? ''}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${lookKey}`
       : 'none';
     if (dragKey !== this.currentDragKey) {
       this.rebuildDraggedPiece();
@@ -666,6 +680,7 @@ export class StudioScene {
   private ensureLookDev(): void {
     if (!this.style) return;
     const { lookDev } = this.style;
+    const diagnostic = this.style.diagnosticView ?? 'beauty';
     const key = [
       lookDev.id,
       lookDev.exposure.toFixed(3),
@@ -674,11 +689,13 @@ export class StudioScene {
       lookDev.bloomThreshold.toFixed(3),
       lookDev.bloomRadius.toFixed(3),
       lookDev.clearBloomBoost.toFixed(3),
+      diagnostic,
     ].join(':');
     if (key === this.currentLookDev) return;
 
     const bloom = resolveLookDevBloom(lookDev, this.quality, 0, this.style.fx);
-    this.bloomPass.strength = bloom.strength;
+    const disableBloom = diagnostic !== 'beauty' && diagnostic !== 'bloom-contribution';
+    this.bloomPass.strength = disableBloom ? 0 : bloom.strength;
     this.bloomPass.threshold = bloom.threshold;
     this.bloomPass.radius = bloom.radius;
     this.slotMaterial.envMapIntensity = 0.45 * lookDev.environmentIntensity;
@@ -790,15 +807,27 @@ export class StudioScene {
   private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
     if (!this.style) throw new Error('Style not initialized.');
     const environmentIntensity = this.style.lookDev.environmentIntensity;
-    const key = `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}`;
+    const runtime = this.style.materialRuntime;
+    const diagnostic = this.style.diagnosticView ?? 'beauty';
+    const key = runtime
+      ? `${materialCacheKey(runtime, { color, opacity, lookDevId: this.style.lookDev.id })}:${diagnostic}`
+      : `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}:${diagnostic}`;
     let material = this.materialCache.get(key);
     if (!material) {
-      material = createBlockMaterial(
-        color,
-        this.style.material,
-        opacity,
-        environmentIntensity,
-      );
+      material = runtime
+        ? createPbrTileMaterial({
+          descriptor: runtime,
+          color,
+          opacity,
+          environmentIntensity,
+          diagnosticView: diagnostic,
+        })
+        : createBlockMaterial(
+          color,
+          this.style.material,
+          opacity,
+          environmentIntensity,
+        );
       this.materialCache.set(key, material);
     }
     return material;
@@ -963,11 +992,34 @@ export class StudioScene {
 
   private syncCamera(punch: number): void {
     if (!this.style) return;
-    const dynamicFactor = this.style.camera === 'dynamic-clear' ? 1 : 0.56;
+    const locked = this.style.renderer === 'fixed-camera-cinematic';
+    const maxZoom = FIXED_SHOT_PROFILE.maximumScreenZoom;
+    const dynamicFactor = locked ? 0.4 : this.style.camera === 'dynamic-clear' ? 1 : 0.56;
     const effectivePunch = punch * dynamicFactor;
     const frame = this.frame?.frame ?? 0;
-    const shakeX = Math.sin(frame * 2.13) * effectivePunch * 0.08;
-    const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055;
+    const shakeScale = locked ? 0.45 : 1;
+    const shakeX = Math.sin(frame * 2.13) * effectivePunch * 0.08 * shakeScale;
+    const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055 * shakeScale;
+
+    if (locked) {
+      this.camera.fov = FIXED_SHOT_PROFILE.verticalFovDegrees;
+      this.camera.aspect = FIXED_SHOT_PROFILE.compositionAspect;
+      const distance = lockedCameraDistance(effectivePunch);
+      const zoom = Math.min(maxZoom, 1 + effectivePunch * 0.015);
+      this.camera.position.set(
+        FIXED_SHOT_PROFILE.cameraOffset.x + shakeX,
+        FIXED_SHOT_PROFILE.cameraOffset.y + shakeY,
+        distance,
+      );
+      this.camera.lookAt(
+        FIXED_SHOT_PROFILE.lookAt[0],
+        FIXED_SHOT_PROFILE.lookAt[1],
+        FIXED_SHOT_PROFILE.lookAt[2],
+      );
+      this.camera.updateProjectionMatrix();
+      void zoom;
+      return;
+    }
 
     let preferredDistance: number;
     let cameraX: number;

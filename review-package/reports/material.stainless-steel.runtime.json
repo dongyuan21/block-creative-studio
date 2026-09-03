@@ -1,0 +1,36 @@
+{
+  "contract": "bcs.material-runtime",
+  "contractVersion": "1.0.0",
+  "id": "material.stainless-steel",
+  "version": "1.0.0",
+  "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "materialClass": "metal",
+  "baseColor": "#c9d0d8",
+  "roughness": 0.22,
+  "metalness": 0.96,
+  "maps": [],
+  "uv": {
+    "repeat": [
+      1,
+      1
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "rotationRadians": 0
+  },
+  "combine": "multiply-factor",
+  "capabilities": {
+    "heightDisplacement": "unsupported",
+    "anisotropy": "unsupported",
+    "subsurface": "unsupported",
+    "complexTransmission": "unsupported",
+    "materialAwareFracture": "pending"
+  },
+  "unsupportedFields": [],
+  "behaviorPending": true,
+  "clearcoat": 0.08,
+  "normalStrength": 0.35,
+  "emission": 0
+}

@@ -11,6 +11,7 @@ import type { PresentationFrame, RenderSpec, RhythmProfile, StyleSpec, Take } fr
 import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import { StudioScene } from '../renderer/StudioScene';
 import { Reference2DScene } from '../reference2d/Reference2DScene';
+import { containMapping, DESIGN_RESOLUTION } from '../headless/coordinateMapping';
 import { safeFileName } from '../utils/download';
 
 export interface RenderProgress {
@@ -74,6 +75,29 @@ function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new DOMException('Render canceled', 'AbortError');
 }
 
+function blitFrame(
+  outputContext: CanvasRenderingContext2D,
+  renderCanvas: HTMLCanvasElement,
+  renderer: StyleSpec['renderer'],
+  width: number,
+  height: number,
+): void {
+  outputContext.fillStyle = '#05070d';
+  outputContext.fillRect(0, 0, width, height);
+  if (renderer === 'reference-2d') {
+    const mapping = containMapping(DESIGN_RESOLUTION, { width, height });
+    outputContext.drawImage(
+      renderCanvas,
+      mapping.offsetX,
+      mapping.offsetY,
+      mapping.drawWidth,
+      mapping.drawHeight,
+    );
+    return;
+  }
+  outputContext.drawImage(renderCanvas, 0, 0, width, height);
+}
+
 export async function exportTakeVideo(options: ExportVideoOptions): Promise<ExportVideoResult> {
   if (typeof VideoEncoder === 'undefined') {
     throw new Error('当前 Chrome 未启用 WebCodecs VideoEncoder，无法在浏览器内导出 MP4。');
@@ -109,7 +133,12 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
 
   const stage = createOfflineStage(renderCanvas, options.style);
   if (options.runtimeAssets) stage.setRuntimeAssets(options.runtimeAssets);
-  stage.resize(options.render.width, options.render.height, quality.renderScale);
+  const nativeDesign = options.style.renderer === 'reference-2d';
+  if (nativeDesign) {
+    stage.resize(DESIGN_RESOLUTION.width, DESIGN_RESOLUTION.height, 1);
+  } else {
+    stage.resize(options.render.width, options.render.height, quality.renderScale);
+  }
 
   const target = new BufferTarget();
   const output = new Output({ format: new Mp4OutputFormat(), target });
@@ -136,7 +165,7 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
     throwIfAborted(options.signal);
     const warmupFrame = evaluateCompiledTake(compiled, 0, options.rhythm);
     await stage.warmup(warmupFrame, options.style);
-    outputContext.drawImage(renderCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+    blitFrame(outputContext, renderCanvas, options.style.renderer, options.render.width, options.render.height);
     await output.start();
 
     const frameDuration = 1 / options.render.fps;
@@ -144,7 +173,7 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
       throwIfAborted(options.signal);
       const frame = evaluateCompiledTake(compiled, frameIndex, options.rhythm);
       stage.renderAt(frame, options.style);
-      outputContext.drawImage(renderCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+      blitFrame(outputContext, renderCanvas, options.style.renderer, options.render.width, options.render.height);
       await source.add(frameIndex * frameDuration, frameDuration, {
         keyFrame: frameIndex % (options.render.fps * 2) === 0,
       });

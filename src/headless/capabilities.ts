@@ -16,5 +16,11 @@ export const BCS_CAPABILITIES = {
     'asset validate',
     'variant compile',
     'quality check',
+    'material compile',
+    'golden batch',
   ],
+  notes: {
+    'fixed-camera-cinematic': 'Available for locked 9:16 preview/export through the existing Three.js scene with Shot Profile, LookDev diagnostics and PBR runtime. Not a new engine.',
+    headlessVideo: 'Browser WebCodecs export only. CLI does not emit rendered:true.',
+  },
 } as const;

@@ -2,7 +2,7 @@
 
 Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
 
-> 当前版本为 `0.3.0-alpha.3`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+> 当前版本为 `0.3.0-alpha.4`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
 
 本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
@@ -47,6 +47,9 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - IndexedDB Browser Asset Store：真实背景/牌面文件按 SHA-256 持久化，自动派生 Look/Variant，并进入实时预览与固定帧导出。
 - Reference 2D Golden Diff：本地导入参考帧，叠加、分屏、差异热图、对齐线和诊断指标。
 - 3D LookDev：中性、平衡、高能量三档；曝光、环境反射、Bloom 阈值与清除 Boost 可独立控制。
+- 原生 1064×1788 捕获与图层 Pass 隔离；1080×1920 导出对 2D 使用 contain，不再拉伸。
+- `fixed-camera-cinematic`：锁定 9:16 Shot Profile，并提供 Albedo/Roughness/Metalness 等诊断视图。
+- Headless Material Runtime 与 `bcs material compile` / `bcs golden batch`。
 
 
 ## Headless Core 与外部 Agent 边界

@@ -2,11 +2,14 @@ import { boardFingerprint, createGame, replayActions } from './gameEngine';
 import { getShape, TILE_COLORS } from './shapes';
 import type {
   BoardState,
+  DiagnosticViewId,
   GameSnapshot,
+  MaterialRuntimeDescriptor,
   PieceInstance,
   PlacementAction,
   ProjectSpec,
   Reference2DStyleSpec,
+  ReferencePassId,
   RhythmProfile,
   StyleSpec,
   ThreeLookDevStyle,
@@ -28,7 +31,28 @@ const LOOKDEV_PRESETS = new Set(['neutral-lookdev', 'balanced-cinematic', 'high-
 const EFFECTS = new Set(['clean-pop', 'crystal-shatter', 'energy-burst']);
 const GEOMETRIES = new Set(['soft-cube', 'premium-beveled', 'candy-rounded']);
 const RHYTHMS = new Set(['human-natural', 'tight-fast', 'suspense-burst', 'combo-rush']);
-const RENDERERS = new Set(['reference-2d', 'three-3d']);
+const RENDERERS = new Set(['reference-2d', 'three-3d', 'fixed-camera-cinematic']);
+const DIAGNOSTIC_VIEWS = new Set([
+  'beauty',
+  'albedo',
+  'world-normal',
+  'roughness',
+  'metalness',
+  'emission',
+  'bloom-contribution',
+  'highlight-clip',
+]);
+const REFERENCE_PASSES = new Set([
+  'background',
+  'board',
+  'tile',
+  'tray',
+  'interaction',
+  'placement',
+  'clear',
+  'feedback',
+  'endgame',
+]);
 const REFERENCE_TILE_MATERIALS = new Set(['soft-bevel', 'flat-matte']);
 const REFERENCE_TILE_FACE_SETS = new Set(['botanical-reference', 'none']);
 const REFERENCE_PREVIEW_FX = new Set(['full-line-tint', 'cells-only']);
@@ -311,9 +335,7 @@ function parseStyle(value: unknown, path: string): StyleSpec {
   const geometry = record(source.geometry, `${path}.geometry`);
   const background = string(source.background, `${path}.background`, 32);
   if (!/^#[0-9a-f]{6}$/iu.test(background)) fail(`${path}.background`, '必须是 #RRGGBB。');
-  return {
-    // Bundles exported before the reference-first rebuild had no renderer field.
-    // Preserve their appearance by treating them as the original experimental 3D backend.
+  const style: StyleSpec = {
     renderer: source.renderer === undefined
       ? 'three-3d'
       : enumeration(source.renderer, RENDERERS, `${path}.renderer`),
@@ -334,6 +356,30 @@ function parseStyle(value: unknown, path: string): StyleSpec {
       ? source.showPointer
       : fail(`${path}.showPointer`, '必须是布尔值。'),
   };
+  if (source.diagnosticView !== undefined) {
+    style.diagnosticView = enumeration<DiagnosticViewId>(
+      source.diagnosticView,
+      DIAGNOSTIC_VIEWS,
+      `${path}.diagnosticView`,
+    );
+  }
+  if (source.enabledPasses !== undefined) {
+    if (!Array.isArray(source.enabledPasses)) fail(`${path}.enabledPasses`, '必须是数组。');
+    style.enabledPasses = source.enabledPasses.map((pass, index) =>
+      enumeration<ReferencePassId>(pass, REFERENCE_PASSES, `${path}.enabledPasses[${index}]`),
+    );
+  }
+  if (source.materialRuntime !== undefined) {
+    if (!source.materialRuntime || typeof source.materialRuntime !== 'object') {
+      fail(`${path}.materialRuntime`, '必须是对象。');
+    }
+    const runtime = source.materialRuntime as MaterialRuntimeDescriptor;
+    if (runtime.contract !== 'bcs.material-runtime') {
+      fail(`${path}.materialRuntime.contract`, '必须是 bcs.material-runtime。');
+    }
+    style.materialRuntime = runtime;
+  }
+  return style;
 }
 
 function parseRhythm(value: unknown, path: string): RhythmProfile {
