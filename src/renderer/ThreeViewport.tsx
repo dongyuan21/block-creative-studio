@@ -46,12 +46,11 @@ interface DragSession {
   valid: boolean;
 }
 
-function normalizedPointer(event: ReactPointerEvent<HTMLCanvasElement>): { x: number; y: number } {
-  const rect = event.currentTarget.getBoundingClientRect();
-  return {
-    x: Math.max(0, Math.min(1, (event.clientX - rect.left) / Math.max(1, rect.width))),
-    y: Math.max(0, Math.min(1, (event.clientY - rect.top) / Math.max(1, rect.height))),
-  };
+function compositionPointer(
+  stage: StudioScene,
+  event: ReactPointerEvent<HTMLCanvasElement>,
+): { x: number; y: number } | null {
+  return stage.mapClientPointer(event.clientX, event.clientY);
 }
 
 export function ThreeViewport({
@@ -198,7 +197,13 @@ export function ThreeViewport({
     if (!stage || !session || event.pointerId !== session.pointerId) return;
     const anchor = stage.anchorForPiece(event.clientX, event.clientY, session.pieceId);
     const valid = anchor ? isPlacementValid(session.pieceId, anchor) : false;
-    const pointer = normalizedPointer(event);
+    const pointer = compositionPointer(stage, event);
+    if (!pointer) {
+      session.anchor = null;
+      session.valid = false;
+      stage.setDragPreview(session.pieceId, null);
+      return;
+    }
     const frameOffset = Math.max(0, Math.round(((performance.now() - session.startedAt) / 1_000) * fps));
     const previous = session.path[session.path.length - 1];
     if (!previous || previous.frameOffset < frameOffset) session.path.push({ frameOffset, ...pointer });
@@ -246,7 +251,8 @@ export function ThreeViewport({
           }
           if (mode !== 'play' || snapshot.status === 'game-over' || hit?.kind !== 'piece') return;
           event.currentTarget.setPointerCapture(event.pointerId);
-          const pointer = normalizedPointer(event);
+          const pointer = compositionPointer(stage, event);
+          if (!pointer) return;
           stage.setDragPreview(hit.pieceId, null, pointer);
           dragRef.current = {
             pointerId: event.pointerId,

@@ -30,6 +30,7 @@ import {
   PROJECT_CURRENT_VARIANT_ID,
   createStudioVariantMatrix,
   parseImportedVariantRecipe,
+  studioPreviewStyle,
   type StudioVariantRow,
 } from '../integration/studioVariantBridge';
 import type {
@@ -276,9 +277,7 @@ export function useVariantWorkspace({
     ?? matrix?.rows[0]
     ?? null;
   const browserAssets = useBrowserAssetStore(activeRow?.plan ?? null);
-  const resolvedStyle = activeRow?.previewSupported
-    ? activeRow.resolvedStyle
-    : project.style;
+  const resolvedStyle = studioPreviewStyle(activeRow, project.style);
 
   useEffect(() => {
     if (lookOptions.some((option) => option.key === selectedLookKey)) return;
@@ -309,7 +308,7 @@ export function useVariantWorkspace({
       setWorkspaceError(null);
     } else {
       setWorkspaceError(
-        '该 Look Pack 已进入 Asset Registry，但没有当前网页渲染器的 studio.style 预览绑定。可通过 CLI 编译，暂不能在页面中直接显示。',
+        '该 Look Pack 没有完整 studio.style 预览绑定。若 Render Plan 含 tile.material，网页三维预览仍会应用该 Plan 材质；其余 Look 样式不会切换。',
       );
     }
   }, [builtinCatalog, matrix, mode, project.style, setProject]);
@@ -321,17 +320,20 @@ export function useVariantWorkspace({
     setActiveRecipeId(recipeId);
     setSelectedLookKey(`${row.recipe.lookPackRef.id}@${row.recipe.lookPackRef.version}`);
     setVariantLockModeState(row.recipe.lockMode);
+    const preview = studioPreviewStyle(row, project.style);
+    setProject((current) => ({ ...current, style: preview }));
     if (row.previewSupported) {
-      setProject((current) => ({ ...current, style: row.resolvedStyle }));
       setWorkspaceError(null);
     } else {
       setWorkspaceError(
         row.error
           ? `${row.error.code}: ${row.error.message}`
-          : '该 Variant 可以作为 Headless Artifact 使用，但当前网页预览没有对应的渲染绑定。',
+          : row.resolvedStyle.materialRuntime
+            ? '该 Variant 的 Look 没有完整 studio.style 绑定，但 Plan 材质已交给当前三维预览。'
+            : '该 Variant 可以作为 Headless Artifact 使用，但当前网页预览没有对应的渲染绑定。',
       );
     }
-  }, [matrix, mode, setProject]);
+  }, [matrix, mode, project.style, setProject]);
 
   const setLockMode = useCallback((lockMode: VariantLockMode): void => {
     if (mode === 'play' || mode === 'render') return;

@@ -504,7 +504,7 @@ export function useStudioModel() {
       });
       return;
     }
-    if (!activeVariantRow.previewSupported) {
+    if (!activeVariantRow.previewSupported && !activeVariantRow.resolvedStyle.materialRuntime) {
       setExportState({
         running: false,
         progress: null,

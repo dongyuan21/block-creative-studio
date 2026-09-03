@@ -63,6 +63,23 @@ function clone<T>(value: T): T {
   return structuredClone(value);
 }
 
+export type VariantRowPreviewKind = 'full-style' | 'plan-material' | 'artifact-only';
+
+/** Webpage preview consumes Plan material even when the Look has no studio.style binding. */
+export function studioPreviewStyle(row: StudioVariantRow | null | undefined, fallback: StyleSpec): StyleSpec {
+  if (!row) return fallback;
+  if (row.previewSupported) return row.resolvedStyle;
+  const runtime = row.resolvedStyle.materialRuntime;
+  if (!runtime) return fallback;
+  return { ...fallback, materialRuntime: runtime };
+}
+
+export function variantRowPreviewKind(row: StudioVariantRow | null | undefined): VariantRowPreviewKind {
+  if (!row) return 'artifact-only';
+  if (row.previewSupported) return 'full-style';
+  return row.resolvedStyle.materialRuntime ? 'plan-material' : 'artifact-only';
+}
+
 function semanticReplayIdentity(take: Take | null, project: ProjectSpec): unknown {
   if (!take) {
     return {

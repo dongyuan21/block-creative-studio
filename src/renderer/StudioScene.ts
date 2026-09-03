@@ -29,7 +29,7 @@ import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './material
 import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
 import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureResourceKey } from './runtimeTextures';
 import { MaterialRuntimeLoadGate } from './materialRuntimeLoadGate';
-import { FIXED_SHOT_PROFILE, lockedCameraDistance, viewportPolicyForRenderer } from './shotProfile';
+import { FIXED_SHOT_PROFILE, lockedCameraDistance, mapClientPointToComposition, viewportPolicyForRenderer, webglViewportFromCss } from './shotProfile';
 import { materialCacheKey, materialDescriptorKey } from '../headless/materialRuntime';
 
 export interface StudioSceneOptions {
@@ -381,9 +381,10 @@ export class StudioScene {
 
   private applyViewportPolicy(): void {
     const policy = viewportPolicyForRenderer(this.style?.renderer ?? 'three-3d', this.width, this.height);
+    const glViewport = webglViewportFromCss(policy.viewport, this.height);
     this.camera.aspect = policy.aspect;
-    this.renderer.setViewport(policy.viewport.x, policy.viewport.y, policy.viewport.width, policy.viewport.height);
-    this.renderer.setScissor(policy.viewport.x, policy.viewport.y, policy.viewport.width, policy.viewport.height);
+    this.renderer.setViewport(glViewport.x, glViewport.y, glViewport.width, glViewport.height);
+    this.renderer.setScissor(glViewport.x, glViewport.y, glViewport.width, glViewport.height);
     this.renderer.setScissorTest(policy.scissorTest);
     this.camera.updateProjectionMatrix();
   }
@@ -501,11 +502,17 @@ export class StudioScene {
     this.liveBurst = { clearing, startedAt: performance.now(), durationMs };
   }
 
+  mapClientPointer(clientX: number, clientY: number): { x: number; y: number } | null {
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    return { x: mapped.compositionX, y: mapped.compositionY };
+  }
+
   pick(clientX: number, clientY: number): PickResult {
-    const rect = this.canvas.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return null;
-    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    this.pointer.x = mapped.ndcX;
+    this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
     const pieceHit = this.raycaster.intersectObjects(this.pieceHitTargets, false)[0]?.object;
@@ -661,11 +668,24 @@ export class StudioScene {
     this.renderer.dispose();
   }
 
-  private pickCellOnly(clientX: number, clientY: number): GridCell | null {
+  private mapClientComposition(clientX: number, clientY: number) {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
-    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    return mapClientPointToComposition({
+      clientX,
+      clientY,
+      rect,
+      renderer: this.style?.renderer ?? 'three-3d',
+      canvasWidth: this.width,
+      canvasHeight: this.height,
+    });
+  }
+
+  private pickCellOnly(clientX: number, clientY: number): GridCell | null {
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    this.pointer.x = mapped.ndcX;
+    this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const object = this.raycaster.intersectObjects(this.cellHitTargets, false)[0]?.object;
     if (object?.userData.kind !== 'cell') return null;

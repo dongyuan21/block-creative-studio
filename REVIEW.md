@@ -14,7 +14,7 @@
 
 ## 本次完成了什么
 
-针对 GPT Pro 在 `977c9a5` 上列出的 7 个 merge blockers，以及复审后仍未绑到最新 HEAD 的证据缺口。本轮只修契约、接线与捕获隔离，**不把 T0–T5 标为完成，也不做视觉自批**。
+针对 GPT Pro 在 `977c9a5` 上列出的 7 个 merge blockers，以及后续对 pick 映射 / Plan 材质网页消费的复审缺口。本轮只修契约、接线与捕获隔离，**不把 T0–T5 标为完成，也不做视觉自批**。GitHub 上仍标注 `977c9a5` 的 review 已过时。
 
 1. **同贴图改参数不再被忽略。** `runtimeTextureResourceKey` 只决定是否重新加载 GPU 纹理；`materialDescriptorKey` 决定是否提交 descriptor。
 2. **交互加载失败上送到 Variant Workspace / Inspector。** 状态为 `idle | loading | ready | error | stale`。`stale` 表示新材质尚未提交、画面仍是上一套。正式导出按钮在非 `ready` 时禁用。同 descriptor 的 snapshot 更新不会把状态打回 loading。
@@ -23,16 +23,18 @@
 5. **illegal-preview 不是 Game Over。** Fixture 保持 `playing`、存在其他合法落点，并带 `draggedPiece` + 非法锚点。终局 Continue 在 combo=0 时显示 `Game Over`。
 6. **示例资产 contentHash 改为 canonical SHA-256**（omit `contentHash` 后 stable stringify）。steel / wood / aurora 材质包、copper Look 闭包、universal-clear 均不再使用 `aaaa…/bbbb…/cccc…/9999…` 占位。Look 槽位 hash 与子资产一致。
 7. **`applyViewportPolicy` 在 `resize` 与每一次 `setFrame`（含 renderer / style 切换）都会调用**，不依赖 ResizeObserver。
-8. **有贴图材质默认 `combine=replace`。** 避免 tile 色 × pack 色 × albedo 把木材压成灰塑。无贴图的 Aurora 仍为 `multiply-factor`。
-9. **Clear 冲击环降强度**：去掉 HDR `rgb(2.1,2.1,2.1)` 加性白环，缩小半径与透明度，降低 balanced/high-energy 的 clear bloom。碎片按材质着色，木材使用细长 splinter 缩放。这不是视觉批准。
-10. **木材贴图**改为更暖的 256×256 年轮/导管纹理，clearcoat=0。诊断 still 仍是 Neutral LookDev + idle。
+8. **Pick / 指针映射对齐构图 viewport。** `mapClientPointToComposition` 把 DOM 点映射到 letterbox 后的 composition 0–1 与 NDC；letterbox 外 `inside: false`，不记假命中。Three.js `setViewport` 的 Y 经 `webglViewportFromCss` 从 CSS 上原点转到 WebGL 下原点。Replay 指针仍是 composition 相对，因为 `normalizedPointOnPlane` 把 0–1 当相机 NDC。
+9. **无完整 `studio.style` 绑定时仍消费 Plan 材质。** `studioPreviewStyle` 在 `previewSupported === false` 但存在 `materialRuntime` 时，把 Plan 材质叠到当前网页样式上；导出门禁允许该路径。这不是视觉批准。
+10. **有贴图材质默认 `combine=replace`。** 避免 tile 色 × pack 色 × albedo 把木材压成灰塑。无贴图的 Aurora 仍为 `multiply-factor`。
+11. **Clear 冲击环降强度**：去掉 HDR `rgb(2.1,2.1,2.1)` 加性白环，缩小半径与透明度，降低 balanced/high-energy 的 clear bloom。碎片按材质着色，木材使用细长 splinter 缩放。这不是视觉批准。
+12. **木材贴图**改为更暖的 256×256 年轮/导管纹理，clearcoat=0。诊断 still 仍是 Neutral LookDev + idle。
 
 ## 验收矩阵
 
 | 条件 | 状态 | 证据 | 复跑 |
 |---|---|---|---|
 | 源码/类型/构建检查 | PASS | `npm run check && npm run typecheck && npm run build` | 同上 |
-| 单元与负向测试 | PASS | 108 tests | `npm test` |
+| 单元与负向测试 | PASS | 113 tests | `npm test` |
 | 真实浏览器捕获 | PASS（本机 Full Capture；CI 另传 `capture-run`） | `review-package/run/`：20 帧 + 4 条 MP4；`reports/browser-e2e.json` | `npm run capture:review` |
 | Git 中旧 PNG/MP4 | stale | `review-package/frames/STALE.md` `videos/STALE.md` | 不得当作当前 HEAD 视觉证据 |
 | 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | 无源视频 |

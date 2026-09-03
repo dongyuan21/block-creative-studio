@@ -18,11 +18,16 @@ import {
   assertSha256ContentHash,
   runtimeTextureResourceKey,
 } from '../src/renderer/runtimeTextures';
-import { viewportPolicyForRenderer } from '../src/renderer/shotProfile';
+import {
+  containedCompositionViewport,
+  mapClientPointToComposition,
+  viewportPolicyForRenderer,
+  webglViewportFromCss,
+} from '../src/renderer/shotProfile';
+import { createStudioVariantMatrix, studioPreviewStyle } from '../src/integration/studioVariantBridge';
 import { MaterialRuntimeLoadGate } from '../src/renderer/materialRuntimeLoadGate';
 import { materialRuntimeBlocksExport } from '../src/renderer/materialRuntimeStatus';
 import { createUniversalClearEffect } from '../src/headless/universalClearEffect';
-import { createStudioVariantMatrix } from '../src/integration/studioVariantBridge';
 import { DEFAULT_STYLE } from '../src/renderer/stylePresets';
 import { createCrossClearBoard } from '../src/domain/boardPresets';
 import { createGame, createPieceSet } from '../src/domain/gameEngine';
@@ -188,6 +193,31 @@ describe('review blockers', () => {
     expect(locked.scissorTest).toBe(true);
     expect(locked.aspect).not.toBe(orbit.aspect);
     expect(locked.viewport.width).toBeLessThan(1920);
+    const gl = webglViewportFromCss(locked.viewport, 1080);
+    expect(gl.y).toBeCloseTo(1080 - locked.viewport.y - locked.viewport.height, 8);
+  });
+
+  it('does not report a letterbox pick as a composition hit', () => {
+    const viewport = containedCompositionViewport(1920, 1080);
+    const miss = mapClientPointToComposition({
+      clientX: viewport.x - 8,
+      clientY: 540,
+      rect: { left: 0, top: 0, width: 1920, height: 1080 },
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+    });
+    const hit = mapClientPointToComposition({
+      clientX: viewport.x + viewport.width / 2,
+      clientY: 540,
+      rect: { left: 0, top: 0, width: 1920, height: 1080 },
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+    });
+    expect(miss.inside).toBe(false);
+    expect(hit.inside).toBe(true);
+    expect(hit.ndcX).toBeCloseTo(0, 8);
   });
 
   it('attaches Plan materialRuntime on the official Studio variant path', () => {
@@ -217,6 +247,11 @@ describe('review blockers', () => {
     expect(row?.resolvedStyle.materialRuntime).toBeDefined();
     expect(row?.resolvedStyle.materialRuntime?.materialClass).toBeTruthy();
     expect(row?.resolvedStyle.renderer).toBe(project.style.renderer);
+    expect(studioPreviewStyle(row, project.style).materialRuntime).toEqual(row?.resolvedStyle.materialRuntime);
+    expect(studioPreviewStyle(
+      row ? { ...row, previewSupported: false } : null,
+      project.style,
+    ).materialRuntime).toEqual(row?.resolvedStyle.materialRuntime);
   });
 
   it('stores canonical sha256 content hashes on the three fixture material packs', () => {

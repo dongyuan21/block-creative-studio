@@ -21,7 +21,13 @@ import {
 import { applyPlacement, canPlace, hasAnyLegalMove } from '../src/domain/gameEngine';
 import { compileTake, evaluateCompiledTake } from '../src/director/presentationCompiler';
 import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
-import { containedCompositionViewport, lockedCameraDistance, FIXED_SHOT_PROFILE } from '../src/renderer/shotProfile';
+import {
+  containedCompositionViewport,
+  lockedCameraDistance,
+  mapClientPointToComposition,
+  webglViewportFromCss,
+  FIXED_SHOT_PROFILE,
+} from '../src/renderer/shotProfile';
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
 import { compileRegisteredMaterialPlan, compileRuntimeFromRegisteredPlan, rewriteMaterialMapUriForBrowser } from '../src/capture/materialVariants';
 import { PRAISE_PASS, PASS_RESPONSIBILITIES, isPassEnabled } from '../src/reference2d/passes';
@@ -436,6 +442,111 @@ describe('shot profile', () => {
     expect(lockedCameraDistance(0)).toBeGreaterThan(17);
     expect(REFERENCE_PASS_ORDER).toHaveLength(9);
     expect(VIDEO_RESOLUTION).toEqual({ width: 1080, height: 1920 });
+  });
+
+  it('maps pick/pointer into the letterboxed composition, not the full canvas', () => {
+    const rect = { left: 0, top: 0, width: 1920, height: 1080 };
+    const canvas = { canvasWidth: 1920, canvasHeight: 1080, rect };
+    const viewport = containedCompositionViewport(1920, 1080);
+    const leftBar = mapClientPointToComposition({
+      ...canvas,
+      renderer: 'fixed-camera-cinematic',
+      clientX: 10,
+      clientY: 540,
+    });
+    expect(leftBar.inside).toBe(false);
+
+    const compositionLeft = mapClientPointToComposition({
+      ...canvas,
+      renderer: 'fixed-camera-cinematic',
+      clientX: viewport.x,
+      clientY: 540,
+    });
+    expect(compositionLeft.inside).toBe(true);
+    expect(compositionLeft.compositionX).toBeCloseTo(0, 8);
+    expect(compositionLeft.compositionY).toBeCloseTo(0.5, 8);
+    expect(compositionLeft.ndcX).toBeCloseTo(-1, 8);
+    expect(compositionLeft.ndcY).toBeCloseTo(0, 8);
+    const fullCanvasNdcX = (viewport.x / 1920) * 2 - 1;
+    expect(Math.abs(compositionLeft.ndcX - fullCanvasNdcX)).toBeGreaterThan(0.5);
+
+    const center = mapClientPointToComposition({
+      ...canvas,
+      renderer: 'fixed-camera-cinematic',
+      clientX: 960,
+      clientY: 540,
+    });
+    expect(center.inside).toBe(true);
+    expect(center.compositionX).toBeCloseTo(0.5, 8);
+    expect(center.ndcX).toBeCloseTo(0, 8);
+    expect(center.ndcY).toBeCloseTo(0, 8);
+
+    const orbitLeft = mapClientPointToComposition({
+      ...canvas,
+      renderer: 'three-3d',
+      clientX: 10,
+      clientY: 540,
+    });
+    expect(orbitLeft.inside).toBe(true);
+    expect(orbitLeft.compositionX).toBeCloseTo(10 / 1920, 8);
+  });
+
+  it('rejects the vertical letterbox and converts CSS y to WebGL y from the bottom', () => {
+    const tall = { left: 0, top: 40, width: 800, height: 1600 };
+    const viewport = containedCompositionViewport(800, 1600);
+    const above = mapClientPointToComposition({
+      clientX: 400,
+      clientY: tall.top + 10,
+      rect: tall,
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 800,
+      canvasHeight: 1600,
+    });
+    expect(above.inside).toBe(false);
+
+    const topOfFrame = mapClientPointToComposition({
+      clientX: 400,
+      clientY: tall.top + viewport.y,
+      rect: tall,
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 800,
+      canvasHeight: 1600,
+    });
+    expect(topOfFrame.inside).toBe(true);
+    expect(topOfFrame.compositionY).toBeCloseTo(0, 8);
+    expect(topOfFrame.ndcY).toBeCloseTo(1, 8);
+    const fullCanvasNdcY = -((viewport.y / 1600) * 2 - 1);
+    expect(Math.abs(topOfFrame.ndcY - fullCanvasNdcY)).toBeGreaterThan(0.05);
+
+    const centered = webglViewportFromCss(viewport, 1600);
+    expect(centered.y).toBeCloseTo(viewport.y, 8);
+
+    const offset = webglViewportFromCss({ x: 12, y: 40, width: 200, height: 300 }, 500);
+    expect(offset).toEqual({ x: 12, y: 160, width: 200, height: 300 });
+    expect(offset.y).not.toBe(40);
+  });
+
+  it('maps in CSS pixels; device pixel ratio is not a mapping input', () => {
+    const css = mapClientPointToComposition({
+      clientX: 980,
+      clientY: 590,
+      rect: { left: 20, top: 50, width: 1920, height: 1080 },
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+    });
+    const origin = mapClientPointToComposition({
+      clientX: 960,
+      clientY: 540,
+      rect: { left: 0, top: 0, width: 1920, height: 1080 },
+      renderer: 'fixed-camera-cinematic',
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+    });
+    expect(css.inside).toBe(origin.inside);
+    expect(css.compositionX).toBeCloseTo(origin.compositionX, 8);
+    expect(css.ndcX).toBeCloseTo(origin.ndcX, 8);
+    expect(css).not.toHaveProperty('dpr');
   });
 });
 

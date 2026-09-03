@@ -87,3 +87,66 @@ export function viewportPolicyForRenderer(
     scissorTest: false,
   };
 }
+
+export interface ClientRectLike {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+export interface CompositionPointer {
+  inside: boolean;
+  canvasX: number;
+  canvasY: number;
+  compositionX: number;
+  compositionY: number;
+  ndcX: number;
+  ndcY: number;
+}
+
+/**
+ * Map a DOM client point into the renderer composition.
+ * `canvasWidth/Height` are CSS pixels (same space as `viewportPolicyForRenderer`);
+ * device pixel ratio is applied by Three.js when issuing gl.viewport, not here.
+ */
+export function mapClientPointToComposition(input: {
+  clientX: number;
+  clientY: number;
+  rect: ClientRectLike;
+  renderer: 'reference-2d' | 'three-3d' | 'fixed-camera-cinematic';
+  canvasWidth: number;
+  canvasHeight: number;
+}): CompositionPointer {
+  const scaleX = input.canvasWidth / Math.max(1e-6, input.rect.width);
+  const scaleY = input.canvasHeight / Math.max(1e-6, input.rect.height);
+  const canvasX = (input.clientX - input.rect.left) * scaleX;
+  const canvasY = (input.clientY - input.rect.top) * scaleY;
+  const viewport = viewportPolicyForRenderer(input.renderer, input.canvasWidth, input.canvasHeight).viewport;
+  const inside =
+    canvasX >= viewport.x
+    && canvasX <= viewport.x + viewport.width
+    && canvasY >= viewport.y
+    && canvasY <= viewport.y + viewport.height;
+  const compositionX = viewport.width <= 0 ? 0 : (canvasX - viewport.x) / viewport.width;
+  const compositionY = viewport.height <= 0 ? 0 : (canvasY - viewport.y) / viewport.height;
+  return {
+    inside,
+    canvasX,
+    canvasY,
+    compositionX,
+    compositionY,
+    ndcX: compositionX * 2 - 1,
+    ndcY: -(compositionY * 2 - 1),
+  };
+}
+
+/** Three.js viewport Y is from the bottom of the drawing buffer. */
+export function webglViewportFromCss(viewport: ContainedViewport, canvasHeight: number): ContainedViewport {
+  return {
+    x: viewport.x,
+    y: canvasHeight - viewport.y - viewport.height,
+    width: viewport.width,
+    height: viewport.height,
+  };
+}

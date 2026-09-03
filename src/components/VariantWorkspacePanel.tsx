@@ -7,7 +7,7 @@ import type {
   VariantRecipe,
 } from '../headless/contracts';
 import type { StudioLookOption } from '../integration/studioAssetCatalog';
-import type { StudioVariantRow } from '../integration/studioVariantBridge';
+import { variantRowPreviewKind, type StudioVariantRow } from '../integration/studioVariantBridge';
 import type { BrowserAssetImportRole } from '../assets/browserAssetAuthoring';
 import type { BrowserAssetStoreStatus } from '../state/useBrowserAssetStore';
 import type { MaterialRuntimeStatus } from '../renderer/materialRuntimeStatus';
@@ -85,11 +85,11 @@ function activeStatus(
       detail: first ? `${first.code} · ${first.message}` : '质量门禁返回失败。',
     };
   }
-  if (!row.previewSupported) {
+  if (variantRowPreviewKind(row) === 'artifact-only') {
     return {
       label: '可编译',
       tone: 'warning',
-      detail: '资产契约有效，但当前网页渲染器没有该 Look 的预览绑定。',
+      detail: '资产契约有效，但当前网页渲染器没有该 Look 的预览绑定，也没有可应用的 Plan 材质。',
     };
   }
   if (runtimeAssetMissingCount > 0) {
@@ -127,7 +127,9 @@ function activeStatus(
   return {
     label: '可渲染',
     tone: 'success',
-    detail: '网页预览、CLI 编译和质量门禁使用同一份 Render Plan。',
+    detail: variantRowPreviewKind(row) === 'plan-material'
+      ? 'Plan 材质已交给当前三维预览；该 Look 没有完整 studio.style 绑定。'
+      : '网页预览、CLI 编译和质量门禁使用同一份 Render Plan。',
   };
 }
 
