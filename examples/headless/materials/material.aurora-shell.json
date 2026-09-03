@@ -6,11 +6,17 @@
   "kind": "material-pack",
   "origin": "generated",
   "label": "Aurora shell",
-  "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "contentHash": "sha256:8d3a88b4b483da08c5c4c2457b60cb14a84772bdd56a9467fd122bd05b6401fe",
   "runtime": {
-    "renderers": ["reference-2d", "three-3d", "fixed-camera-cinematic"],
+    "renderers": [
+      "reference-2d",
+      "three-3d",
+      "fixed-camera-cinematic"
+    ],
     "deterministic": true,
-    "budget": { "textureMemoryMiB": 14 }
+    "budget": {
+      "textureMemoryMiB": 14
+    }
   },
   "appearance": {
     "baseColor": "#6ad0c8",
@@ -37,5 +43,8 @@
     "gravityScale": 0.9,
     "drag": 0.14
   },
-  "provenance": { "createdBy": "external-agent", "generator": "arbitrary-id-not-a-preset-name" }
+  "provenance": {
+    "createdBy": "external-agent",
+    "generator": "arbitrary-id-not-a-preset-name"
+  }
 }

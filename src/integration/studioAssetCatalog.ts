@@ -11,6 +11,7 @@ import type {
 } from '../headless/contracts';
 import { AssetRegistry } from '../headless/assetRegistry';
 import { BcsHeadlessError } from '../headless/errors';
+import { materialRuntimeFromPlan, rewriteMaterialMapUriForBrowser } from '../headless/materialRuntime';
 import { stableHash } from '../headless/stableHash';
 import { validateAssetManifest } from '../headless/validation';
 import type { ProjectSpec, StyleSpec } from '../domain/types';
@@ -533,13 +534,23 @@ export function isLookPreviewSupported(manifest: AssetManifest): boolean {
   return readStudioMetadata(manifest)?.previewSupported === true;
 }
 
+function attachMaterialRuntimeFromPlan(style: StyleSpec, plan: ResolvedRenderPlan): void {
+  const slot = plan.slots['tile.material'];
+  if (!slot || slot.manifest.kind !== 'material-pack') return;
+  style.materialRuntime = materialRuntimeFromPlan(plan, {
+    rewriteUri: rewriteMaterialMapUriForBrowser,
+  });
+}
+
 export function resolveStyleFromRenderPlan(
   plan: ResolvedRenderPlan,
   fallback: StyleSpec,
 ): { style: StyleSpec; previewSupported: boolean } {
   const studio = readStudioMetadata(plan.lookPack.manifest);
   if (!studio?.previewSupported || !studio.style) {
-    return { style: clone(fallback), previewSupported: false };
+    const style = clone(fallback);
+    attachMaterialRuntimeFromPlan(style, plan);
+    return { style, previewSupported: false };
   }
 
   const style = clone(studio.style);
@@ -556,6 +567,7 @@ export function resolveStyleFromRenderPlan(
     style.reference2d = reference2d;
     style.geometry = geometry;
   }
+  attachMaterialRuntimeFromPlan(style, plan);
   return { style, previewSupported: true };
 }
 

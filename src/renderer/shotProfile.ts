@@ -64,3 +64,26 @@ export function boardWorldBounds(): { minX: number; maxX: number; minY: number; 
   const half = FIXED_SHOT_PROFILE.contentWidth / 2;
   return { minX: -half, maxX: half, minY: -half - 1.2, maxY: half + 0.4 };
 }
+
+export function viewportPolicyForRenderer(
+  renderer: 'reference-2d' | 'three-3d' | 'fixed-camera-cinematic',
+  width: number,
+  height: number,
+): {
+  aspect: number;
+  viewport: ContainedViewport;
+  scissorTest: boolean;
+} {
+  if (renderer === 'fixed-camera-cinematic') {
+    return {
+      aspect: FIXED_SHOT_PROFILE.compositionAspect,
+      viewport: containedCompositionViewport(width, height),
+      scissorTest: true,
+    };
+  }
+  return {
+    aspect: width / Math.max(1, height),
+    viewport: { x: 0, y: 0, width, height },
+    scissorTest: false,
+  };
+}

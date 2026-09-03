@@ -9,8 +9,10 @@ import {
 import type {
   BoardState,
   GameSnapshot,
+  GridCell,
   PieceInstance,
   PlacementAction,
+  PresentationFrame,
   Take,
   TileColor,
 } from './types';
@@ -117,7 +119,8 @@ export function illegalPreviewSnapshot(): GameSnapshot {
   const board = createEmptyBoard();
   for (let row = 0; row < 8; row += 1) {
     for (let col = 0; col < 8; col += 1) {
-      if (row > 1 || col > 1) {
+      const keepEmpty = (row < 2 && col < 2) || (row === 7 && col === 7);
+      if (!keepEmpty) {
         const line = board.cells[row];
         if (line) line[col] = 'blue';
       }
@@ -125,10 +128,36 @@ export function illegalPreviewSnapshot(): GameSnapshot {
   }
   const pieces = [
     piece('piece-illegal-0-square-3', 'square-3', 'coral', 0),
-    piece('piece-illegal-1-line5-h', 'line5-h', 'amber', 1),
-    piece('piece-illegal-2-plus-5', 'plus-5', 'violet', 2),
+    piece('piece-illegal-1-square-2', 'square-2', 'cyan', 1),
+    piece('piece-illegal-2-single', 'single', 'amber', 2),
   ];
   return createGame(board, 20260903, pieces);
+}
+
+export function illegalPreviewAnchor(): GridCell {
+  return { row: 3, col: 3 };
+}
+
+export function illegalPreviewFrame(): PresentationFrame {
+  const snapshot = illegalPreviewSnapshot();
+  const dragged = snapshot.pieces.find((candidate) => candidate.shapeId === 'square-3');
+  if (!dragged) throw new Error('illegal preview fixture is missing square-3.');
+  const anchor = illegalPreviewAnchor();
+  return {
+    frame: 12,
+    fps: 30,
+    snapshot,
+    board: cloneBoard(snapshot.board),
+    cameraPunch: 0,
+    hiddenPieceId: dragged.id,
+    draggedPiece: {
+      piece: dragged,
+      anchor,
+      progress: 1,
+      pointerDriven: true,
+    },
+    pointer: { x: 0.52, y: 0.46, pressed: true },
+  };
 }
 
 export function endgameSnapshot(): GameSnapshot {

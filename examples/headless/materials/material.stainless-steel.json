@@ -6,7 +6,7 @@
   "kind": "material-pack",
   "origin": "generated",
   "label": "Stainless steel",
-  "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "sha256:0f50ab4aedb58b75b8fb7f129f94e70b8fb57094bc06489651d7fb9a7e55577c",
   "runtime": {
     "renderers": [
       "reference-2d",

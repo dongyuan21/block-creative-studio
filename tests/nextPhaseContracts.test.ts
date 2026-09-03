@@ -10,18 +10,20 @@ import {
   crossClearTake,
   endgameSnapshot,
   idleSnapshot,
+  illegalPreviewAnchor,
+  illegalPreviewFrame,
   illegalPreviewSnapshot,
   legalPreviewCells,
   publicSceneCatalog,
   singleClearTake,
   takeStateIdentity,
 } from '../src/domain/publicFixtures';
-import { applyPlacement, canPlace } from '../src/domain/gameEngine';
+import { applyPlacement, canPlace, hasAnyLegalMove } from '../src/domain/gameEngine';
 import { compileTake, evaluateCompiledTake } from '../src/director/presentationCompiler';
 import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
 import { containedCompositionViewport, lockedCameraDistance, FIXED_SHOT_PROFILE } from '../src/renderer/shotProfile';
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
-import { compileRuntimeFromRegisteredPlan, rewriteMaterialMapUriForBrowser } from '../src/capture/materialVariants';
+import { compileRegisteredMaterialPlan, compileRuntimeFromRegisteredPlan, rewriteMaterialMapUriForBrowser } from '../src/capture/materialVariants';
 import { PRAISE_PASS, PASS_RESPONSIBILITIES, isPassEnabled } from '../src/reference2d/passes';
 import { createPbrTileMaterial, normalScaleForConvention } from '../src/renderer/pbrMaterialFactory';
 import { resolveTakeAnchor, STILL_SPECS } from '../src/capture/capturePlan';
@@ -103,7 +105,16 @@ describe('public fixtures', () => {
     ]);
     expect(idleSnapshot().status).toBe('playing');
     expect(endgameSnapshot().status).toBe('game-over');
-    expect(illegalPreviewSnapshot().pieces.some((piece) => piece.shapeId === 'square-3')).toBe(true);
+    const illegal = illegalPreviewSnapshot();
+    expect(illegal.status).toBe('playing');
+    expect(hasAnyLegalMove(illegal)).toBe(true);
+    const dragged = illegal.pieces.find((piece) => piece.shapeId === 'square-3');
+    expect(dragged).toBeDefined();
+    expect(canPlace(illegal.board, dragged!, illegalPreviewAnchor())).toBe(false);
+    const frame = illegalPreviewFrame();
+    expect(frame.snapshot.status).toBe('playing');
+    expect(frame.draggedPiece?.piece.shapeId).toBe('square-3');
+    expect(frame.draggedPiece && canPlace(frame.board, frame.draggedPiece.piece, frame.draggedPiece.anchor)).toBe(false);
     expect(legalPreviewCells().rows).toEqual([6]);
   });
 
@@ -208,6 +219,24 @@ describe('material runtime', () => {
     expect(steelMat.metalness).toBeGreaterThan(woodMat.metalness);
     steelMat.dispose();
     woodMat.dispose();
+  });
+
+  it('keeps frame-exact lock mode and does not rewrite copper-clear compatibility', () => {
+    const wood = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.oak-wood.json'), 'utf8'));
+    const fixture = makeFixture();
+    const copperClear = fixture.assets.find((asset) => asset.id === 'effect.copper-clear');
+    expect(copperClear && 'compatibleMaterialClasses' in copperClear && copperClear.compatibleMaterialClasses).toEqual(['metal']);
+    const compiled = compileRegisteredMaterialPlan(wood, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+    });
+    expect(fixture.recipe.lockMode).toBe('frame-exact');
+    expect(compiled.plan.lockMode).toBe('frame-exact');
+    expect(compiled.plan.planHash).toMatch(/^fnv1a32:/);
+    expect(compiled.plan.slots['clear.primary']?.manifest.id).toBe('effect.universal-clear');
+    expect((compiled.plan.slots['clear.primary']?.manifest as { compatibleMaterialClasses: string[] }).compatibleMaterialClasses).toEqual(['*']);
+    expect(copperClear && 'compatibleMaterialClasses' in copperClear && copperClear.compatibleMaterialClasses).toEqual(['metal']);
   });
 
   it('still compiles maps after a textured pack is renamed to an unknown user id via ResolvedRenderPlan', () => {

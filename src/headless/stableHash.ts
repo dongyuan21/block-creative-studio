@@ -24,3 +24,9 @@ export function stableHash(value: unknown): string {
   }
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
+
+export function omitContentHash<T extends Record<string, unknown>>(value: T): Omit<T, 'contentHash'> {
+  const copy: Record<string, unknown> = { ...value };
+  delete copy.contentHash;
+  return copy as Omit<T, 'contentHash'>;
+}

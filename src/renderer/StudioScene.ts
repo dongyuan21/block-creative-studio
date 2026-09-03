@@ -27,10 +27,10 @@ import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
 import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
-import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureCacheKey } from './runtimeTextures';
+import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureResourceKey } from './runtimeTextures';
 import { MaterialRuntimeLoadGate } from './materialRuntimeLoadGate';
-import { containedCompositionViewport, FIXED_SHOT_PROFILE, lockedCameraDistance } from './shotProfile';
-import { materialCacheKey } from '../headless/materialRuntime';
+import { FIXED_SHOT_PROFILE, lockedCameraDistance, viewportPolicyForRenderer } from './shotProfile';
+import { materialCacheKey, materialDescriptorKey } from '../headless/materialRuntime';
 
 export interface StudioSceneOptions {
   quality?: 'interactive' | 'cinematic';
@@ -380,6 +380,15 @@ export class StudioScene {
       : 'Three.js · WebGL · GPU';
   }
 
+  private applyViewportPolicy(): void {
+    const policy = viewportPolicyForRenderer(this.style?.renderer ?? 'three-3d', this.width, this.height);
+    this.camera.aspect = policy.aspect;
+    this.renderer.setViewport(policy.viewport.x, policy.viewport.y, policy.viewport.width, policy.viewport.height);
+    this.renderer.setScissor(policy.viewport.x, policy.viewport.y, policy.viewport.width, policy.viewport.height);
+    this.renderer.setScissorTest(policy.scissorTest);
+    this.camera.updateProjectionMatrix();
+  }
+
   resize(width: number, height: number, pixelRatio = 1): void {
     this.width = Math.max(1, Math.round(width));
     this.height = Math.max(1, Math.round(height));
@@ -387,18 +396,7 @@ export class StudioScene {
     this.renderer.setSize(this.width, this.height, false);
     this.composer.setPixelRatio(Math.max(0.5, Math.min(2, pixelRatio)));
     this.composer.setSize(this.width, this.height);
-    if (this.style?.renderer === 'fixed-camera-cinematic') {
-      this.camera.aspect = FIXED_SHOT_PROFILE.compositionAspect;
-      const view = containedCompositionViewport(this.width, this.height);
-      this.renderer.setViewport(view.x, view.y, view.width, view.height);
-      this.renderer.setScissor(view.x, view.y, view.width, view.height);
-      this.renderer.setScissorTest(true);
-    } else {
-      this.renderer.setScissorTest(false);
-      this.renderer.setViewport(0, 0, this.width, this.height);
-      this.camera.aspect = this.width / this.height;
-    }
-    this.camera.updateProjectionMatrix();
+    this.applyViewportPolicy();
     if (this.style) this.syncCamera(this.frame?.cameraPunch ?? 0);
   }
 
@@ -419,8 +417,10 @@ export class StudioScene {
 
   setFrame(frame: PresentationFrame, style: StyleSpec): void {
     if (this.disposed) return;
+    const previousRenderer = this.style?.renderer;
     this.frame = frame;
     this.style = style;
+    if (previousRenderer !== style.renderer) this.applyViewportPolicy();
     this.syncCamera(frame.cameraPunch);
     this.syncScene();
   }
@@ -557,19 +557,31 @@ export class StudioScene {
 
   async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
     const maps = style.materialRuntime?.maps ?? [];
-    const key = runtimeTextureCacheKey(maps);
-    if (this.materialLoadGate.shouldSkip(key)) return;
+    const resourceKey = runtimeTextureResourceKey(maps);
+    const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
+    if (this.materialLoadGate.shouldSkip(descriptorKey)) return;
 
     const loadId = this.materialLoadGate.begin();
-    if (maps.length === 0) {
-      if (!this.materialLoadGate.commit(loadId, key)) return;
-      disposeRuntimeTextureSet(this.runtimeTextures);
-      this.runtimeTextures = {};
-      this.runtimeTextureKey = key;
+    const commitDescriptor = (): boolean => {
+      if (!this.materialLoadGate.commit(loadId, descriptorKey)) return false;
       this.runtimeTextureFailure = null;
       this.committedMaterialRuntime = style.materialRuntime;
       this.style = style;
       this.invalidateRuntimeMaterials();
+      return true;
+    };
+
+    if (maps.length === 0) {
+      if (!this.materialLoadGate.isCurrent(loadId)) return;
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = {};
+      this.runtimeTextureKey = resourceKey;
+      commitDescriptor();
+      return;
+    }
+
+    if (resourceKey === this.runtimeTextureKey) {
+      commitDescriptor();
       return;
     }
 
@@ -579,17 +591,14 @@ export class StudioScene {
         disposeRuntimeTextureSet(loaded);
         return;
       }
-      if (!this.materialLoadGate.commit(loadId, key)) {
-        disposeRuntimeTextureSet(loaded);
-        return;
-      }
       disposeRuntimeTextureSet(this.runtimeTextures);
       this.runtimeTextures = loaded;
-      this.runtimeTextureKey = key;
-      this.runtimeTextureFailure = null;
-      this.committedMaterialRuntime = style.materialRuntime;
-      this.style = style;
-      this.invalidateRuntimeMaterials();
+      this.runtimeTextureKey = resourceKey;
+      if (!commitDescriptor()) {
+        disposeRuntimeTextureSet(loaded);
+        this.runtimeTextures = {};
+        this.runtimeTextureKey = '';
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!this.materialLoadGate.fail(loadId, message)) return;

@@ -31,6 +31,38 @@ function applyUv(texture: THREE.Texture, descriptor: MaterialRuntimeDescriptor):
   texture.needsUpdate = true;
 }
 
+function hasMap(
+  textures: RuntimeTextureSet | undefined,
+  slot: keyof RuntimeTextureSet,
+): boolean {
+  return Boolean(textures?.[slot]);
+}
+
+/**
+ * Three.js multiplies factor * map. `replace` therefore sets the factor to 1 (or
+ * white for baseColor) so the sample is not scaled again. `multiply-factor` keeps
+ * the descriptor factor so the GPU multiply is the intended combine.
+ */
+function factorForMappedProperty(
+  factor: number,
+  mapped: boolean,
+  combine: MaterialRuntimeDescriptor['combine'],
+): number {
+  return combineFactorAndSample(factor, mapped ? 1 : undefined, combine);
+}
+
+function beautyColor(
+  descriptor: MaterialRuntimeDescriptor,
+  tile: THREE.Color,
+  textures: RuntimeTextureSet | undefined,
+): THREE.Color {
+  const packColor = new THREE.Color(descriptor.baseColor);
+  if (descriptor.combine === 'replace') {
+    return hasMap(textures, 'baseColor') ? new THREE.Color(1, 1, 1) : packColor.clone();
+  }
+  return tile.clone().multiply(packColor);
+}
+
 function assignMaps(
   material: THREE.MeshPhysicalMaterial,
   textures: RuntimeTextureSet | undefined,
@@ -69,9 +101,6 @@ function assignMaps(
   if (textures.emission) {
     material.emissiveMap = textures.emission;
     applyUv(textures.emission, descriptor);
-    if (material.emissive.r === 0 && material.emissive.g === 0 && material.emissive.b === 0) {
-      material.emissive.setRGB(1, 1, 1);
-    }
   }
 }
 
@@ -86,12 +115,18 @@ export function createPbrTileMaterial(options: {
   const opacity = options.opacity ?? 1;
   const ghosted = opacity < 0.99;
   const tile = new THREE.Color(TILE_COLOR_HEX[options.color]);
-  const packColor = new THREE.Color(options.descriptor.baseColor);
-  const color = options.descriptor.combine === 'replace'
-    ? packColor.clone()
-    : tile.clone().multiply(packColor);
-  const roughness = combineFactorAndSample(options.descriptor.roughness, undefined, options.descriptor.combine);
-  const metalness = combineFactorAndSample(options.descriptor.metalness, undefined, options.descriptor.combine);
+  const color = beautyColor(options.descriptor, tile, options.textures);
+  const roughness = factorForMappedProperty(
+    options.descriptor.roughness,
+    hasMap(options.textures, 'roughness'),
+    options.descriptor.combine,
+  );
+  const metalness = factorForMappedProperty(
+    options.descriptor.metalness,
+    hasMap(options.textures, 'metallic'),
+    options.descriptor.combine,
+  );
+  const emission = options.descriptor.emission ?? 0;
   const diagnostic = options.diagnosticView ?? 'beauty';
 
   if (diagnostic === 'albedo') {
@@ -124,7 +159,6 @@ export function createPbrTileMaterial(options: {
     return material;
   }
   if (diagnostic === 'emission' || diagnostic === 'world-normal') {
-    const emission = options.descriptor.emission ?? 0;
     return new THREE.MeshPhysicalMaterial({
       color: diagnostic === 'emission' ? new THREE.Color(emission, emission, emission) : color,
       roughness: 1,
@@ -146,7 +180,7 @@ export function createPbrTileMaterial(options: {
     });
   }
 
-  const material = new THREE.MeshPhysicalMaterial({
+  const materialParameters: THREE.MeshPhysicalMaterialParameters = {
     color,
     roughness,
     metalness,
@@ -158,8 +192,12 @@ export function createPbrTileMaterial(options: {
     transmission: ghosted ? 0 : options.descriptor.transmission ?? 0,
     ior: options.descriptor.ior ?? 1.5,
     thickness: options.descriptor.thickness ?? 0,
-    emissive: color.clone().multiplyScalar(options.descriptor.emission ?? 0),
-  });
+    emissive: color.clone().multiplyScalar(emission),
+  };
+  if (options.descriptor.specular !== undefined) {
+    materialParameters.specularIntensity = options.descriptor.specular;
+  }
+  const material = new THREE.MeshPhysicalMaterial(materialParameters);
   const convention = options.descriptor.maps.find((map) => map.slot === 'normal')?.normalY;
   if (options.textures?.normal || options.descriptor.normalStrength !== undefined) {
     const scale = normalScaleForConvention(options.descriptor.normalStrength ?? 1, convention);

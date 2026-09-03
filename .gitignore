@@ -20,3 +20,6 @@ __pycache__/
 *.py[cod]
 
 dist-cli/
+
+# Capture writes this-run evidence here. Git-tracked frames/videos are stale.
+review-package/run/

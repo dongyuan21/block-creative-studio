@@ -3,6 +3,9 @@ import type { MaterialMapBinding, TextureChannel } from '../headless/contracts';
 import { needsThreeJsChannelSwizzle, remapChannelsForThreeJsSlot } from '../headless/materialRuntime';
 import type { RuntimeTextureSet } from './pbrMaterialFactory';
 
+export const MAX_RUNTIME_TEXTURE_BYTES = 16 * 1024 * 1024;
+export const MAX_RUNTIME_TEXTURE_DIMENSION = 4096;
+
 function slotTexture(set: RuntimeTextureSet, slot: MaterialMapBinding['slot'], texture: THREE.Texture): void {
   if (slot === 'baseColor') set.baseColor = texture;
   else if (slot === 'normal') set.normal = texture;
@@ -17,8 +20,17 @@ function slotTexture(set: RuntimeTextureSet, slot: MaterialMapBinding['slot'], t
   }
 }
 
+/** Identity of GPU texture objects (reload when this changes). */
+export function runtimeTextureResourceKey(maps: readonly MaterialMapBinding[]): string {
+  return maps
+    .map((map) => `${map.slot}:${map.contentHash}:${map.uri}:${map.channels}:${map.colorSpace}`)
+    .sort()
+    .join('|');
+}
+
+/** @deprecated Use runtimeTextureResourceKey. Kept for existing call sites. */
 export function runtimeTextureCacheKey(maps: readonly MaterialMapBinding[]): string {
-  return maps.map((map) => `${map.slot}:${map.contentHash}:${map.uri}:${map.channels}`).join('|');
+  return runtimeTextureResourceKey(maps);
 }
 
 function imageSize(image: TexImageSource): { width: number; height: number } {
@@ -81,25 +93,79 @@ function swizzleTextureIfNeeded(texture: THREE.Texture, map: MaterialMapBinding)
   return next;
 }
 
+export async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export function assertSha256ContentHash(contentHash: string, digestHex: string): void {
+  if (!/^sha256:[0-9a-f]{64}$/i.test(contentHash)) {
+    throw new Error(`Hash 不符：renderer 只接受 sha256 内容哈希，收到 ${contentHash}`);
+  }
+  const expected = contentHash.slice('sha256:'.length).toLowerCase();
+  if (expected !== digestHex.toLowerCase()) {
+    throw new Error(`Hash 不符：声明 ${contentHash}，实际 sha256:${digestHex}`);
+  }
+}
+
+export function assertTextureBudget(byteLength: number, width = 0, height = 0): void {
+  if (byteLength > MAX_RUNTIME_TEXTURE_BYTES) {
+    throw new Error(`纹理超过字节上限 (${byteLength} > ${MAX_RUNTIME_TEXTURE_BYTES})`);
+  }
+  if (width > MAX_RUNTIME_TEXTURE_DIMENSION || height > MAX_RUNTIME_TEXTURE_DIMENSION) {
+    throw new Error(`纹理尺寸超过上限 ${width}×${height}`);
+  }
+}
+
+async function fetchTextureBytes(uri: string): Promise<ArrayBuffer> {
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`PBR map failed to load: ${uri} ${response.status}`);
+  }
+  return response.arrayBuffer();
+}
+
 export async function loadRuntimeTextureSet(maps: readonly MaterialMapBinding[]): Promise<RuntimeTextureSet> {
   if (maps.length === 0) return {};
+  const ordered = [...maps].sort((left, right) => left.slot.localeCompare(right.slot));
   const loader = new THREE.TextureLoader();
+  const jobs = ordered.map(async (map) => {
+    const bytes = await fetchTextureBytes(map.uri);
+    assertTextureBudget(bytes.byteLength);
+    const digest = await sha256Hex(bytes);
+    assertSha256ContentHash(map.contentHash, digest);
+    const blob = new Blob([bytes]);
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const loaded = await loader.loadAsync(objectUrl);
+      const texture = swizzleTextureIfNeeded(loaded, map);
+      texture.colorSpace = map.colorSpace === 'srgb' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+      texture.anisotropy = 4;
+      texture.needsUpdate = true;
+      const { width, height } = imageSize(texture.image as TexImageSource);
+      assertTextureBudget(bytes.byteLength, width, height);
+      return { map, texture };
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
+  });
+  const settled = await Promise.allSettled(jobs);
+  const textures: THREE.Texture[] = [];
+  const failures: string[] = [];
+  for (const result of settled) {
+    if (result.status === 'fulfilled') {
+      textures.push(result.value.texture);
+    } else {
+      failures.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
+    }
+  }
+  if (failures.length > 0) {
+    for (const texture of textures) texture.dispose();
+    throw new Error(`PBR map failed to load: ${failures.join('; ')}`);
+  }
   const set: RuntimeTextureSet = {};
-  const loaded: THREE.Texture[] = [];
-  try {
-    await Promise.all(
-      maps.map(async (map) => {
-        const texture = swizzleTextureIfNeeded(await loader.loadAsync(map.uri), map);
-        texture.colorSpace = map.colorSpace === 'srgb' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-        texture.anisotropy = 4;
-        texture.needsUpdate = true;
-        loaded.push(texture);
-        slotTexture(set, map.slot, texture);
-      }),
-    );
-  } catch (error) {
-    for (const texture of loaded) texture.dispose();
-    throw new Error(`PBR map failed to load: ${error instanceof Error ? error.message : String(error)}`);
+  for (const result of settled) {
+    if (result.status === 'fulfilled') slotTexture(set, result.value.map.slot, result.value.texture);
   }
   return set;
 }

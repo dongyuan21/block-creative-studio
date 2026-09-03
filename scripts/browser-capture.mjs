@@ -74,6 +74,9 @@ export async function runBrowserCapture(options = {}) {
   });
 
   const reviewRoot = resolve(root, 'review-package');
+  const runRoot = resolve(reviewRoot, 'run');
+  rmSync(runRoot, { recursive: true, force: true });
+  mkdirSync(runRoot, { recursive: true });
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (req.method === 'POST' && url.pathname === '/__capture/progress') {
@@ -119,7 +122,7 @@ export async function runBrowserCapture(options = {}) {
     if (req.method === 'POST' && url.pathname === '/__capture/artifact') {
       const rel = String(req.headers['x-artifact-path'] ?? '');
       const dest = resolve(root, rel);
-      const allowed = dest.startsWith(reviewRoot + '/') || dest === reviewRoot;
+      const allowed = dest.startsWith(runRoot + '/') || dest === runRoot;
       if (!rel || rel.includes('..') || !allowed) {
         res.writeHead(403);
         res.end('invalid artifact path');
@@ -214,9 +217,26 @@ export async function runBrowserCapture(options = {}) {
     }
   }
 
-  const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
-  mkdirSync(dirname(outPath), { recursive: true });
-  writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+  const runReportPath = resolve(runRoot, 'browser-e2e.json');
+  mkdirSync(dirname(runReportPath), { recursive: true });
+  writeFileSync(runReportPath, `${JSON.stringify(report, null, 2)}\n`);
+  const listed = [
+    ...(report.frames ?? []).map((item) => item.path),
+    ...(report.videos ?? []).map((item) => item.path),
+    'review-package/run/browser-e2e.json',
+  ];
+  writeFileSync(resolve(runRoot, 'artifact-manifest.json'), `${JSON.stringify({
+    mode: report.mode,
+    status: report.status,
+    implementationHint: 'current HEAD; REVIEW.md records the commit after capture',
+    planHashes: report.planHashes ?? [],
+    files: listed,
+  }, null, 2)}\n`);
+  if (mode === 'full') {
+    const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
+    mkdirSync(dirname(outPath), { recursive: true });
+    writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+  }
   return report;
 }
 

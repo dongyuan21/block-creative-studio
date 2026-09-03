@@ -337,8 +337,8 @@ export class Reference2DScene {
   setRuntimeAssets(bindings: RuntimeAssetBindings): void {
     if (bindings.revision === this.runtimeAssets.revision) return;
     this.runtimeAssets = bindings;
-    this.runtimeAssetFailures = [];
     const revision = bindings.revision;
+    const failures: string[] = [];
     const load = async (
       binding: RuntimeImageAssetBinding | null,
     ): Promise<HTMLImageElement | null> => {
@@ -348,7 +348,7 @@ export class Reference2DScene {
         image.decoding = 'async';
         image.onload = () => resolve(image);
         image.onerror = () => {
-          this.runtimeAssetFailures.push(binding.contentHash);
+          failures.push(binding.contentHash);
           reject(new Error(`资源解码失败：${binding.fileName}`));
         };
         image.src = binding.objectUrl;
@@ -359,6 +359,7 @@ export class Reference2DScene {
       load(bindings.tileFace),
     ]).then(([background, tileFace]) => {
       if (this.runtimeAssets.revision !== revision) return;
+      this.runtimeAssetFailures = failures;
       this.runtimeImages = { background, tileFace };
       this.render(this.clockMs);
     });
@@ -1506,9 +1507,12 @@ export class Reference2DScene {
     context.font = 'italic 900 76px "Arial Rounded MT Bold", sans-serif';
     context.lineWidth = 12;
     context.strokeStyle = '#263d8b';
-    context.strokeText(`Combo ${Math.max(1, this.frame.snapshot.combo)}`, 532, 522);
+    const title = this.frame.snapshot.combo > 0
+      ? `Combo ${this.frame.snapshot.combo}`
+      : 'Game Over';
+    context.strokeText(title, 532, 522);
     context.fillStyle = '#ffffff';
-    context.fillText(`Combo ${Math.max(1, this.frame.snapshot.combo)}`, 532, 522);
+    context.fillText(title, 532, 522);
 
     const cardX = 212;
     const cardY = 603;

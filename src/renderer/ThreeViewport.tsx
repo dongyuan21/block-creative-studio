@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from 'react';
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import type {
   ClearResult,
   GameSnapshot,
@@ -9,7 +9,13 @@ import type {
   StyleSpec,
 } from '../domain/types';
 import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
+import { materialDescriptorKey } from '../headless/materialRuntime';
 import { StudioScene } from './StudioScene';
+import { runtimeTextureResourceKey } from './runtimeTextures';
+import {
+  IDLE_MATERIAL_RUNTIME_STATUS,
+  type MaterialRuntimeStatus,
+} from './materialRuntimeStatus';
 
 interface ClearSignal {
   id: number;
@@ -28,6 +34,7 @@ interface ThreeViewportProps {
   onEditCell(cell: GridCell): void;
   onPlace(pieceId: string, anchor: GridCell, durationFrames: number, path: PointerSample[]): boolean;
   isPlacementValid(pieceId: string, anchor: GridCell): boolean;
+  onMaterialRuntimeStatus?(status: MaterialRuntimeStatus): void;
 }
 
 interface DragSession {
@@ -58,12 +65,21 @@ export function ThreeViewport({
   onEditCell,
   onPlace,
   isPlacementValid,
+  onMaterialRuntimeStatus,
 }: ThreeViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<StudioScene | null>(null);
   const dragRef = useRef<DragSession | null>(null);
   const snapshotRef = useRef(snapshot);
   snapshotRef.current = snapshot;
+  const statusCallbackRef = useRef(onMaterialRuntimeStatus);
+  statusCallbackRef.current = onMaterialRuntimeStatus;
+  const [runtimeStatus, setRuntimeStatus] = useState<MaterialRuntimeStatus>(IDLE_MATERIAL_RUNTIME_STATUS);
+
+  const reportStatus = (status: MaterialRuntimeStatus): void => {
+    setRuntimeStatus(status);
+    statusCallbackRef.current?.(status);
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -84,6 +100,7 @@ export function ThreeViewport({
       observer.disconnect();
       stage.dispose();
       stageRef.current = null;
+      statusCallbackRef.current?.(IDLE_MATERIAL_RUNTIME_STATUS);
     };
     // Scene lifetime is deliberately independent from React renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -103,9 +120,37 @@ export function ThreeViewport({
       else stage.setLiveSnapshot(snapshot, style);
     };
     apply();
+    const maps = style.materialRuntime?.maps ?? [];
+    const resourceKey = runtimeTextureResourceKey(maps);
+    const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
+    reportStatus({
+      state: 'loading',
+      generation: Date.now(),
+      resourceKey,
+      descriptorKey,
+      error: null,
+    });
     void stage.prepareMaterialRuntime(style)
-      .catch(() => undefined)
       .then(() => {
+        if (cancelled || stageRef.current !== stage) return;
+        reportStatus({
+          state: 'ready',
+          generation: Date.now(),
+          resourceKey,
+          descriptorKey,
+          error: null,
+        });
+        apply();
+      })
+      .catch((error: unknown) => {
+        if (cancelled || stageRef.current !== stage) return;
+        reportStatus({
+          state: 'error',
+          generation: Date.now(),
+          resourceKey,
+          descriptorKey,
+          error: error instanceof Error ? error.message : String(error),
+        });
         apply();
       });
     return () => {
@@ -193,6 +238,16 @@ export function ThreeViewport({
       </div>
       {mode === 'edit' && <div className="viewport-hint">点击格子绘制或擦除牌面</div>}
       {mode === 'play' && <div className="viewport-hint">拖动底部方块，系统只记录 Replay，不录屏</div>}
+      {runtimeStatus.state === 'error' && (
+        <div className="viewport-runtime-error" role="alert">
+          <strong>新材质加载失败</strong>
+          <span>当前仍显示上一套完整材质，正式导出已阻止。</span>
+          {runtimeStatus.error && <span>{runtimeStatus.error}</span>}
+        </div>
+      )}
+      {runtimeStatus.state === 'loading' && style.materialRuntime && (
+        <div className="viewport-runtime-status">材质贴图加载中…</div>
+      )}
       {snapshot.status === 'game-over' && mode === 'play' && (
         <div className="game-over-card">
           <strong>本次试玩结束</strong>

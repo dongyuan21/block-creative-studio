@@ -6,7 +6,7 @@
   "kind": "material-pack",
   "origin": "generated",
   "label": "Oak wood",
-  "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "contentHash": "sha256:a2ddd3bda7866f79644a800ed1cf43f723bb97a6b73fe20faf9d57afee2e42fd",
   "runtime": {
     "renderers": [
       "reference-2d",

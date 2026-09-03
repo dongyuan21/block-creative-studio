@@ -7,84 +7,37 @@
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
-实现 Head SHA：`d785ae83feb573eddb7fcce7d7e16a94b2e45a76`  
-依赖 PR/commit：无  
-执行环境：Linux 6.12, Node 22.14.0, npm 10.9.7, Three.js 0.185.1, HeadlessChrome 148  
-实际 Renderer：SwiftShader Device (Subzero) — **software WebGL**
+实现 Head SHA：见本分支最新 commit（提交后写入 `review-package/review-manifest.json`）  
+依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
+执行环境：Linux, Node 22, Three.js 0.185.1  
+实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
 
 ## 本次完成了什么
 
-- 冻结 Headless 共享契约：`FrameRenderRequest`、`PreparedResources`、`FrameRenderResult`、`CalibrationCase`、`MaterialRuntimeDescriptor`。
-- 明确 1064×1788 设计坐标与 1080×1920 视频坐标的 contain 映射；导出不再拉伸 Reference 2D。
-- Reference 2D 按图层 Pass 隔离，并提供原生设计分辨率 offscreen 捕获（不再放大预览 Canvas）。
-- 资源解码失败会拒绝正式 warmup/capture，不再静默回退。
-- 批量 Golden：读取 13 组场景、展开 39 个锚点、输出 JSON+HTML；无源视频全部 **BLOCKED**。
-- `fixed-camera-cinematic` 消费锁定 9:16 Shot Profile；LookDev 诊断通道进入 Inspector。
-- MaterialPack 编译为运行时描述符；不锈钢 / 橡木带独立合成 PBR 贴图，aurora-shell 为任意 ID 的参数材质。Three.js 牌块在存在 `style.materialRuntime` 时走 PBR 工厂并采样贴图。
-- CLI 增加 `material compile` 与 `golden batch`，且不输出 `rendered: true`。
-- 自制公开 Fixture 覆盖 Idle、预览、单行清除、交叉清除、连续落子、终局。
-- 无头 Chrome 捕获：17 张原生/诊断帧 + 同一 6s Take 的 2D 与三个固定机位材质 1080×1920/30fps 无声 MP4。
+针对 GPT Pro 在 `977c9a5` 上列出的 7 个 merge blockers，本轮只修契约与接线，**不把 T0–T5 标为完成，也不做视觉自批**。
 
-## 改动范围与兼容
-
-改动文件：Headless 契约/CLI、Reference2DScene、StudioScene、exporter、Inspector、fixtures、PBR 贴图加载、捕获 harness、测试与证据包。  
-接口与 Schema：`StyleSpec` 增加可选 `diagnosticView` / `enabledPasses` / `materialRuntime`；renderer 增加 `fixed-camera-cinematic`。  
-旧工程迁移：缺省字段保持原行为；LookDev 与旧 renderer 仍可用。  
-未修改的玩法不变量：落子、清行列、分数、Replay 协议。  
-破坏性变更：无（Reference 2D 导出从 stretch 改为 letterbox，成片边缘会出现 letterbox，这是刻意修正）。
+1. **同贴图改参数不再被忽略。** `runtimeTextureResourceKey` 只决定是否重新加载 GPU 纹理（含 `colorSpace`）；`materialDescriptorKey` 决定是否提交 descriptor、清材质 cache 并重绘。Load gate 在首次 commit 前不会把空 key 当成已就绪。
+2. **交互加载失败上送到 Variant Workspace / Inspector。** `ThreeViewport` 不再 `.catch(() => undefined)`；错误与 loading 会阻止正式导出。2D `setRuntimeAssets` 使用 per-revision 失败集合。纹理加载改为 `Promise.allSettled`，失败后释放已完成的 Texture。
+3. **Capture 不再改写 EffectPack / lockMode。** 新增真实资产 `effect.universal-clear`（`compatibleMaterialClasses: ['*']`），通过 `slotOverrides.clear.primary` 选用；`effect.copper-clear` 仍只声明 `metal`。Recipe 保持 `frame-exact`。
+4. **证据包与当前 HEAD 解耦。** Capture 开始前清空 `review-package/run/`，只写入本次文件；CI Artifact 改为上传该目录（`capture-run`）。Git 中 `frames/` 与 `videos/` 标为 **stale / superseded**。
+5. **illegal-preview 不再是 Game Over。** Fixture 保持 `playing`、存在其他合法落点，并带 `draggedPiece` + 非法锚点。终局 Continue 弹窗在 combo=0 时显示 `Game Over` 而不是伪造 `Combo 1`。
+6. **steel / wood / aurora 的 pack `contentHash` 改为对 pack 身份（不含 contentHash 字段）的真实 SHA-256。** 占位 `aaaa…/bbbb…/cccc…` 已移除。
+7. **`viewportPolicyForRenderer` / `applyViewportPolicy`。** resize 与 `setFrame` 在 renderer 变化时都会重设 aspect / viewport / scissor。
+8. **Plan → MaterialRuntime 接入正式 Studio Adapter。** `resolveStyleFromRenderPlan` 从 `tile.material` 编译 `materialRuntime`，App / capture / exporter 共用 `materialRuntimeFromPlan`。
+9. **工厂实现 `combine=replace`：** 有贴图时 roughness/metalness factor=1，baseColor 为白；emission 不再在 0 时强制设白；`specular` 写入 `specularIntensity`。
+10. **编译/解析拒绝** 重复 slot、`orm` 与 split 并存、无意义 channels。Loader 对 sha256 内容哈希做字节比对，并有尺寸/字节上限。
+11. 材质诊断 still 改为 Neutral LookDev + idle；clear-peak 仍保留但不作为材质视觉通过证据。
 
 ## 验收矩阵
 
 | 条件 | 状态 | 证据 | 复跑 |
 |---|---|---|---|
 | 源码/类型/构建检查 | PASS | `npm run check && npm run typecheck && npm run build` | 同上 |
-| 单元与负向测试 | PASS | 82 tests | `npm test` |
-| 真实浏览器捕获 | PASS | `review-package/reports/browser-e2e.json`（SwiftShader） | `npm run capture:review` |
-| 原生帧/视觉回归 | PASS（自制 Fixture） | `review-package/frames/after/` 1064×1788 2D 与 1080×1920 3D | 同上 |
-| 重构前后像素 diff | NOT_RUN | 无 `frames/before`（重构前未冻结代理放大帧） | — |
-| 状态、事件与镜头不变量 | PASS | `tests/nextPhaseContracts.test.ts` + `invariants-report.json` | `npm run test:render-regression` |
-| 实际 MP4 导出 | PASS | 4 条 1080×1920 30fps 180 帧无声 H.264 | `npm run capture:review` |
-| 性能、资源释放 | NOT_RUN（显存） / PASS（取消导出） | performance-report 无 GPU 计数；cancel-export PASS | — |
-| 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | `npm run cli -- golden batch --index docs/reference/v2/GOLDEN_SCENE_INDEX_V1.json` |
-| PBR 编译 | PASS | 三份 runtime JSON；钢/木含 maps | `npm run cli -- material compile --pack examples/headless/materials/material.stainless-steel.json` |
-| PBR 贴图驱动的 GPU 采样 | PASS（软件 GL 证据） | 钢/木 stills 与三变体 MP4 哈希不同 | 打开 `frames/after/3d-*-peak.png` |
-| 三变体 1080×1920 MP4 | PASS | `review-package/videos/fixed-{steel,wood,aurora}-1080x1920.mp4` | ffprobe 均为 1080×1920 / 30fps / 6.000s / 180 frames |
+| 单元与负向测试 | PASS | 105 tests | `npm test` |
+| 真实浏览器捕获 | 见 CI `capture-run` Artifact | `review-package/run/`（不写回 git frames/videos） | `npm run test:browser-e2e` / `npm run capture:review` |
+| Git 中旧 PNG/MP4 | stale | `review-package/frames/STALE.md` `videos/STALE.md` | 不得当作当前 HEAD 视觉证据 |
+| 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | 无源视频 |
 | 人工视觉批准 | PENDING | 实现者不得自批 | GPT Pro / 用户 |
-
-## 关键可见结果
-
-before：`74a2fba` 单帧 Golden Diff + LookDev 三档，2D 捕获为放大预览。  
-after：原生 1064×1788 捕获、Pass 隔离、Shot Profile、PBR maps 进入 Three.js、6s 连续落子切片的 2D+三材质 MP4。  
-diff：无重构前 PNG（NOT_RUN）。当前 after 帧可人工对比。  
-参考/目标事件对应：39 cases，无 target Take hash 时对应关系为 `isolated-presentation`，内容仍全部 BLOCKED。  
-源录像对比：BLOCKED，不是 exact-replay 完成。
-1064×1788 → 1080×1920 letterbox 是过渡性 reference-transfer，不是完成的 9:16 生产构图。
-
-## 复现步骤
-
-```bash
-npm ci
-npm run check
-npm test
-npm run typecheck
-npm run build
-npm run test:render-regression
-npm run test:golden-batch
-npm run test:pbr-runtime
-node dist-cli/cli/bcs.js golden batch --index docs/reference/v2/GOLDEN_SCENE_INDEX_V1.json --out /tmp/golden.json
-node dist-cli/cli/bcs.js material compile --pack examples/headless/materials/material.stainless-steel.json
-npm run capture:review
-```
-
-公开 Take：`src/domain/publicFixtures.ts` 中 `consecutiveTake`（180 帧 / 6.0s）与 `singleClearTake` / `crossClearTake`。
-
-## 失败路径
-
-- 无源视频：Golden 内容 BLOCKED，工具仍产出 39 条 case。
-- 法线贴图缺 Y 约定：material compile 失败。
-- 故意错色像素对：calibration score < 80。
-- 浏览器取消导出：capture harness `cancel-export` PASS。
-- 相同帧重复捕获：`seek-repeat` SHA 一致。
 
 ## 已知限制与未完成项
 
@@ -92,30 +45,11 @@ npm run capture:review
 
 契约存在 ≠ 编译可用 ≠ 资源准备 ≠ 实际渲染 ≠ 人工视觉批准。
 
+Clear-peak 白色冲击环、碎片无材质身份、木材识别度、真实 GPU、正式 9:16 生产构图、独立 Pass 模块、G-buffer/HDR 诊断、39 条商业 Golden **均未完成**。
+
 ## 质量声明
 
 技术状态：ready-for-review  
-人工视觉批准：PENDING
-
-## 给 Review 者的重点
-
-1. Reference 2D 导出 letterbox 是否接受（不再拉伸）。这是过渡性 reference-transfer，不是完成的 9:16 生产构图。  
-2. Golden 39 条全部 BLOCKED 是否符合“缺源视频不得造 PASS”；无 Take hash 时不得默认 exact-replay。  
-3. `fixed-camera-cinematic` 是否只是锁定构图的 Three.js 后端，而不是改名冒充新引擎。  
-4. 钢/木贴图是否来自 ResolvedRenderPlan 的 `tile.material` 闭包（`material.user.blue-forged-alloy-v7` 仍应带 maps），而不是 capture ID→文件名表。  
-5. DirectX 法线 Y 只翻转一次；split roughness/metallic `channels:'r'` 经 swizzle 后应与 ORM 等价。  
-6. 导入工程必须拒绝伪造的 `materialRuntime`（`..` / 非法协议 / 短 hash）。  
-7. `captureReferenceFrame()` 默认要求资源就绪；Golden Diff 不得静默比较内置回退。  
-8. 四条 MP4 规格是否自洽（1080×1920、30fps、6s、无声），以及 SwiftShader 成片能否作为质感结论（实现者认为：**不能**，只证明导出通路）。
-
-## GPT Pro 审查阻塞项（本轮）
-
-已按 inline review 修改，不将 T0–T5 标为完成，也不做视觉自批：
-
-- 去掉 `SLOT_FILES` 材质 ID 表。Capture 与测试走 `MaterialPack → AssetRegistry → VariantRecipe → ResolvedRenderPlan → materialRuntimeFromPlan`；陌生 ID `material.user.blue-forged-alloy-v7` 仍应带 maps。  
-- 加载时按 Three.js 约定 swizzle 通道；emission map 不再跳过；DirectX `normalScale.y` 只乘一次。  
-- `prepareMaterialRuntime` 用 generation token：成功才提交 cache key，失败保留上一套完整材质并可重试，过期结果丢弃。四类竞态回归：A→B→A、失败后重试、dispose 丢弃、加载中切换。  
-- 工程导入走 `parseMaterialRuntimeDescriptor`。  
-- 60→30fps 用 `round(sourceFrame * targetFps / sourceFps)`；exact-replay 必须带 `targetTakeHash`。  
-- `captureReferenceFrame()` `requireAssets: true`；预览单独使用 `capturePreviewFrame()`。  
-- 诊断标签标明 proxy；letterbox 标明 transitional；CI 增加 Chrome smoke，`NOT_RUN` 在 CI 中失败。
+人工视觉批准：PENDING  
+T0–T5：未完成  
+PR：保持 Draft，不合 main

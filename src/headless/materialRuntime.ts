@@ -81,6 +81,69 @@ export function defaultChannelsForSlot(slot: MaterialMapBinding['slot']): Textur
   return 'r';
 }
 
+const LEGAL_CHANNELS_BY_SLOT: Record<MaterialMapBinding['slot'], ReadonlySet<TextureChannel>> = {
+  baseColor: new Set(['rgb', 'rgba']),
+  normal: new Set(['rgb', 'rgba']),
+  orm: new Set(['rgb', 'rgba']),
+  roughness: new Set(['r', 'g', 'b', 'a', 'rgb', 'rgba']),
+  metallic: new Set(['r', 'g', 'b', 'a', 'rgb', 'rgba']),
+  ao: new Set(['r', 'g', 'b', 'a', 'rgb', 'rgba']),
+  emission: new Set(['r', 'rgb', 'rgba']),
+};
+
+const ORM_SPLIT_SLOTS = new Set<MaterialMapBinding['slot']>(['ao', 'roughness', 'metallic']);
+
+export function legalChannelsForSlot(slot: MaterialMapBinding['slot']): TextureChannel[] {
+  return [...LEGAL_CHANNELS_BY_SLOT[slot]];
+}
+
+export function collectMaterialMapContractIssues(
+  maps: readonly MaterialMapBinding[],
+  path = '$.maps',
+): ContractIssue[] {
+  const issues: ContractIssue[] = [];
+  const seen = new Map<MaterialMapBinding['slot'], number>();
+  for (const [index, map] of maps.entries()) {
+    const previous = seen.get(map.slot);
+    if (previous !== undefined) {
+      issues.push(issue(
+        'MATERIAL_MAP_SLOT_DUPLICATE',
+        `Map slot ${map.slot} is bound more than once.`,
+        `${path}[${index}].slot`,
+      ));
+    } else {
+      seen.set(map.slot, index);
+    }
+    if (!LEGAL_CHANNELS_BY_SLOT[map.slot].has(map.channels)) {
+      issues.push(issue(
+        'MATERIAL_MAP_CHANNELS_INVALID',
+        `Map slot ${map.slot} does not accept channels '${map.channels}'.`,
+        `${path}[${index}].channels`,
+      ));
+    }
+  }
+  if (seen.has('orm') && [...ORM_SPLIT_SLOTS].some((slot) => seen.has(slot))) {
+    issues.push(issue(
+      'MATERIAL_MAP_ORM_CONFLICT',
+      'Packed ORM cannot be combined with split ao/roughness/metallic maps.',
+      path,
+    ));
+  }
+  return issues;
+}
+
+/** Rewrite pack/source map URIs onto the Vite-served public materials directory. */
+export function rewriteMaterialMapUriForBrowser(
+  uri: string,
+  mapBaseUrl = '/materials/maps',
+): string {
+  const file = uri.split(/[/\\]/).pop();
+  if (file && (uri.includes('materials/maps/') || uri.startsWith('/materials/maps/'))) {
+    return `${mapBaseUrl.replace(/\/$/, '')}/${file}`;
+  }
+  return uri;
+}
+
 export function channelsForOrmComponent(component: 'ao' | 'roughness' | 'metallic'): MaterialMapBinding['channels'] {
   if (component === 'ao') return 'r';
   if (component === 'roughness') return 'g';
@@ -181,12 +244,20 @@ function compileMapBinding(map: MaterialMapCompileInput, path: string): {
   if ((map.width !== undefined && map.width <= 0) || (map.height !== undefined && map.height <= 0)) {
     issues.push(issue('MATERIAL_MAP_SIZE_INVALID', `Map ${map.slot} has invalid dimensions.`, path));
   }
+  const channels = map.channels ?? defaultChannelsForSlot(map.slot);
+  if (!LEGAL_CHANNELS_BY_SLOT[map.slot].has(channels)) {
+    issues.push(issue(
+      'MATERIAL_MAP_CHANNELS_INVALID',
+      `Map slot ${map.slot} does not accept channels '${channels}'.`,
+      `${path}.channels`,
+    ));
+  }
   const binding: MaterialMapBinding = {
     slot: map.slot,
     uri: map.uri,
     contentHash: map.contentHash,
     colorSpace,
-    channels: map.channels ?? defaultChannelsForSlot(map.slot),
+    channels,
   };
   if (map.slot === 'normal' && map.normalY && map.normalY !== 'unspecified') {
     binding.normalY = map.normalY;
@@ -282,6 +353,7 @@ export function compileMaterialRuntime(input: MaterialCompileInput): MaterialRun
     }
   }
 
+  issues.push(...collectMaterialMapContractIssues(maps));
   throwIfIssues('MATERIAL_RUNTIME_INVALID', 'Material runtime compile failed.', '$.maps', issues);
 
   const descriptor: MaterialRuntimeDescriptor = {
@@ -328,17 +400,34 @@ export function compileMaterialRuntime(input: MaterialCompileInput): MaterialRun
   return descriptor;
 }
 
+export function materialDescriptorKey(descriptor: MaterialRuntimeDescriptor): string {
+  return stableHash({
+    id: descriptor.id,
+    version: descriptor.version,
+    contentHash: descriptor.contentHash,
+    materialClass: descriptor.materialClass,
+    baseColor: descriptor.baseColor,
+    roughness: descriptor.roughness,
+    metalness: descriptor.metalness,
+    specular: descriptor.specular ?? null,
+    clearcoat: descriptor.clearcoat ?? null,
+    transmission: descriptor.transmission ?? null,
+    ior: descriptor.ior ?? null,
+    thickness: descriptor.thickness ?? null,
+    normalStrength: descriptor.normalStrength ?? null,
+    emission: descriptor.emission ?? null,
+    maps: descriptor.maps,
+    uv: descriptor.uv,
+    combine: descriptor.combine,
+  });
+}
+
 export function materialCacheKey(
   descriptor: MaterialRuntimeDescriptor,
   extras: { color?: string; opacity?: number; lookDevId?: string } = {},
 ): string {
   return stableHash({
-    id: descriptor.id,
-    version: descriptor.version,
-    contentHash: descriptor.contentHash,
-    maps: descriptor.maps,
-    uv: descriptor.uv,
-    combine: descriptor.combine,
+    descriptor: materialDescriptorKey(descriptor),
     color: extras.color ?? null,
     opacity: extras.opacity ?? 1,
     lookDevId: extras.lookDevId ?? null,
@@ -434,6 +523,12 @@ function parseMapBinding(value: unknown, path: string, issues: ContractIssue[]):
   }
   if (typeof value.channels !== 'string' || !TEXTURE_CHANNELS.has(value.channels as TextureChannel)) {
     issues.push(issue('MATERIAL_RUNTIME_CHANNELS_INVALID', 'channels must be r, g, b, a, rgb, or rgba.', `${path}.channels`));
+  } else if (!LEGAL_CHANNELS_BY_SLOT[slot].has(value.channels as TextureChannel)) {
+    issues.push(issue(
+      'MATERIAL_MAP_CHANNELS_INVALID',
+      `Map slot ${slot} does not accept channels '${value.channels}'.`,
+      `${path}.channels`,
+    ));
   }
   let normalY: NormalYConvention | undefined;
   if (slot === 'normal') {
@@ -521,6 +616,9 @@ export function parseMaterialRuntimeDescriptor(value: unknown): MaterialRuntimeD
       .map((item, index) => parseMapBinding(item, `$.maps[${index}]`, issues))
       .filter((item): item is MaterialMapBinding => item !== null)
     : [];
+  if (Array.isArray(value.maps)) {
+    issues.push(...collectMaterialMapContractIssues(maps));
+  }
   const uv = parseUv(value.uv, '$.uv', issues);
   if (value.combine !== 'multiply-factor' && value.combine !== 'replace') {
     issues.push(issue('MATERIAL_RUNTIME_COMBINE_INVALID', 'combine must be multiply-factor or replace.', '$.combine'));

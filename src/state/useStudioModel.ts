@@ -34,6 +34,10 @@ import type {
 import { exportTakeVideo, type RenderProgress } from '../exporter/offlineVideoExporter';
 import { useVariantWorkspace } from './useVariantWorkspace';
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
+import {
+  IDLE_MATERIAL_RUNTIME_STATUS,
+  type MaterialRuntimeStatus,
+} from '../renderer/materialRuntimeStatus';
 import { downloadBlob, safeFileName } from '../utils/download';
 
 interface ClearSignal {
@@ -124,6 +128,7 @@ export function useStudioModel() {
   const [selectedPieceSlot, setSelectedPieceSlot] = useState(0);
   const [clearSignal, setClearSignal] = useState<ClearSignal | null>(null);
   const [exportState, setExportState] = useState<ExportState>({ running: false, progress: null, error: null });
+  const [materialRuntimeStatus, setMaterialRuntimeStatus] = useState<MaterialRuntimeStatus>(IDLE_MATERIAL_RUNTIME_STATUS);
   const exportAbortRef = useRef<AbortController | null>(null);
   const recordingInitialRef = useRef<GameSnapshot | null>(null);
   const recordingActionsRef = useRef<PlacementAction[]>([]);
@@ -515,6 +520,22 @@ export function useStudioModel() {
       });
       return;
     }
+    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state === 'loading') {
+      setExportState({
+        running: false,
+        progress: null,
+        error: '材质贴图仍在加载，不能进入正式导出。',
+      });
+      return;
+    }
+    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state === 'error') {
+      setExportState({
+        running: false,
+        progress: null,
+        error: `新材质未就绪，当前仍显示上一套材质：${materialRuntimeStatus.error ?? '加载失败'}`,
+      });
+      return;
+    }
     const exportProjectSnapshot = structuredClone(project);
     const exportStyleSnapshot = structuredClone(resolvedStyle);
     const exportTakeSnapshot = cloneTake(selectedTake);
@@ -547,7 +568,7 @@ export function useStudioModel() {
       exportAbortRef.current = null;
       setMode('replay');
     }
-  }, [activeVariantRow, exportState.running, mode, project, resolvedStyle, runtimeAssets, selectedTake, variantWorkspace.runtimeReady]);
+  }, [activeVariantRow, exportState.running, materialRuntimeStatus, mode, project, resolvedStyle, runtimeAssets, selectedTake, variantWorkspace.runtimeReady]);
 
   const cancelExport = useCallback((): void => {
     exportAbortRef.current?.abort();
@@ -605,6 +626,7 @@ export function useStudioModel() {
     selectedPieceSlot,
     clearSignal,
     exportState,
+    materialRuntimeStatus,
     variantWorkspace: variantWorkspace.panel,
     runtimeAssets,
     recordedActionCount: recordingActionsRef.current.length,
@@ -640,5 +662,6 @@ export function useStudioModel() {
     cancelExport,
     exportProject,
     importProject,
+    setMaterialRuntimeStatus,
   };
 }

@@ -10,6 +10,7 @@ import type { StudioLookOption } from '../integration/studioAssetCatalog';
 import type { StudioVariantRow } from '../integration/studioVariantBridge';
 import type { BrowserAssetImportRole } from '../assets/browserAssetAuthoring';
 import type { BrowserAssetStoreStatus } from '../state/useBrowserAssetStore';
+import type { MaterialRuntimeStatus } from '../renderer/materialRuntimeStatus';
 
 type VariantExportKind = 'master' | 'recipe' | 'plan' | 'quality' | 'asset-bundle';
 
@@ -45,6 +46,7 @@ export interface VariantWorkspacePanelProps {
     accept: string;
   }>;
   workspaceError: string | null;
+  materialRuntimeStatus?: MaterialRuntimeStatus;
   locked: boolean;
   onLockMode(lockMode: VariantLockMode): void;
   onSelectLook(key: string): void;
@@ -59,6 +61,7 @@ export interface VariantWorkspacePanelProps {
 function activeStatus(
   row: StudioVariantRow | undefined,
   runtimeAssetMissingCount = 0,
+  materialRuntimeStatus?: MaterialRuntimeStatus,
 ): {
   label: string;
   tone: 'success' | 'warning' | 'error';
@@ -94,6 +97,20 @@ function activeStatus(
       label: '运行资产缺失',
       tone: 'error',
       detail: `Render Plan 中有 ${runtimeAssetMissingCount} 个二进制资产尚未在本机 Asset Store 中解析。`,
+    };
+  }
+  if (materialRuntimeStatus?.state === 'error') {
+    return {
+      label: '材质未就绪',
+      tone: 'error',
+      detail: `新材质加载失败，当前仍显示上一套完整材质，不能作为可渲染/可导出状态。${materialRuntimeStatus.error ?? ''}`,
+    };
+  }
+  if (materialRuntimeStatus?.state === 'loading') {
+    return {
+      label: '材质加载中',
+      tone: 'warning',
+      detail: 'PBR 贴图仍在加载，正式导出已阻止。',
     };
   }
   return {
@@ -148,6 +165,7 @@ export function VariantWorkspacePanel({
   runtimeAssetMissingCount,
   binaryImportOptions,
   workspaceError,
+  materialRuntimeStatus,
   locked,
   onLockMode,
   onSelectLook,
@@ -160,7 +178,7 @@ export function VariantWorkspacePanel({
 }: VariantWorkspacePanelProps) {
   const [binaryRole, setBinaryRole] = useState<BrowserAssetImportRole>('background-image');
   const active = rows.find((row) => row.recipe.id === activeRecipeId) ?? rows[0];
-  const status = activeStatus(active, runtimeAssetMissingCount);
+  const status = activeStatus(active, runtimeAssetMissingCount, materialRuntimeStatus);
   const selectedBinaryOption = binaryImportOptions.find((option) => option.id === binaryRole)
     ?? binaryImportOptions[0];
   const plan = active?.plan;

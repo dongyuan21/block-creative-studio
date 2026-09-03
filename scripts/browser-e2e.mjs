@@ -1,13 +1,13 @@
-#!/usr/bin/env node
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runBrowserCapture } from './browser-capture.mjs';
 
 const full = process.env.BCS_CAPTURE_FULL === '1' || process.argv.includes('--full');
 const report = await runBrowserCapture({ mode: full ? 'full' : 'smoke' });
-writeFileSync(
-  new URL('../review-package/reports/browser-e2e.json', import.meta.url),
-  `${JSON.stringify(report, null, 2)}\n`,
-);
+const out = new URL('../review-package/run/browser-e2e.json', import.meta.url);
+mkdirSync(dirname(fileURLToPath(out)), { recursive: true });
+writeFileSync(out, `${JSON.stringify(report, null, 2)}\n`);
 const skipAllowed = process.env.CI !== 'true' && process.env.BCS_ALLOW_E2E_SKIP === '1';
 const ok = report.status === 'PASS' || (report.status === 'NOT_RUN' && skipAllowed);
 console.log(JSON.stringify({

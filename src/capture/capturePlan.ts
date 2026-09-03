@@ -4,10 +4,11 @@ import {
   consecutiveTake,
   crossClearTake,
   endgameSnapshot,
+  illegalPreviewFrame,
   illegalPreviewSnapshot,
   singleClearTake,
 } from '../domain/publicFixtures';
-import type { PresentationFrame, RhythmProfile, Take } from '../domain/types';
+import type { LookDevPresetId, PresentationFrame, RhythmProfile, Take } from '../domain/types';
 import { compileTake, evaluateCompiledTake } from '../director/presentationCompiler';
 import { RHYTHM_PRESETS } from '../director/rhythmPresets';
 import type { DiagnosticViewId, ReferencePassId } from '../headless/contracts';
@@ -40,6 +41,7 @@ export interface CaptureStillSpec {
   anchor: keyof ResolvedAnchor['frames'] | 'snapshot';
   diagnosticView?: DiagnosticViewId;
   enabledPasses?: ReferencePassId[];
+  lookDevId?: LookDevPresetId;
   materialId?: 'material.stainless-steel' | 'material.oak-wood' | 'material.aurora-shell';
 }
 
@@ -61,6 +63,33 @@ export const STILL_SPECS: CaptureStillSpec[] = [
     takeId: 'consecutive',
     anchor: 'idle',
     enabledPasses: ['background'],
+  },
+  {
+    id: '3d-steel-idle',
+    role: 'after',
+    renderer: 'fixed-camera-cinematic',
+    takeId: 'consecutive',
+    anchor: 'idle',
+    materialId: 'material.stainless-steel',
+    lookDevId: 'neutral-lookdev',
+  },
+  {
+    id: '3d-wood-idle',
+    role: 'after',
+    renderer: 'fixed-camera-cinematic',
+    takeId: 'consecutive',
+    anchor: 'idle',
+    materialId: 'material.oak-wood',
+    lookDevId: 'neutral-lookdev',
+  },
+  {
+    id: '3d-aurora-idle',
+    role: 'after',
+    renderer: 'fixed-camera-cinematic',
+    takeId: 'consecutive',
+    anchor: 'idle',
+    materialId: 'material.aurora-shell',
+    lookDevId: 'neutral-lookdev',
   },
   {
     id: '3d-steel-peak',
@@ -91,27 +120,30 @@ export const STILL_SPECS: CaptureStillSpec[] = [
     role: 'diagnostic',
     renderer: 'fixed-camera-cinematic',
     takeId: 'consecutive',
-    anchor: 'peak',
+    anchor: 'idle',
     materialId: 'material.stainless-steel',
     diagnosticView: 'albedo',
+    lookDevId: 'neutral-lookdev',
   },
   {
     id: '3d-steel-roughness',
     role: 'diagnostic',
     renderer: 'fixed-camera-cinematic',
     takeId: 'consecutive',
-    anchor: 'peak',
+    anchor: 'idle',
     materialId: 'material.stainless-steel',
     diagnosticView: 'roughness',
+    lookDevId: 'neutral-lookdev',
   },
   {
     id: '3d-steel-metalness',
     role: 'diagnostic',
     renderer: 'fixed-camera-cinematic',
     takeId: 'consecutive',
-    anchor: 'peak',
+    anchor: 'idle',
     materialId: 'material.stainless-steel',
     diagnosticView: 'metalness',
+    lookDevId: 'neutral-lookdev',
   },
 ];
 
@@ -183,6 +215,7 @@ export function snapshotForSpec(spec: CaptureStillSpec): ReturnType<typeof endga
 }
 
 export function presentationForSpec(spec: CaptureStillSpec): PresentationFrame {
+  if (spec.snapshotId === 'illegal-preview') return illegalPreviewFrame();
   if (spec.snapshotId) return frameFromSnapshot(snapshotForSpec(spec));
   const take = takeById(spec.takeId ?? 'consecutive');
   const resolved = resolveTakeAnchor(take);

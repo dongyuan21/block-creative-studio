@@ -11,7 +11,7 @@
   "repository": "dongyuan21/block-creative-studio",
   "baselineCommit": "74a2fba002fe62643884759b6611af9181330964",
   "planCommit": "fec24de6764bb50ef082730321b167cf8a29259f",
-  "implementationCommit": "d785ae83feb573eddb7fcce7d7e16a94b2e45a76",
+  "implementationCommit": "pending-after-push",
   "pullRequests": [
     "https://github.com/dongyuan21/block-creative-studio/pull/1"
   ],
@@ -54,6 +54,7 @@
     "cameraHash": "block-garden-fixed-shot-v1",
     "layoutHash": "design-1064x1788",
     "planHashes": [],
+    "planHashNote": "Filled from review-package/run/browser-e2e.json planHashes after current-HEAD capture. Git videos are stale.",
     "assets": [
       "examples/headless/materials/material.stainless-steel.json",
       "examples/headless/materials/material.oak-wood.json",
@@ -64,7 +65,7 @@
     {
       "name": "npm test",
       "status": "PASS",
-      "count": 82
+      "count": 105
     },
     {
       "name": "npm run check",
@@ -81,7 +82,7 @@
     {
       "name": "test:browser-e2e",
       "status": "PASS",
-      "mode": "full"
+      "mode": "smoke-or-full-in-run-dir"
     }
   ],
   "artifacts": [
@@ -315,7 +316,8 @@
     "SwiftShader software GL",
     "No frames/before from pre-refactor capture",
     "Threshold bloom only",
-    "Material-aware fracture pending"
+    "Material-aware fracture pending",
+    "Git-tracked frames/videos are stale; current HEAD evidence is review-package/run and CI artifact capture-run"
   ],
-  "notes": "Do not treat compile/CI success as visually-approved. Golden content is BLOCKED. MP4s prove the export path on software GL."
+  "notes": "Do not treat compile/CI success as visually-approved. Golden content is BLOCKED. Git MP4s are stale. Current-HEAD capture writes review-package/run/ only."
 }

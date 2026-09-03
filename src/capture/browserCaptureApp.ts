@@ -1,4 +1,5 @@
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
+import { copyLookDevPreset } from '../renderer/lookDev';
 import { Reference2DScene } from '../reference2d/Reference2DScene';
 import { StudioScene } from '../renderer/StudioScene';
 import { exportTakeVideo } from '../exporter/offlineVideoExporter';
@@ -28,6 +29,7 @@ interface CaptureReport {
   tests: Array<{ name: string; status: 'PASS' | 'FAIL' | 'NOT_RUN'; detail?: string }>;
   frames: Array<{ id: string; path: string; sha256: string; width: number; height: number }>;
   videos: Array<{ id: string; path: string; sha256: string; bytes: number; frameCount: number; durationSeconds: number }>;
+  planHashes: Array<{ materialId: string; planHash: string; lockMode: string; effectId: string }>;
   errors: string[];
 }
 
@@ -109,10 +111,12 @@ function baseStyle(): StyleSpec {
   };
 }
 
+const capturedPlanHashes: Array<{ materialId: string; planHash: string; lockMode: string; effectId: string }> = [];
+
 async function styleFor(
   renderer: StyleSpec['renderer'],
   materialId: VariantMaterialId | undefined,
-  extras: Pick<StyleSpec, 'diagnosticView' | 'enabledPasses'> = {},
+  extras: Pick<StyleSpec, 'diagnosticView' | 'enabledPasses'> & { lookDevId?: StyleSpec['lookDev']['id'] } = {},
 ): Promise<StyleSpec> {
   const style: StyleSpec = {
     ...baseStyle(),
@@ -120,7 +124,20 @@ async function styleFor(
   };
   if (extras.diagnosticView) style.diagnosticView = extras.diagnosticView;
   if (extras.enabledPasses) style.enabledPasses = extras.enabledPasses;
-    if (materialId) style.materialRuntime = await compileVariantRuntime(await loadPack(materialId));
+  if (extras.lookDevId) style.lookDev = copyLookDevPreset(extras.lookDevId);
+  if (materialId) {
+    const compiled = await compileVariantRuntime(await loadPack(materialId));
+    style.materialRuntime = compiled.runtime;
+    const existing = capturedPlanHashes.find((item) => item.materialId === materialId);
+    if (!existing) {
+      capturedPlanHashes.push({
+        materialId,
+        planHash: compiled.plan.planHash,
+        lockMode: compiled.plan.lockMode,
+        effectId: compiled.plan.slots['clear.primary']?.manifest.id ?? '',
+      });
+    }
+  }
   return style;
 }
 
@@ -135,6 +152,7 @@ async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
   const style = await styleFor(spec.renderer, spec.materialId, {
     ...(spec.diagnosticView ? { diagnosticView: spec.diagnosticView } : {}),
     ...(spec.enabledPasses ? { enabledPasses: spec.enabledPasses } : {}),
+    ...(spec.lookDevId ? { lookDevId: spec.lookDevId } : {}),
   });
   const host = document.createElement('canvas');
   host.style.position = 'fixed';
@@ -147,7 +165,7 @@ async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
       const native = scene.captureNativeFrame({ requireAssets: true });
       const blob = await blobPng(native);
       scene.dispose();
-      const path = `review-package/frames/${spec.role}/${spec.id}.png`;
+      const path = `review-package/run/frames/${spec.role}/${spec.id}.png`;
       const posted = await postArtifact(path, blob, {
         width: native.width,
         height: native.height,
@@ -163,7 +181,7 @@ async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
     await scene.warmup(frame, style);
     const blob = await blobPng(host);
     scene.dispose();
-    const path = `review-package/frames/${spec.role}/${spec.id}.png`;
+    const path = `review-package/run/frames/${spec.role}/${spec.id}.png`;
     const posted = await postArtifact(path, blob, {
       width: host.width,
       height: host.height,
@@ -200,7 +218,7 @@ async function captureVideo(spec: (typeof VIDEO_SPECS)[number]): Promise<{
       }
     },
   });
-  const path = `review-package/videos/${spec.id}-1080x1920.mp4`;
+  const path = `review-package/run/videos/${spec.id}-1080x1920.mp4`;
   const posted = await postArtifact(path, result.blob, {
     frameCount: result.frameCount,
     durationSeconds: result.durationSeconds,
@@ -258,6 +276,7 @@ async function run(): Promise<CaptureReport> {
     tests: [],
     frames: [],
     videos: [],
+    planHashes: [],
     errors: [],
   };
   try {
@@ -266,7 +285,7 @@ async function run(): Promise<CaptureReport> {
     await postJson('/__capture/progress', { message: 'initialized', consecutive });
 
     const stills = mode === 'smoke'
-      ? STILL_SPECS.filter((item) => ['2d-idle', '2d-background-only', '3d-steel-peak'].includes(item.id))
+      ? STILL_SPECS.filter((item) => ['2d-idle', '2d-background-only', '3d-steel-idle'].includes(item.id))
       : STILL_SPECS;
     for (const spec of stills) {
       log(`still ${spec.id}`);
@@ -292,6 +311,7 @@ async function run(): Promise<CaptureReport> {
       report.tests.push({ name: 'videos', status: 'NOT_RUN', detail: mode === 'smoke' ? 'smoke mode' : 'no VideoEncoder' });
     }
 
+    report.planHashes = capturedPlanHashes;
     if (report.tests.some((item) => item.status === 'FAIL')) report.status = 'FAIL';
   } catch (error) {
     report.status = 'FAIL';

@@ -1,0 +1,55 @@
+{
+  "contract": "bcs.asset-manifest",
+  "contractVersion": "1.0.0",
+  "id": "effect.universal-clear",
+  "version": "1.0.0",
+  "kind": "effect-pack",
+  "origin": "generated",
+  "label": "Universal clear (test fixture)",
+  "contentHash": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+  "runtime": {
+    "renderers": [
+      "fixed-camera-cinematic"
+    ],
+    "deterministic": true,
+    "budget": {
+      "textureMemoryMiB": 18,
+      "triangleCount": 12000
+    }
+  },
+  "supportedEvents": [
+    "line-clear",
+    "cross-clear",
+    "combo",
+    "all-clear"
+  ],
+  "compatibleMaterialClasses": [
+    "*"
+  ],
+  "layers": [
+    {
+      "id": "sweep",
+      "role": "energy",
+      "implementation": "shader",
+      "required": true
+    },
+    {
+      "id": "response",
+      "role": "material-response",
+      "implementation": "shader",
+      "required": true
+    },
+    {
+      "id": "fragments",
+      "role": "large-fragments",
+      "implementation": "geometry",
+      "required": true
+    },
+    {
+      "id": "sparks",
+      "role": "particles",
+      "implementation": "sprite",
+      "required": false
+    }
+  ]
+}

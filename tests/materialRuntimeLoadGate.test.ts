@@ -25,6 +25,12 @@ describe('MaterialRuntimeLoadGate', () => {
     expect(gate.failure).toBeNull();
   });
 
+  it('does not skip before the first successful commit, even for an empty key', () => {
+    const gate = new MaterialRuntimeLoadGate();
+    expect(gate.shouldSkip('')).toBe(false);
+    expect(gate.shouldSkip('steel')).toBe(false);
+  });
+
   it('drops in-flight commits after the scene is disposed', () => {
     const gate = new MaterialRuntimeLoadGate();
     const load = gate.begin();

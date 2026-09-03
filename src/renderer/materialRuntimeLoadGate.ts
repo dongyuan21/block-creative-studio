@@ -6,6 +6,7 @@
 export class MaterialRuntimeLoadGate {
   private generation = 0;
   private disposed = false;
+  private committed = false;
   committedKey = '';
   failure: string | null = null;
 
@@ -17,7 +18,7 @@ export class MaterialRuntimeLoadGate {
   }
 
   shouldSkip(key: string): boolean {
-    return !this.disposed && key === this.committedKey && this.failure === null;
+    return !this.disposed && this.committed && key === this.committedKey && this.failure === null;
   }
 
   isCurrent(generation: number): boolean {
@@ -27,6 +28,7 @@ export class MaterialRuntimeLoadGate {
   commit(generation: number, key: string): boolean {
     if (!this.isCurrent(generation)) return false;
     this.committedKey = key;
+    this.committed = true;
     this.failure = null;
     return true;
   }

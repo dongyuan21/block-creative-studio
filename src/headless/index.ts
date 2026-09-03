@@ -6,6 +6,7 @@ export * from './coordinateMapping.js';
 export * from './errors.js';
 export * from './frameRequest.js';
 export * from './materialRuntime.js';
+export * from './universalClearEffect.js';
 export * from './qualityGate.js';
 export * from './stableHash.js';
 export * from './validation.js';

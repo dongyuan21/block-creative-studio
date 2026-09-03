@@ -54,7 +54,10 @@ describe('studioVariantBridge', () => {
     expect(row.plan?.planHash).toMatch(/^fnv1a32:/);
     expect(row.quality?.passed).toBe(true);
     expect(row.previewSupported).toBe(true);
-    expect(row.resolvedStyle).toEqual(project.style);
+    expect(row.resolvedStyle.renderer).toBe(project.style.renderer);
+    expect(row.resolvedStyle.material).toBe(project.style.material);
+    expect(row.resolvedStyle.materialRuntime).toBeDefined();
+    expect(row.resolvedStyle.materialRuntime?.id).toContain('material');
   });
 
   it('switches a complete Look Pack without reimplementing style inheritance in UI', () => {
