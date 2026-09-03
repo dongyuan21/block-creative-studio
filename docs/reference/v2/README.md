@@ -10,6 +10,7 @@
 - `REFERENCE_PROFILE_V2.json`：参考档必选、可选、capture-only 原子与最小反馈组。
 - `FIXED_CAMERA_RENDERER_MAPPING_V1.json`：从 Reference 2D 到固定机位混合影视后端的表达映射。
 - `GOLDEN_SCENE_INDEX_V1.json`：用于本地提取和视觉 Diff 的代表性事件区间。
+- `CALIBRATION_WORKFLOW_V1.md`：在线 Golden Diff、像素坐标与时序校准流程。
 - `FULL_VIDEO_AUDIT_REPORT_V1.md`：分析方法、整片新增发现和工程结论。
 - `UNRESOLVED_EVIDENCE_V2.md`：仍不能从单条录像证明的规则与时序。
 

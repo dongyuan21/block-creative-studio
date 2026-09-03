@@ -14,6 +14,7 @@ import { BcsHeadlessError } from '../headless/errors';
 import { stableHash } from '../headless/stableHash';
 import { validateAssetManifest } from '../headless/validation';
 import type { ProjectSpec, StyleSpec } from '../domain/types';
+import { BLOCK_MATERIAL_OPTICS } from '../renderer/materialProfiles';
 import {
   DEFAULT_REFERENCE_2D_STYLE,
   DEFAULT_STYLE,
@@ -193,42 +194,28 @@ function materialManifest(prefix: string, style: StyleSpec): MaterialPackManifes
         ? 'jelly'
         : 'plastic';
 
+  const optics = isReference ? null : BLOCK_MATERIAL_OPTICS[style.material];
   const appearance = isReference
     ? style.reference2d.tileMaterial === 'flat-matte'
       ? { baseColor: '#d7e4ff', roughness: 0.84, metalness: 0.02, specular: 0.28 }
       : { baseColor: '#d7e4ff', roughness: 0.42, metalness: 0.03, specular: 0.48, clearcoat: 0.18 }
-    : style.material === 'crystal-glass'
-      ? {
-          baseColor: '#d9efff',
-          roughness: 0.08,
-          metalness: 0,
-          specular: 0.92,
-          clearcoat: 0.62,
-          transmission: 0.84,
-          ior: 1.48,
-          thickness: 0.32,
-          normalStrength: 0.18,
-        }
-      : style.material === 'candy-resin'
-        ? {
-            baseColor: '#e4dcff',
-            roughness: 0.22,
-            metalness: 0,
-            specular: 0.68,
-            clearcoat: 0.48,
-            transmission: 0.24,
-            ior: 1.42,
-            thickness: 0.18,
-            normalStrength: 0.12,
-          }
-        : {
-            baseColor: '#e8edff',
-            roughness: 0.34,
-            metalness: 0.02,
-            specular: 0.56,
-            clearcoat: 0.28,
-            normalStrength: 0.08,
-          };
+    : {
+        baseColor: style.material === 'crystal-glass'
+          ? '#d9efff'
+          : style.material === 'candy-resin'
+            ? '#e4dcff'
+            : '#e8edff',
+        roughness: optics!.roughness,
+        metalness: optics!.metalness,
+        specular: style.material === 'crystal-glass' ? 0.78 : style.material === 'candy-resin' ? 0.62 : 0.5,
+        clearcoat: optics!.clearcoat,
+        transmission: optics!.transmission,
+        ior: optics!.ior,
+        thickness: optics!.thickness,
+        normalStrength: style.material === 'crystal-glass' ? 0.18 : style.material === 'candy-resin' ? 0.12 : 0.08,
+        emission: optics!.emissiveScale,
+      };
+
 
   return withHash({
     contract: 'bcs.asset-manifest',

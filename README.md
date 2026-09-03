@@ -2,7 +2,7 @@
 
 Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
 
-> 当前版本为 `0.3.0-alpha.2`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+> 当前版本为 `0.3.0-alpha.3`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
 
 本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
@@ -45,6 +45,8 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - 工程 JSON 导入/导出、运行时校验、自动保存和 CI；
 - 固定机位 Camera Profile 与语义资产类型契约，为后续混合渲染器留出稳定接口。
 - IndexedDB Browser Asset Store：真实背景/牌面文件按 SHA-256 持久化，自动派生 Look/Variant，并进入实时预览与固定帧导出。
+- Reference 2D Golden Diff：本地导入参考帧，叠加、分屏、差异热图、对齐线和诊断指标。
+- 3D LookDev：中性、平衡、高能量三档；曝光、环境反射、Bloom 阈值与清除 Boost 可独立控制。
 
 
 ## Headless Core 与外部 Agent 边界
@@ -74,7 +76,7 @@ node dist-cli/cli/bcs.js variant compile \
 node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
 ```
 
-详见 [`docs/architecture/AGENT_OPERABLE_BOUNDARY.md`](docs/architecture/AGENT_OPERABLE_BOUNDARY.md)、[`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md)、[`docs/architecture/WEB_VARIANT_WORKSPACE_V1.md`](docs/architecture/WEB_VARIANT_WORKSPACE_V1.md) 和 [`docs/cli/README.md`](docs/cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
+详见 [`AGENT_OPERABLE_BOUNDARY.md`](docs/architecture/AGENT_OPERABLE_BOUNDARY.md)、[`HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md)、[`WEB_VARIANT_WORKSPACE_V1.md`](docs/architecture/WEB_VARIANT_WORKSPACE_V1.md)、[`ASSET_IMPORT_PIPELINE_V1.md`](docs/architecture/ASSET_IMPORT_PIPELINE_V1.md)、[`FIXED_CAMERA_LOOKDEV_V1.md`](docs/architecture/FIXED_CAMERA_LOOKDEV_V1.md) 和 [`CLI 文档`](docs/cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
 
 ## Web Variant Workspace
 
@@ -110,6 +112,33 @@ CreativeMaster
 上传成功后，系统会自动创建一个派生 Look Pack 和 Variant Recipe，再通过同一套 Variant Compiler 与 Quality Gate。若当前 Plan 引用的本机 Blob 缺失，正式 MP4 导出会被阻止。
 
 详见 [`docs/architecture/BROWSER_ASSET_STORE_V1.md`](docs/architecture/BROWSER_ASSET_STORE_V1.md)。
+
+## Reference 2D 校准
+
+Reference 2D 画布右下角提供 `2D 校准`：
+
+```text
+本地 Golden Reference 帧
++ 当前 BCS 帧
+→ 叠加 / 分屏 / 差异热图
+→ 平均色差 / 变化像素 / 边缘错位
+```
+
+参考帧只在本地浏览器中读取，不上传，也不写入项目。该工具用于锁定棋盘、HUD、候选区、拖拽和事件帧位；随机粒子不以单一像素分数决定通过。详见 [`CALIBRATION_WORKFLOW_V1.md`](docs/reference/v2/CALIBRATION_WORKFLOW_V1.md)。
+
+## 3D LookDev 与反光治理
+
+实验性 3D 已加入中性材质校准、平衡影视和高能量三种 LookDev Profile。内置材质、灯光、环境反射、静态 Emission 和 Bloom 已重新归一化；透明拖拽 Ghost 不再同时叠加低 Opacity 与 Transmission。
+
+正常顺序是：
+
+```text
+Neutral LookDev：判断材质本身
+→ Balanced Cinematic：检查固定机位质感
+→ High Energy：只为清除峰值增加能量
+```
+
+详见 [`FIXED_CAMERA_LOOKDEV_V1.md`](docs/architecture/FIXED_CAMERA_LOOKDEV_V1.md)。
 
 ## 运行
 

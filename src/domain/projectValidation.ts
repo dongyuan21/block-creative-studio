@@ -9,6 +9,7 @@ import type {
   Reference2DStyleSpec,
   RhythmProfile,
   StyleSpec,
+  ThreeLookDevStyle,
   Take,
   TileColor,
 } from './types';
@@ -21,8 +22,9 @@ export interface StudioBundle {
 }
 
 const MATERIALS = new Set(['glossy-plastic', 'candy-resin', 'crystal-glass']);
-const LIGHTS = new Set(['clean-studio', 'soft-candy', 'neon-contrast']);
+const LIGHTS = new Set(['neutral-lookdev', 'clean-studio', 'soft-candy', 'neon-contrast']);
 const CAMERAS = new Set(['flat-gameplay', 'premium-perspective', 'dynamic-clear']);
+const LOOKDEV_PRESETS = new Set(['neutral-lookdev', 'balanced-cinematic', 'high-energy']);
 const EFFECTS = new Set(['clean-pop', 'crystal-shatter', 'energy-burst']);
 const GEOMETRIES = new Set(['soft-cube', 'premium-beveled', 'candy-rounded']);
 const RHYTHMS = new Set(['human-natural', 'tight-fast', 'suspense-burst', 'combo-rush']);
@@ -275,6 +277,35 @@ function parseReference2DStyle(value: unknown, path: string): Reference2DStyleSp
   };
 }
 
+const LEGACY_LOOKDEV_STYLE: ThreeLookDevStyle = {
+  id: 'balanced-cinematic',
+  exposure: 0.96,
+  environmentIntensity: 0.72,
+  bloomStrength: 0.1,
+  bloomThreshold: 1.02,
+  bloomRadius: 0.3,
+  clearBloomBoost: 0.16,
+};
+
+function parseLookDevStyle(value: unknown, path: string): ThreeLookDevStyle {
+  if (value === undefined) return { ...LEGACY_LOOKDEV_STYLE };
+  const source = record(value, path);
+  return {
+    id: enumeration(source.id, LOOKDEV_PRESETS, `${path}.id`),
+    exposure: finite(source.exposure, `${path}.exposure`, 0.5, 1.5),
+    environmentIntensity: finite(
+      source.environmentIntensity,
+      `${path}.environmentIntensity`,
+      0,
+      2,
+    ),
+    bloomStrength: finite(source.bloomStrength, `${path}.bloomStrength`, 0, 1.5),
+    bloomThreshold: finite(source.bloomThreshold, `${path}.bloomThreshold`, 0, 2),
+    bloomRadius: finite(source.bloomRadius, `${path}.bloomRadius`, 0, 1),
+    clearBloomBoost: finite(source.clearBloomBoost, `${path}.clearBloomBoost`, 0, 1.5),
+  };
+}
+
 function parseStyle(value: unknown, path: string): StyleSpec {
   const source = record(value, path);
   const geometry = record(source.geometry, `${path}.geometry`);
@@ -297,6 +328,7 @@ function parseStyle(value: unknown, path: string): StyleSpec {
       bevel: finite(geometry.bevel, `${path}.geometry.bevel`, 0, 0.5),
       gap: finite(geometry.gap, `${path}.geometry.gap`, 0, 0.5),
     },
+    lookDev: parseLookDevStyle(source.lookDev, `${path}.lookDev`),
     background,
     showPointer: typeof source.showPointer === 'boolean'
       ? source.showPointer

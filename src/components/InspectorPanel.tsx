@@ -4,6 +4,7 @@ import type {
   FxPresetId,
   GeometryPresetId,
   LightingPresetId,
+  LookDevPresetId,
   MaterialPresetId,
   ProjectSpec,
   ReferenceAmbientFxId,
@@ -25,6 +26,7 @@ import {
   GEOMETRY_DEFAULTS,
   GEOMETRY_OPTIONS,
   LIGHTING_OPTIONS,
+  LOOKDEV_OPTIONS,
   MATERIAL_OPTIONS,
   REFERENCE_AMBIENT_OPTIONS,
   REFERENCE_CLEAR_OPTIONS,
@@ -35,6 +37,7 @@ import {
   RENDERER_OPTIONS,
 } from '../renderer/stylePresets';
 import { RHYTHM_PRESET_LIST } from '../director/rhythmPresets';
+import { copyLookDevPreset } from '../renderer/lookDev';
 import { VariantWorkspacePanel, type VariantWorkspacePanelProps } from './VariantWorkspacePanel';
 
 interface InspectorPanelProps {
@@ -241,6 +244,77 @@ export function InspectorPanel({
               <RangeField label="厚度" value={style.geometry.depth} min={0.18} max={0.72} step={0.01} disabled={locked} onChange={(depth) => onGeometry({ depth })} />
               <RangeField label="倒角" value={style.geometry.bevel} min={0.04} max={0.24} step={0.01} disabled={locked} onChange={(bevel) => onGeometry({ bevel })} />
               <RangeField label="间隙" value={style.geometry.gap} min={0.04} max={0.18} step={0.01} disabled={locked} onChange={(gap) => onGeometry({ gap })} />
+            </div>
+            <SelectField<LookDevPresetId>
+              label="高光与后处理"
+              value={style.lookDev.id}
+              options={LOOKDEV_OPTIONS}
+              disabled={locked}
+              onChange={(id) => onStyle({
+                lookDev: copyLookDevPreset(id),
+                ...(id === 'neutral-lookdev'
+                  ? { lighting: 'neutral-lookdev' as LightingPresetId }
+                  : style.lighting === 'neutral-lookdev'
+                    ? { lighting: id === 'high-energy' ? 'neon-contrast' : 'clean-studio' }
+                    : {}),
+              })}
+            />
+            <div className="lookdev-status-card">
+              <strong>{style.lookDev.id === 'neutral-lookdev' ? '材质校准模式' : style.lookDev.id === 'high-energy' ? '高能量演出' : '平衡影视模式'}</strong>
+              <span>
+                {style.lookDev.id === 'neutral-lookdev'
+                  ? 'Bloom 已关闭；先检查材质、颜色、粗糙度与接触阴影。'
+                  : '普通镜面高光保持克制，清除峰值通过独立 Bloom Boost 增强。'}
+              </span>
+            </div>
+            <div className="inline-ranges lookdev-ranges">
+              <RangeField
+                label="曝光"
+                value={style.lookDev.exposure}
+                min={0.5}
+                max={1.3}
+                step={0.01}
+                suffix="×"
+                disabled={locked}
+                onChange={(exposure) => onStyle({ lookDev: { ...style.lookDev, exposure } })}
+              />
+              <RangeField
+                label="环境反射"
+                value={style.lookDev.environmentIntensity}
+                min={0}
+                max={1.5}
+                step={0.01}
+                suffix="×"
+                disabled={locked}
+                onChange={(environmentIntensity) => onStyle({ lookDev: { ...style.lookDev, environmentIntensity } })}
+              />
+              <RangeField
+                label="基础 Bloom"
+                value={style.lookDev.bloomStrength}
+                min={0}
+                max={0.7}
+                step={0.01}
+                disabled={locked}
+                onChange={(bloomStrength) => onStyle({ lookDev: { ...style.lookDev, bloomStrength } })}
+              />
+              <RangeField
+                label="Bloom 阈值"
+                value={style.lookDev.bloomThreshold}
+                min={0.5}
+                max={1.5}
+                step={0.01}
+                disabled={locked}
+                onChange={(bloomThreshold) => onStyle({ lookDev: { ...style.lookDev, bloomThreshold } })}
+              />
+              <RangeField
+                label="清除 Bloom"
+                value={style.lookDev.clearBloomBoost}
+                min={0}
+                max={0.8}
+                step={0.01}
+                disabled={locked}
+                onChange={(clearBloomBoost) => onStyle({ lookDev: { ...style.lookDev, clearBloomBoost } })}
+              />
             </div>
             <SelectField<LightingPresetId>
               label="灯光"

@@ -252,6 +252,28 @@ export class Reference2DScene {
     this.renderAt(frame, style);
   }
 
+  captureReferenceFrame(): HTMLCanvasElement {
+    const output = document.createElement('canvas');
+    output.width = REFERENCE_CANVAS.width;
+    output.height = REFERENCE_CANVAS.height;
+    const context = output.getContext('2d', { alpha: false });
+    if (!context) throw new Error('无法创建参考帧校准 Canvas。');
+    const sourceWidth = REFERENCE_CANVAS.width * this.transform.scale;
+    const sourceHeight = REFERENCE_CANVAS.height * this.transform.scale;
+    context.drawImage(
+      this.canvas,
+      this.transform.offsetX,
+      this.transform.offsetY,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      REFERENCE_CANVAS.width,
+      REFERENCE_CANVAS.height,
+    );
+    return output;
+  }
+
   setRuntimeAssets(bindings: RuntimeAssetBindings): void {
     if (bindings.revision === this.runtimeAssets.revision) return;
     this.runtimeAssets = bindings;

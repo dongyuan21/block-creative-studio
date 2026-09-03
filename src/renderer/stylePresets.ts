@@ -4,6 +4,7 @@ import type {
   GeometryPresetId,
   GeometryStyle,
   LightingPresetId,
+  LookDevPresetId,
   MaterialPresetId,
   ReferenceAmbientFxId,
   ReferenceClearFxId,
@@ -14,6 +15,7 @@ import type {
   RenderBackendId,
   StyleSpec,
 } from '../domain/types';
+import { copyLookDevPreset } from './lookDev';
 
 export interface NamedPreset<T extends string> {
   id: T;
@@ -95,9 +97,16 @@ export const MATERIAL_OPTIONS: Array<NamedPreset<MaterialPresetId>> = [
 ];
 
 export const LIGHTING_OPTIONS: Array<NamedPreset<LightingPresetId>> = [
+  { id: 'neutral-lookdev', label: '中性材质校准', description: '低反射、低轮廓光，用于判断材质本身而不是影视发光。' },
   { id: 'clean-studio', label: '清洁棚拍', description: '中性商业光，材质识别最稳定。' },
   { id: 'soft-candy', label: '柔和糖果', description: '暖主光、冷补光、粉色轮廓。' },
   { id: 'neon-contrast', label: '霓虹高对比', description: '冷暖对撞，适合爆发型画面。' },
+];
+
+export const LOOKDEV_OPTIONS: Array<NamedPreset<LookDevPresetId>> = [
+  { id: 'neutral-lookdev', label: '中性 LookDev', description: '关闭 Bloom，降低环境反射，用于材质导入和高光排查。' },
+  { id: 'balanced-cinematic', label: '平衡影视', description: '普通高光保持清晰，只有清除能量获得有限 Bloom。' },
+  { id: 'high-energy', label: '高能量', description: '增强清除峰值和轮廓光，用于 Hero Event，不作为材质校准基线。' },
 ];
 
 export const CAMERA_OPTIONS: Array<NamedPreset<CameraPresetId>> = [
@@ -116,6 +125,7 @@ export const DEFAULT_STYLE: StyleSpec = {
   renderer: 'reference-2d',
   reference2d: { ...DEFAULT_REFERENCE_2D_STYLE },
   geometry: { ...GEOMETRY_PRESETS['premium-beveled'] },
+  lookDev: copyLookDevPreset('balanced-cinematic'),
   material: 'candy-resin',
   lighting: 'soft-candy',
   camera: 'premium-perspective',

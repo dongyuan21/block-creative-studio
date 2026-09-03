@@ -69,9 +69,12 @@ describe('project validation', () => {
     };
     delete payload.project.style.renderer;
     delete payload.project.style.reference2d;
+    delete payload.project.style.lookDev;
     const parsed = parseStudioBundle(payload);
     expect(parsed.project.style.renderer).toBe('three-3d');
     expect(parsed.project.style.reference2d.profile).toBe('block-garden-reference-v1');
+    expect(parsed.project.style.lookDev.id).toBe('balanced-cinematic');
+    expect(parsed.project.style.lookDev.bloomStrength).toBeLessThan(0.2);
   });
 
   it('rejects a take whose initial candidate tray no longer matches the project', () => {

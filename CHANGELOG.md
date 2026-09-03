@@ -2,6 +2,33 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.3 — 2026-09-03
+
+### Added
+
+- Detailed Blender, After Effects, PBR Texture Set, GLB and BCS Material Pack import pipeline documentation.
+- Reference 2D Golden Diff overlay with local reference-frame import, opacity overlay, split comparison, difference heatmap, alignment guides and current-frame PNG export.
+- Pure calibration metrics for mean color error, RMS error, changed-pixel ratio, edge mismatch and alpha mismatch.
+- `StyleSpec.lookDev` with Neutral, Balanced Cinematic and High Energy profiles.
+- Independent controls for exposure, environment reflection, baseline Bloom, Bloom threshold and clear-event Bloom boost.
+- Neutral material-inspection lighting and fixed neutral background behavior.
+- Regression tests for calibration metrics, LookDev bloom resolution, material optics and legacy project migration.
+
+### Changed
+
+- Rebalanced built-in plastic, resin and glass optics to preserve base color and material readability.
+- Reduced board/slot clearcoat, PMREM contribution and lighting intensity.
+- Separated normal static highlights from HDR clear-event particles and shockwave Bloom.
+- Transparent placement ghosts no longer combine low opacity with transmissive material response.
+- Current project schema accepts persisted LookDev controls while legacy projects receive the balanced default.
+- Updated the package version to `0.3.0-alpha.3`.
+
+### Current boundary
+
+- Golden Diff is a one-frame diagnostic tool; batch Golden Scene reports and semantic masks remain pending.
+- Thresholded HDR Bloom is improved but is not yet the final dedicated selective-bloom render graph.
+- The existing Three.js backend remains experimental; PBR Texture Set and GLB runtime import are still pending.
+
 ## 0.3.0-alpha.2 — 2026-09-03
 
 ### Added

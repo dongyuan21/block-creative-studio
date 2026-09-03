@@ -9,6 +9,7 @@ import type {
   StyleSpec,
 } from '../domain/types';
 import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
+import { ReferenceCalibrationOverlay } from './ReferenceCalibrationOverlay';
 import { Reference2DScene } from './Reference2DScene';
 
 interface ClearSignal {
@@ -113,6 +114,9 @@ export function Reference2DViewport({
     });
   }, [clearSignal]);
 
+  const captureCurrentFrame = (): HTMLCanvasElement | null =>
+    stageRef.current?.captureReferenceFrame() ?? null;
+
   const moveDrag = (event: ReactPointerEvent<HTMLCanvasElement>): void => {
     const stage = stageRef.current;
     const session = dragRef.current;
@@ -189,6 +193,10 @@ export function Reference2DViewport({
         onPointerMove={moveDrag}
         onPointerUp={finishDrag}
         onPointerCancel={clearDrag}
+      />
+      <ReferenceCalibrationOverlay
+        frameLabel={`frame-${frame?.frame ?? snapshot.turn}`}
+        captureCurrentFrame={captureCurrentFrame}
       />
       <div className="viewport-badges" aria-hidden="true">
         <span>REFERENCE 2D · 1064×1788</span>

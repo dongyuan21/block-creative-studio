@@ -572,3 +572,273 @@ button:disabled, input:disabled, select:disabled, .file-button.is-disabled { opa
   background: rgba(255, 101, 125, 0.13);
   color: #ff8da0;
 }
+
+/* Reference 2D Golden Diff calibration */
+.reference-calibration {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  pointer-events: none;
+}
+.reference-calibration-image,
+.reference-calibration-guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.reference-calibration-image {
+  z-index: 1;
+  image-rendering: auto;
+}
+.reference-calibration-image.is-difference {
+  filter: saturate(1.25) contrast(1.08);
+}
+.reference-calibration-guides {
+  z-index: 2;
+  fill: none;
+  stroke: rgba(255, 230, 100, .82);
+  stroke-width: 3;
+  stroke-dasharray: 11 8;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(0,0,0,.8));
+}
+.reference-calibration-guides circle {
+  stroke: rgba(85, 216, 255, .9);
+}
+.reference-calibration-toggle {
+  position: absolute;
+  right: 12px;
+  bottom: 43px;
+  z-index: 4;
+  pointer-events: auto;
+  padding: 6px 9px;
+  border: 1px solid rgba(85,216,255,.36);
+  border-radius: 999px;
+  background: rgba(5,12,22,.72);
+  color: #bcefff;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+}
+.reference-calibration-toggle:hover {
+  border-color: rgba(85,216,255,.72);
+  background: rgba(16,42,58,.86);
+}
+.reference-calibration-panel {
+  position: absolute;
+  z-index: 5;
+  right: 10px;
+  bottom: 10px;
+  width: min(310px, calc(100% - 20px));
+  max-height: calc(100% - 20px);
+  overflow: auto;
+  pointer-events: auto;
+  padding: 10px;
+  border: 1px solid rgba(85,216,255,.25);
+  border-radius: 12px;
+  background: rgba(6,10,18,.91);
+  box-shadow: 0 16px 38px rgba(0,0,0,.42);
+  backdrop-filter: blur(18px);
+}
+.reference-calibration-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.reference-calibration-heading > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.reference-calibration-heading strong {
+  color: #e9f9ff;
+  font-size: 10px;
+}
+.reference-calibration-heading span {
+  color: #6f829b;
+  font-size: 7px;
+}
+.reference-calibration-heading button,
+.reference-calibration-reference button {
+  border: 0;
+  background: transparent;
+  color: #8e9ab1;
+  cursor: pointer;
+}
+.reference-calibration-heading button {
+  width: 24px;
+  height: 24px;
+  font-size: 17px;
+  line-height: 1;
+}
+.reference-calibration-actions,
+.reference-calibration-modes {
+  display: grid;
+  gap: 5px;
+}
+.reference-calibration-actions {
+  grid-template-columns: 1.25fr 1fr 1fr;
+}
+.reference-calibration-file,
+.reference-calibration-actions button,
+.reference-calibration-modes button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  padding: 5px 6px;
+  border: 1px solid rgba(255,255,255,.11);
+  border-radius: 7px;
+  background: rgba(255,255,255,.035);
+  color: #cfd8eb;
+  font-size: 7px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.reference-calibration-file input {
+  display: none;
+}
+.reference-calibration-actions button:disabled,
+.reference-calibration-modes button:disabled,
+.reference-calibration-file:has(input:disabled) {
+  opacity: .42;
+  cursor: not-allowed;
+}
+.reference-calibration-reference {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  margin: 7px 0;
+  padding: 6px 7px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px;
+  background: rgba(255,255,255,.018);
+}
+.reference-calibration-reference span {
+  overflow: hidden;
+  color: #d9e0ef;
+  font-size: 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.reference-calibration-reference small {
+  color: #65e8ac;
+  font-size: 7px;
+  white-space: nowrap;
+}
+.reference-calibration-reference small.is-warning {
+  color: #ffc465;
+}
+.reference-calibration-modes {
+  grid-template-columns: repeat(3, 1fr) auto;
+  align-items: center;
+  margin-top: 7px;
+}
+.reference-calibration-modes button.is-active {
+  border-color: rgba(85,216,255,.5);
+  background: rgba(85,216,255,.11);
+  color: #d6f7ff;
+}
+.reference-calibration-modes label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #98a4b9;
+  font-size: 7px;
+  white-space: nowrap;
+}
+.reference-calibration-range {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 8px;
+  color: #929eb3;
+  font-size: 7px;
+}
+.reference-calibration-range output {
+  color: #dce4f2;
+}
+.reference-calibration-range input {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.reference-calibration-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+.reference-calibration-metrics > div {
+  min-width: 0;
+  padding: 6px 4px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px;
+  background: rgba(255,255,255,.025);
+  text-align: center;
+}
+.reference-calibration-metrics span,
+.reference-calibration-metrics strong {
+  display: block;
+}
+.reference-calibration-metrics span {
+  margin-bottom: 3px;
+  color: #68758c;
+  font-size: 6px;
+}
+.reference-calibration-metrics strong {
+  color: #e6eefb;
+  font-size: 8px;
+}
+.reference-calibration-error {
+  margin: 8px 0 0;
+  padding: 6px 7px;
+  border-left: 2px solid #ff657d;
+  border-radius: 4px;
+  background: rgba(255,101,125,.08);
+  color: #ffb1bd;
+  font-size: 7px;
+  line-height: 1.45;
+}
+.reference-calibration-note {
+  margin: 8px 0 0;
+  color: #69768c;
+  font-size: 6px;
+  line-height: 1.45;
+}
+
+/* 3D material LookDev */
+.lookdev-status-card {
+  margin: 7px 0 9px;
+  padding: 8px 9px;
+  border: 1px solid rgba(85,216,255,.16);
+  border-radius: 8px;
+  background: rgba(85,216,255,.045);
+}
+.lookdev-status-card strong,
+.lookdev-status-card span {
+  display: block;
+}
+.lookdev-status-card strong {
+  margin-bottom: 3px;
+  color: #d6f6ff;
+  font-size: 8px;
+}
+.lookdev-status-card span {
+  color: #7f8ca3;
+  font-size: 7px;
+  line-height: 1.5;
+}
+.lookdev-ranges {
+  margin-bottom: 9px;
+}

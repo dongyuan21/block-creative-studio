@@ -5,8 +5,9 @@ export type Actor = 'human' | 'agent';
 export type StudioMode = 'edit' | 'play' | 'replay' | 'render';
 export type GameStatus = 'playing' | 'game-over';
 export type MaterialPresetId = 'glossy-plastic' | 'candy-resin' | 'crystal-glass';
-export type LightingPresetId = 'clean-studio' | 'soft-candy' | 'neon-contrast';
+export type LightingPresetId = 'neutral-lookdev' | 'clean-studio' | 'soft-candy' | 'neon-contrast';
 export type CameraPresetId = 'flat-gameplay' | 'premium-perspective' | 'dynamic-clear';
+export type LookDevPresetId = 'neutral-lookdev' | 'balanced-cinematic' | 'high-energy';
 export type FxPresetId = 'clean-pop' | 'crystal-shatter' | 'energy-burst';
 export type RhythmPresetId = 'human-natural' | 'tight-fast' | 'suspense-burst' | 'combo-rush';
 export type GeometryPresetId = 'soft-cube' | 'premium-beveled' | 'candy-rounded';
@@ -114,6 +115,20 @@ export interface GeometryStyle {
   gap: number;
 }
 
+export interface ThreeLookDevStyle {
+  id: LookDevPresetId;
+  /** Multiplier over the lighting preset exposure. */
+  exposure: number;
+  /** Multiplier applied to material environment reflections. */
+  environmentIntensity: number;
+  /** Baseline bloom contribution outside clear events. */
+  bloomStrength: number;
+  bloomThreshold: number;
+  bloomRadius: number;
+  /** Additional bloom added only during a clear event. */
+  clearBloomBoost: number;
+}
+
 
 export interface Reference2DStyleSpec {
   profile: 'block-garden-reference-v1';
@@ -134,6 +149,7 @@ export interface StyleSpec {
   camera: CameraPresetId;
   fx: FxPresetId;
   geometry: GeometryStyle;
+  lookDev: ThreeLookDevStyle;
   background: string;
   showPointer: boolean;
 }

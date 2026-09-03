@@ -24,6 +24,7 @@ import {
   type RuntimeImageFit,
 } from '../assets/runtimeAssetBindings';
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
+import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
 
 export interface StudioSceneOptions {
@@ -205,10 +206,11 @@ export class StudioScene {
   private readonly materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
   private readonly slotMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x17213a,
-    roughness: 0.42,
-    metalness: 0.05,
-    clearcoat: 0.35,
-    clearcoatRoughness: 0.2,
+    roughness: 0.62,
+    metalness: 0.03,
+    clearcoat: 0.08,
+    clearcoatRoughness: 0.36,
+    envMapIntensity: 0.45,
   });
   private readonly invalidPlacementMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xff5068,
@@ -220,10 +222,11 @@ export class StudioScene {
   });
   private readonly plateMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x10192d,
-    roughness: 0.3,
-    metalness: 0.16,
-    clearcoat: 0.62,
-    clearcoatRoughness: 0.12,
+    roughness: 0.5,
+    metalness: 0.08,
+    clearcoat: 0.16,
+    clearcoatRoughness: 0.3,
+    envMapIntensity: 0.52,
   });
   private readonly plateGeometry = new RoundedBoxGeometry(8.68, 8.68, 0.46, 8, 0.38);
   private readonly slotGeometry = new RoundedBoxGeometry(0.9, 0.9, 0.15, 3, 0.16);
@@ -254,7 +257,7 @@ export class StudioScene {
   });
   private readonly particles: THREE.Points;
   private readonly shockwaveMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
+    color: new THREE.Color().setRGB(2.1, 2.1, 2.1),
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -285,6 +288,7 @@ export class StudioScene {
   private currentDragKey = '';
   private currentUiKey = '';
   private currentLighting = '';
+  private currentLookDev = '';
   private currentBackground = '';
   private currentGeometryKey = '';
   private blockGeometry: RoundedBoxGeometry | null = null;
@@ -320,9 +324,9 @@ export class StudioScene {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(this.width, this.height),
-      this.quality === 'cinematic' ? 0.45 : 0.32,
-      0.52,
-      0.82,
+      0.1,
+      0.3,
+      1.02,
     );
     this.composer.addPass(this.bloomPass);
     this.composer.addPass(new OutputPass());
@@ -601,6 +605,7 @@ export class StudioScene {
   private syncScene(): void {
     if (!this.frame || !this.style) return;
     this.ensureGeometry();
+    this.ensureLookDev();
     this.ensureLighting();
     this.syncBackground();
 
@@ -658,11 +663,43 @@ export class StudioScene {
     this.currentDragKey = '';
   }
 
+  private ensureLookDev(): void {
+    if (!this.style) return;
+    const { lookDev } = this.style;
+    const key = [
+      lookDev.id,
+      lookDev.exposure.toFixed(3),
+      lookDev.environmentIntensity.toFixed(3),
+      lookDev.bloomStrength.toFixed(3),
+      lookDev.bloomThreshold.toFixed(3),
+      lookDev.bloomRadius.toFixed(3),
+      lookDev.clearBloomBoost.toFixed(3),
+    ].join(':');
+    if (key === this.currentLookDev) return;
+
+    const bloom = resolveLookDevBloom(lookDev, this.quality, 0, this.style.fx);
+    this.bloomPass.strength = bloom.strength;
+    this.bloomPass.threshold = bloom.threshold;
+    this.bloomPass.radius = bloom.radius;
+    this.slotMaterial.envMapIntensity = 0.45 * lookDev.environmentIntensity;
+    this.plateMaterial.envMapIntensity = 0.52 * lookDev.environmentIntensity;
+
+    for (const material of this.materialCache.values()) material.dispose();
+    this.materialCache.clear();
+    this.currentBoardKey = '';
+    this.currentRackKey = '';
+    this.currentDragKey = '';
+    this.currentLighting = '';
+    this.currentLookDev = key;
+  }
+
   private ensureLighting(): void {
-    if (!this.style || this.currentLighting === this.style.lighting) return;
+    if (!this.style) return;
+    const lightingKey = `${this.style.lighting}:${this.style.lookDev.exposure.toFixed(3)}`;
+    if (this.currentLighting === lightingKey) return;
     for (const child of [...this.lightingRoot.children]) this.lightingRoot.remove(child);
     const values = LIGHTING_VALUES[this.style.lighting];
-    this.renderer.toneMappingExposure = values.exposure;
+    this.renderer.toneMappingExposure = values.exposure * this.style.lookDev.exposure;
 
     const hemisphere = new THREE.HemisphereLight(0xdce9ff, 0x101a30, values.ambient);
     this.lightingRoot.add(hemisphere);
@@ -687,15 +724,16 @@ export class StudioScene {
     rim.position.set(3.5, 7.5, 8.5);
     rim.target.position.set(0, 0, 0);
     this.lightingRoot.add(rim, rim.target);
-    this.currentLighting = this.style.lighting;
+    this.currentLighting = lightingKey;
   }
 
   private syncBackground(): void {
     if (!this.style) return;
-    const runtimeBackground = this.runtimeAssets.background;
+    const neutralLookDev = this.style.lookDev.id === 'neutral-lookdev';
+    const runtimeBackground = neutralLookDev ? null : this.runtimeAssets.background;
     const backgroundKey = runtimeBackground
-      ? `${this.style.background}:${runtimeBackground.contentHash}:${runtimeBackground.fit}:${runtimeBackground.opacity}`
-      : this.style.background;
+      ? `${this.style.lookDev.id}:${this.style.background}:${runtimeBackground.contentHash}:${runtimeBackground.fit}:${runtimeBackground.opacity}`
+      : `${this.style.lookDev.id}:${this.style.background}`;
     if (this.currentBackground === backgroundKey) return;
     this.backgroundTexture?.dispose();
     const canvas = document.createElement('canvas');
@@ -703,7 +741,7 @@ export class StudioScene {
     canvas.height = 1024;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Unable to create background canvas context.');
-    context.fillStyle = this.style.background;
+    context.fillStyle = neutralLookDev ? '#222832' : this.style.background;
     context.fillRect(0, 0, canvas.width, canvas.height);
     if (runtimeBackground && this.runtimeBackgroundImage) {
       context.globalAlpha = runtimeBackground.opacity;
@@ -717,6 +755,13 @@ export class StudioScene {
       grade.addColorStop(1, 'rgba(2,5,16,0.28)');
       context.fillStyle = grade;
       context.fillRect(0, 0, canvas.width, canvas.height);
+    } else if (neutralLookDev) {
+      const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, '#303844');
+      gradient.addColorStop(0.62, '#232a34');
+      gradient.addColorStop(1, '#171c24');
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, canvas.width, canvas.height);
     } else {
       const base = new THREE.Color(this.style.background);
       const top = base.clone().lerp(new THREE.Color(0x253f82), 0.35);
@@ -728,11 +773,13 @@ export class StudioScene {
       context.fillStyle = gradient;
       context.fillRect(0, 0, canvas.width, canvas.height);
     }
-    const glow = context.createRadialGradient(256, 410, 10, 256, 410, 380);
-    glow.addColorStop(0, 'rgba(125,160,255,0.24)');
-    glow.addColorStop(1, 'rgba(0,0,0,0)');
-    context.fillStyle = glow;
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    if (!neutralLookDev) {
+      const glow = context.createRadialGradient(256, 410, 10, 256, 410, 380);
+      glow.addColorStop(0, 'rgba(125,160,255,0.18)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      context.fillStyle = glow;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     this.backgroundTexture = new THREE.CanvasTexture(canvas);
     this.backgroundTexture.colorSpace = THREE.SRGBColorSpace;
@@ -742,10 +789,16 @@ export class StudioScene {
 
   private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
     if (!this.style) throw new Error('Style not initialized.');
-    const key = `${this.style.material}:${color}:${opacity.toFixed(2)}`;
+    const environmentIntensity = this.style.lookDev.environmentIntensity;
+    const key = `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}`;
     let material = this.materialCache.get(key);
     if (!material) {
-      material = createBlockMaterial(color, this.style.material, opacity);
+      material = createBlockMaterial(
+        color,
+        this.style.material,
+        opacity,
+        environmentIntensity,
+      );
       this.materialCache.set(key, material);
     }
     return material;
@@ -976,7 +1029,12 @@ export class StudioScene {
     }
 
     if (!clearing || clearing.clear.cells.length === 0) {
-      this.bloomPass.strength = this.quality === 'cinematic' ? 0.46 : 0.31;
+      if (this.style) {
+        const bloom = resolveLookDevBloom(this.style.lookDev, this.quality, 0, this.style.fx);
+        this.bloomPass.strength = bloom.strength;
+        this.bloomPass.threshold = bloom.threshold;
+        this.bloomPass.radius = bloom.radius;
+      }
       this.shardMesh.count = 0;
       this.particleGeometry.setDrawRange(0, 0);
       this.shockwave.visible = false;
@@ -1040,9 +1098,10 @@ export class StudioScene {
         this.particlePositions[offset + 2] =
           origin.z + 0.45 + (1.2 + seededFloat(clearing.seed, baseIndex + 2) * 3) * t;
         color.setHex(TILE_COLOR_HEX[cell.color]).lerp(this.whiteColor, 0.5);
-        this.particleColors[offset] = color.r;
-        this.particleColors[offset + 1] = color.g;
-        this.particleColors[offset + 2] = color.b;
+        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.75;
+        this.particleColors[offset] = color.r * particleLuminanceBoost;
+        this.particleColors[offset + 1] = color.g * particleLuminanceBoost;
+        this.particleColors[offset + 2] = color.b * particleLuminanceBoost;
         particleIndex += 1;
       }
     }
@@ -1065,9 +1124,17 @@ export class StudioScene {
     this.shockwave.scale.setScalar(ringScale);
     this.shockwaveMaterial.opacity = Math.sin(progress * Math.PI) * 0.5;
 
-    this.bloomPass.strength =
-      (this.quality === 'cinematic' ? 0.46 : 0.31) +
-      Math.sin(progress * Math.PI) * (this.style?.fx === 'energy-burst' ? 0.42 : 0.24);
+    if (this.style) {
+      const bloom = resolveLookDevBloom(
+        this.style.lookDev,
+        this.quality,
+        progress,
+        this.style.fx,
+      );
+      this.bloomPass.strength = bloom.strength;
+      this.bloomPass.threshold = bloom.threshold;
+      this.bloomPass.radius = bloom.radius;
+    }
   }
 
   private normalizedPointOnPlane(

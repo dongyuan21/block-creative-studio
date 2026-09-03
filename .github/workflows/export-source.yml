@@ -1,6 +1,6 @@
 name: export-source
 
-# Snapshot trigger: 2026-09-03 reference 2D calibration and 3D LookDev.
+# Snapshot trigger: 2026-09-02 variant workspace integration.
 on:
   push:
     paths:
