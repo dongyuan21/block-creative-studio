@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type {
   AssetManifest,
   QualityReport,
@@ -7,6 +8,8 @@ import type {
 } from '../headless/contracts';
 import type { StudioLookOption } from '../integration/studioAssetCatalog';
 import type { StudioVariantRow } from '../integration/studioVariantBridge';
+import type { BrowserAssetImportRole } from '../assets/browserAssetAuthoring';
+import type { BrowserAssetStoreStatus } from '../state/useBrowserAssetStore';
 
 type VariantExportKind = 'master' | 'recipe' | 'plan' | 'quality' | 'asset-bundle';
 
@@ -18,6 +21,29 @@ export interface VariantWorkspacePanelProps {
   rows: StudioVariantRow[];
   importedAssetCount: number;
   importedRecipeCount: number;
+  assetStoreStatus: BrowserAssetStoreStatus;
+  storedAssets: Array<{
+    contentHash: string;
+    fileName: string;
+    mimeType: string;
+    byteLength: number;
+    mediaClass: string;
+    width?: number;
+    height?: number;
+  }>;
+  assetStoreEstimate: {
+    assetCount: number;
+    storedBytes: number;
+    quotaBytes?: number;
+    usageBytes?: number;
+  };
+  runtimeAssetMissingCount: number;
+  binaryImportOptions: Array<{
+    id: BrowserAssetImportRole;
+    label: string;
+    description: string;
+    accept: string;
+  }>;
   workspaceError: string | null;
   locked: boolean;
   onLockMode(lockMode: VariantLockMode): void;
@@ -25,10 +51,15 @@ export interface VariantWorkspacePanelProps {
   onSelectRecipe(id: string): void;
   onImportAssets(file: File): Promise<void>;
   onImportRecipe(file: File): Promise<void>;
+  onImportBinary(file: File, role: BrowserAssetImportRole): Promise<void>;
+  onDeleteBinary(contentHash: string): Promise<void>;
   onExportArtifact(kind: VariantExportKind): void;
 }
 
-function activeStatus(row: StudioVariantRow | undefined): {
+function activeStatus(
+  row: StudioVariantRow | undefined,
+  runtimeAssetMissingCount = 0,
+): {
   label: string;
   tone: 'success' | 'warning' | 'error';
   detail: string;
@@ -58,6 +89,13 @@ function activeStatus(row: StudioVariantRow | undefined): {
       detail: '资产契约有效，但当前网页渲染器没有该 Look 的预览绑定。',
     };
   }
+  if (runtimeAssetMissingCount > 0) {
+    return {
+      label: '运行资产缺失',
+      tone: 'error',
+      detail: `Render Plan 中有 ${runtimeAssetMissingCount} 个二进制资产尚未在本机 Asset Store 中解析。`,
+    };
+  }
   return {
     label: '可渲染',
     tone: 'success',
@@ -80,6 +118,22 @@ function downloadLabel(kind: VariantExportKind): string {
   }
 }
 
+function formatBytes(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '0 B';
+  if (value < 1024) return `${Math.round(value)} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KiB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MiB`;
+}
+
+function assetStoreLabel(status: BrowserAssetStoreStatus): string {
+  switch (status) {
+    case 'opening': return '初始化中';
+    case 'ready': return 'IndexedDB 已就绪';
+    case 'unavailable': return '浏览器不支持';
+    case 'error': return '存储错误';
+  }
+}
+
 export function VariantWorkspacePanel({
   lockMode,
   selectedLookKey,
@@ -88,6 +142,11 @@ export function VariantWorkspacePanel({
   rows,
   importedAssetCount,
   importedRecipeCount,
+  assetStoreStatus,
+  storedAssets,
+  assetStoreEstimate,
+  runtimeAssetMissingCount,
+  binaryImportOptions,
   workspaceError,
   locked,
   onLockMode,
@@ -95,10 +154,15 @@ export function VariantWorkspacePanel({
   onSelectRecipe,
   onImportAssets,
   onImportRecipe,
+  onImportBinary,
+  onDeleteBinary,
   onExportArtifact,
 }: VariantWorkspacePanelProps) {
+  const [binaryRole, setBinaryRole] = useState<BrowserAssetImportRole>('background-image');
   const active = rows.find((row) => row.recipe.id === activeRecipeId) ?? rows[0];
-  const status = activeStatus(active);
+  const status = activeStatus(active, runtimeAssetMissingCount);
+  const selectedBinaryOption = binaryImportOptions.find((option) => option.id === binaryRole)
+    ?? binaryImportOptions[0];
   const plan = active?.plan;
   const report = active?.quality;
 
@@ -209,6 +273,79 @@ export function VariantWorkspacePanel({
           {report.issues.length > 3 && <small>另有 {report.issues.length - 3} 项，导出 Report 查看完整结果。</small>}
         </div>
       )}
+
+      <div className="browser-asset-store">
+        <div className="browser-asset-store__heading">
+          <div>
+            <strong>本地二进制资产</strong>
+            <span>{assetStoreLabel(assetStoreStatus)}</span>
+          </div>
+          <small>{assetStoreEstimate.assetCount} 个 · {formatBytes(assetStoreEstimate.storedBytes)}</small>
+        </div>
+
+        <label className="field-stack browser-asset-role">
+          <span>导入目标</span>
+          <select
+            value={binaryRole}
+            disabled={locked || assetStoreStatus !== 'ready'}
+            onChange={(event) => setBinaryRole(event.target.value as BrowserAssetImportRole)}
+          >
+            {binaryImportOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+          <small>{selectedBinaryOption?.description}</small>
+        </label>
+
+        <label className={`file-button browser-asset-upload ${locked || assetStoreStatus !== 'ready' ? 'is-disabled' : ''}`}>
+          上传并生成 Variant
+          <input
+            type="file"
+            accept={selectedBinaryOption?.accept}
+            disabled={locked || assetStoreStatus !== 'ready' || !selectedBinaryOption}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.currentTarget.value = '';
+              if (file && selectedBinaryOption) void onImportBinary(file, selectedBinaryOption.id);
+            }}
+          />
+        </label>
+
+        {assetStoreEstimate.quotaBytes !== undefined && (
+          <div className="browser-asset-quota">
+            <span style={{ width: `${Math.min(100, ((assetStoreEstimate.usageBytes ?? assetStoreEstimate.storedBytes) / Math.max(1, assetStoreEstimate.quotaBytes)) * 100)}%` }} />
+          </div>
+        )}
+
+        {storedAssets.length > 0 ? (
+          <div className="browser-asset-list">
+            {storedAssets.slice(0, 8).map((asset) => (
+              <div key={asset.contentHash} className="browser-asset-row">
+                <span className={`browser-asset-kind is-${asset.mediaClass}`}>{asset.mediaClass}</span>
+                <span className="browser-asset-copy">
+                  <strong title={asset.fileName}>{asset.fileName}</strong>
+                  <small>
+                    {asset.width && asset.height ? `${asset.width}×${asset.height} · ` : ''}
+                    {formatBytes(asset.byteLength)} · {shortHash(asset.contentHash)}
+                  </small>
+                </span>
+                <button
+                  type="button"
+                  className="browser-asset-delete"
+                  disabled={locked}
+                  aria-label={`删除 ${asset.fileName}`}
+                  onClick={() => void onDeleteBinary(asset.contentHash)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {storedAssets.length > 8 && <small>另有 {storedAssets.length - 8} 个资产未展开。</small>}
+          </div>
+        ) : (
+          <p className="variant-import-count">图片、纹理、GLB、Flipbook 与音频会按 SHA-256 存入本机 IndexedDB。</p>
+        )}
+      </div>
 
       <div className="variant-file-actions">
         <label className={`file-button variant-file-button ${locked ? 'is-disabled' : ''}`}>

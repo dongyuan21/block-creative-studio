@@ -2,7 +2,7 @@
 
 Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
 
-> 当前版本为 `0.3.0-alpha.1`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+> 当前版本为 `0.3.0-alpha.2`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
 
 本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
@@ -44,6 +44,7 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - WebCodecs + Mediabunny 的浏览器固定帧 H.264/MP4 导出；
 - 工程 JSON 导入/导出、运行时校验、自动保存和 CI；
 - 固定机位 Camera Profile 与语义资产类型契约，为后续混合渲染器留出稳定接口。
+- IndexedDB Browser Asset Store：真实背景/牌面文件按 SHA-256 持久化，自动派生 Look/Variant，并进入实时预览与固定帧导出。
 
 
 ## Headless Core 与外部 Agent 边界
@@ -96,7 +97,19 @@ CreativeMaster
 - 导出 Master、Recipe、Plan、Quality Report 与资产清单，交给外部 Agent 继续加工；
 - 只有在变体编译和质量门禁通过后才允许正式视频导出。
 
-目前导入的是 Manifest，不是任意二进制文件。图片、PBR 纹理、GLB、Flipbook、音频和插件包的实际存储/装载将在独立 Asset Store 中实现，避免把大文件或可执行代码直接塞进 LocalStorage。
+## Browser Asset Store
+
+网页工作台现在可以直接接收真实二进制资产。文件按 SHA-256 存入浏览器 IndexedDB，并通过 `bcs-asset://sha256/<digest>` 与版本化 Manifest 绑定；大文件不会写入 LocalStorage。
+
+当前上传入口支持：
+
+- 背景图片：立即替换 `background.base`，可在 Reference 2D 和实验性固定机位 3D 中预览，并进入离线视频导出；
+- 牌面贴图：独立替换 `tile.face`，可在 Reference 2D 中预览并进入离线导出；
+- 粒子 Sprite、Flipbook/透明片段、音频、自包含 GLB、材质纹理图：已经能够存储、版本化、生成 Manifest 和 Variant；Material/Effect 的嵌套 AssetRef 会进入完整依赖闭包，但对应 Web Render Pass 尚未全部实现，因此会标记为“可编译”而不是伪装成已经可见。
+
+上传成功后，系统会自动创建一个派生 Look Pack 和 Variant Recipe，再通过同一套 Variant Compiler 与 Quality Gate。若当前 Plan 引用的本机 Blob 缺失，正式 MP4 导出会被阻止。
+
+详见 [`docs/architecture/BROWSER_ASSET_STORE_V1.md`](docs/architecture/BROWSER_ASSET_STORE_V1.md)。
 
 ## 运行
 
@@ -158,7 +171,7 @@ src/headless        开放资产契约、Registry、变体编译与质量门禁
 src/integration     Web 项目与 Headless Core 的适配桥
 src/cli             外部 Agent / CI 使用的机器可读 CLI
 src/director        Take → 固定帧表现状态；逻辑与 VFX 时间解耦
-src/assets          语义资产与固定机位 Camera Profile 契约
+src/assets          语义资产、固定机位契约、Browser Asset Store 与运行时绑定
 src/reference2d     真机参考 2D 布局、Canvas 渲染和交互
 src/renderer        旧 Three.js 3D 实验后端
 src/exporter        固定帧 Canvas → WebCodecs → MP4
@@ -173,7 +186,7 @@ schemas             工程、资产谱系和固定机位契约 Schema
 
 - 13,546 帧已被机器逐帧处理并实现 100% 时间覆盖，但不是 13,546 帧全部人工逐像素标注；
 - Reference 2D 仍是第一版渲染骨架，尚未达到像素级复刻；
-- 当前多数视觉元素仍是内置程序绘制，尚未完成外部背景、牌面、材质包和 VFX 资产导入；
+- 外部背景与牌面二进制资产已可持久化、预览和导出；GLB、Flipbook、音频、材质纹理和粒子资产目前仅完成存储与契约绑定，尚未完成对应 Render Pass；
 - 六级 Praise 已进入谱系，当前运行时阈值仍是明确标注的原型启发式；
 - `NEW HIGH SCORE`、候选刷新复合 VFX 和完整异步演出尚未完全进入运行时；
 - 导出当前为无声 MP4；音频事件轨仍未接入；

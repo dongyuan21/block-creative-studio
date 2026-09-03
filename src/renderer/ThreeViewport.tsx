@@ -8,6 +8,7 @@ import type {
   StudioMode,
   StyleSpec,
 } from '../domain/types';
+import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import { StudioScene } from './StudioScene';
 
 interface ClearSignal {
@@ -21,6 +22,7 @@ interface ThreeViewportProps {
   snapshot: GameSnapshot;
   frame: PresentationFrame | null;
   style: StyleSpec;
+  runtimeAssets: RuntimeAssetBindings;
   fps: number;
   clearSignal: ClearSignal | null;
   onEditCell(cell: GridCell): void;
@@ -50,6 +52,7 @@ export function ThreeViewport({
   snapshot,
   frame,
   style,
+  runtimeAssets,
   fps,
   clearSignal,
   onEditCell,
@@ -67,6 +70,7 @@ export function ThreeViewport({
     if (!canvas) return;
     const stage = new StudioScene(canvas, { quality: 'interactive' });
     stageRef.current = stage;
+    stage.setRuntimeAssets(runtimeAssets);
     stage.setLiveSnapshot(snapshotRef.current, style);
     stage.start();
 
@@ -84,6 +88,10 @@ export function ThreeViewport({
     // Scene lifetime is deliberately independent from React renders.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    stageRef.current?.setRuntimeAssets(runtimeAssets);
+  }, [runtimeAssets]);
 
   useEffect(() => {
     const stage = stageRef.current;

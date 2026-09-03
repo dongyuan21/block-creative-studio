@@ -73,7 +73,83 @@ function resolveAsset(
       { path },
     );
   }
-  return { ref: cloneValue(ref), manifest };
+  return {
+    ref: {
+      id: manifest.id,
+      version: manifest.version,
+      kind: manifest.kind,
+      ...(manifest.contentHash ? { contentHash: manifest.contentHash } : {}),
+    },
+    manifest,
+  };
+}
+
+function assetKey(ref: Pick<AssetRef, 'id' | 'version'>): string {
+  return `${ref.id}@${ref.version}`;
+}
+
+function manifestDependencies(manifest: AssetManifest): AssetRef[] {
+  const refs: AssetRef[] = [...(manifest.dependencies ?? [])];
+  if (manifest.kind === 'material-pack') {
+    for (const ref of Object.values(manifest.appearance.textureRefs ?? {})) {
+      if (ref) refs.push(ref);
+    }
+  } else if (manifest.kind === 'effect-pack') {
+    for (const layer of manifest.layers) {
+      if (layer.assetRef) refs.push(layer.assetRef);
+    }
+  } else if (manifest.kind === 'look-pack') {
+    refs.push(...Object.values(manifest.slots));
+  }
+  const unique = new Map<string, AssetRef>();
+  for (const ref of refs) unique.set(assetKey(ref), ref);
+  return [...unique.values()].sort((left, right) => assetKey(left).localeCompare(assetKey(right)));
+}
+
+interface DependencyClosure {
+  assets: Record<string, ResolvedAsset>;
+  dependencyOrder: AssetRef[];
+}
+
+function resolveDependencyClosure(
+  registry: AssetRegistry,
+  roots: Array<{ ref: AssetRef; path: string }>,
+  renderer: HeadlessRendererId,
+  requireHashes: boolean,
+): DependencyClosure {
+  const assets: Record<string, ResolvedAsset> = {};
+  const order: AssetRef[] = [];
+  const visited = new Set<string>();
+  const visiting: string[] = [];
+
+  const visit = (ref: AssetRef, path: string): void => {
+    // Always resolve first so duplicate references with conflicting kind/hash
+    // cannot bypass registry validation merely because their id@version was seen.
+    const resolved = resolveAsset(registry, ref, renderer, requireHashes, path);
+    const key = assetKey(resolved.ref);
+    const cycleIndex = visiting.indexOf(key);
+    if (cycleIndex >= 0) {
+      const cycle = [...visiting.slice(cycleIndex), key];
+      throw new BcsHeadlessError(
+        'ASSET_DEPENDENCY_CYCLE',
+        `Asset dependency cycle detected: ${cycle.join(' -> ')}`,
+        { path, details: { cycle } },
+      );
+    }
+    if (visited.has(key)) return;
+
+    visiting.push(key);
+    for (const dependency of manifestDependencies(resolved.manifest)) {
+      visit(dependency, `${path}.dependencies[${assetKey(dependency)}]`);
+    }
+    visiting.pop();
+    visited.add(key);
+    assets[key] = resolved;
+    order.push(cloneValue(resolved.ref));
+  };
+
+  for (const root of roots) visit(root.ref, root.path);
+  return { assets, dependencyOrder: order };
 }
 
 function mergedOutput(master: CreativeMaster, recipe: VariantRecipe): OutputSpec {
@@ -208,6 +284,21 @@ export function compileVariant(
   );
   assertMaterialEffectCompatibility(slots);
 
+  const dependencyClosure = resolveDependencyClosure(
+    registry,
+    [
+      { ref: layoutProfile.ref, path: '$.layoutProfileRef' },
+      { ref: cameraProfile.ref, path: '$.cameraProfileRef' },
+      { ref: lookPack.ref, path: '$.lookPackRef' },
+      ...Object.entries(slots).map(([slot, asset]) => ({
+        ref: asset.ref,
+        path: `$.slots.${slot}`,
+      })),
+    ],
+    options.renderer,
+    requireHashes,
+  );
+
   const output = mergedOutput(master, recipe);
   assertLockMode(master, recipe, output);
   if (output.width % 2 !== 0 || output.height % 2 !== 0) {
@@ -218,7 +309,7 @@ export function compileVariant(
 
   const warnings: string[] = [];
   if (!requireHashes) {
-    const unhashed = [lookPack, layoutProfile, cameraProfile, ...Object.values(slots)]
+    const unhashed = Object.values(dependencyClosure.assets)
       .filter((asset) => !asset.manifest.contentHash)
       .map((asset) => `${asset.manifest.id}@${asset.manifest.version}`);
     if (unhashed.length) warnings.push(`Assets without content hashes: ${[...new Set(unhashed)].join(', ')}`);
@@ -235,6 +326,7 @@ export function compileVariant(
     cameraProfile: cameraProfile.ref,
     lookPack: lookPack.ref,
     slots: Object.fromEntries(Object.entries(slots).map(([slot, asset]) => [slot, asset.ref])),
+    dependencyOrder: dependencyClosure.dependencyOrder,
     directorOverrides,
     output,
     seed: recipe.seed,
@@ -253,6 +345,8 @@ export function compileVariant(
     cameraProfile,
     lookPack,
     slots,
+    assets: dependencyClosure.assets,
+    dependencyOrder: dependencyClosure.dependencyOrder,
     directorOverrides,
     output,
     seed: recipe.seed,

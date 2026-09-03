@@ -19,6 +19,11 @@ import type {
   TileColor,
 } from '../domain/types';
 import {
+  EMPTY_RUNTIME_ASSET_BINDINGS,
+  type RuntimeAssetBindings,
+  type RuntimeImageAssetBinding,
+} from '../assets/runtimeAssetBindings';
+import {
   REFERENCE_BACKGROUND,
   REFERENCE_BOARD_COLORS,
   REFERENCE_CANVAS,
@@ -52,6 +57,11 @@ interface SceneTransform {
   scale: number;
   offsetX: number;
   offsetY: number;
+}
+
+interface RuntimeImages {
+  background: HTMLImageElement | null;
+  tileFace: HTMLImageElement | null;
 }
 
 const TWO_PI = Math.PI * 2;
@@ -98,6 +108,35 @@ function colorWithAlpha(hex: string, alpha: number): string {
   return `rgba(${red},${green},${blue},${clamp01(alpha)})`;
 }
 
+function drawImageFitted(
+  context: CanvasRenderingContext2D,
+  image: CanvasImageSource & { width: number; height: number },
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  fit: RuntimeImageAssetBinding['fit'],
+): void {
+  const sourceWidth = Math.max(1, image.width);
+  const sourceHeight = Math.max(1, image.height);
+  if (fit === 'stretch') {
+    context.drawImage(image, x, y, width, height);
+    return;
+  }
+  const scale = fit === 'contain'
+    ? Math.min(width / sourceWidth, height / sourceHeight)
+    : Math.max(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  context.drawImage(
+    image,
+    x + (width - drawWidth) / 2,
+    y + (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
+}
+
 function cellKey(row: number, col: number): string {
   return `${row}:${col}`;
 }
@@ -138,6 +177,9 @@ export class Reference2DScene {
   private dragPreview: DragPreview | null = null;
   private liveClear: LiveClear | null = null;
   private transform: SceneTransform = { scale: 1, offsetX: 0, offsetY: 0 };
+  private runtimeAssets: RuntimeAssetBindings = EMPTY_RUNTIME_ASSET_BINDINGS;
+  private runtimeImages: RuntimeImages = { background: null, tileFace: null };
+  private runtimeAssetsReady: Promise<void> = Promise.resolve();
   private started = false;
   private disposed = false;
   private raf = 0;
@@ -198,12 +240,42 @@ export class Reference2DScene {
     this.style = null;
     this.dragPreview = null;
     this.liveClear = null;
+    this.runtimeAssets = EMPTY_RUNTIME_ASSET_BINDINGS;
+    this.runtimeImages = { background: null, tileFace: null };
+    this.runtimeAssetsReady = Promise.resolve();
   }
 
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
     this.setFrame(frame, style);
+    await this.runtimeAssetsReady;
     if (document.fonts?.ready) await document.fonts.ready;
     this.renderAt(frame, style);
+  }
+
+  setRuntimeAssets(bindings: RuntimeAssetBindings): void {
+    if (bindings.revision === this.runtimeAssets.revision) return;
+    this.runtimeAssets = bindings;
+    const revision = bindings.revision;
+    const load = async (
+      binding: RuntimeImageAssetBinding | null,
+    ): Promise<HTMLImageElement | null> => {
+      if (!binding) return null;
+      return new Promise<HTMLImageElement | null>((resolve) => {
+        const image = new Image();
+        image.decoding = 'async';
+        image.onload = () => resolve(image);
+        image.onerror = () => resolve(null);
+        image.src = binding.objectUrl;
+      });
+    };
+    this.runtimeAssetsReady = Promise.all([
+      load(bindings.background),
+      load(bindings.tileFace),
+    ]).then(([background, tileFace]) => {
+      if (this.runtimeAssets.revision !== revision) return;
+      this.runtimeImages = { background, tileFace };
+      this.render(this.clockMs);
+    });
   }
 
   setFrame(frame: PresentationFrame, style: StyleSpec): void {
@@ -354,12 +426,39 @@ export class Reference2DScene {
   private drawBackground(seconds: number): void {
     if (!this.style) return;
     const context = this.context;
-    const gradient = context.createLinearGradient(0, 0, 0, REFERENCE_CANVAS.height);
-    gradient.addColorStop(0, REFERENCE_BACKGROUND.top);
-    gradient.addColorStop(0.48, REFERENCE_BACKGROUND.middle);
-    gradient.addColorStop(1, REFERENCE_BACKGROUND.bottom);
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, REFERENCE_CANVAS.width, REFERENCE_CANVAS.height);
+    const backgroundBinding = this.runtimeAssets.background;
+    const backgroundImage = this.runtimeImages.background;
+    if (backgroundBinding && backgroundImage) {
+      context.save();
+      context.globalAlpha = backgroundBinding.opacity;
+      context.globalCompositeOperation = backgroundBinding.blendMode;
+      drawImageFitted(
+        context,
+        backgroundImage,
+        0,
+        0,
+        REFERENCE_CANVAS.width,
+        REFERENCE_CANVAS.height,
+        backgroundBinding.fit,
+      );
+      context.restore();
+
+      // Keep a restrained grade over uploaded art so HUD and board contrast
+      // remain stable across arbitrary Agent- or designer-authored images.
+      const grade = context.createLinearGradient(0, 0, 0, REFERENCE_CANVAS.height);
+      grade.addColorStop(0, 'rgba(0,40,48,0.08)');
+      grade.addColorStop(0.58, 'rgba(8,72,58,0.06)');
+      grade.addColorStop(1, 'rgba(2,32,34,0.22)');
+      context.fillStyle = grade;
+      context.fillRect(0, 0, REFERENCE_CANVAS.width, REFERENCE_CANVAS.height);
+    } else {
+      const gradient = context.createLinearGradient(0, 0, 0, REFERENCE_CANVAS.height);
+      gradient.addColorStop(0, REFERENCE_BACKGROUND.top);
+      gradient.addColorStop(0.48, REFERENCE_BACKGROUND.middle);
+      gradient.addColorStop(1, REFERENCE_BACKGROUND.bottom);
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, REFERENCE_CANVAS.width, REFERENCE_CANVAS.height);
+    }
 
     const halo = context.createRadialGradient(532, 730, 0, 532, 730, 760);
     halo.addColorStop(0, REFERENCE_BACKGROUND.halo);
@@ -700,7 +799,33 @@ export class Reference2DScene {
       context.stroke();
     }
 
-    if (motif && this.style.reference2d.tileFaceSet === 'botanical-reference') {
+    const tileFaceBinding = this.runtimeAssets.tileFace;
+    const tileFaceImage = this.runtimeImages.tileFace;
+    if (motif && tileFaceBinding && tileFaceImage) {
+      const inset = drawSize * tileFaceBinding.inset;
+      context.save();
+      roundedRect(
+        context,
+        x + inset,
+        y + inset,
+        Math.max(1, drawSize - inset * 2),
+        Math.max(1, drawSize - inset * 2),
+        Math.max(2, radius - inset * 0.35),
+      );
+      context.clip();
+      context.globalAlpha *= tileFaceBinding.opacity;
+      context.globalCompositeOperation = tileFaceBinding.blendMode;
+      drawImageFitted(
+        context,
+        tileFaceImage,
+        x + inset,
+        y + inset,
+        Math.max(1, drawSize - inset * 2),
+        Math.max(1, drawSize - inset * 2),
+        tileFaceBinding.fit,
+      );
+      context.restore();
+    } else if (motif && this.style.reference2d.tileFaceSet === 'botanical-reference') {
       context.save();
       context.translate(centerX, centerY + drawSize * 0.025);
       context.fillStyle = palette.motif;

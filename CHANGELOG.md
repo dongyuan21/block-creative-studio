@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+## 0.3.0-alpha.2 — 2026-09-03
+
+### Added
+
+- Content-addressed Browser Asset Store backed by IndexedDB, with raw blobs separated from LocalStorage project/variant metadata.
+- SHA-256 `bcs-asset://sha256/...` URI contract, media classification, per-file size limits, image dimension inspection, deduplication, deletion and storage estimates.
+- Web upload authoring for background images, tile-face images, particle Sprites, Flipbooks/transparent clips, audio, self-contained GLB and material texture maps.
+- Automatic binary Asset Manifest, derived Look Pack and Variant Recipe creation through the existing Headless Core.
+- Runtime asset binding layer that resolves active Render Plan references to revocable browser object URLs and reports missing local bytes.
+- Uploaded background preview/export support in Reference 2D and the fixed-camera Three.js experiment.
+- Uploaded tile-face preview/export support in Reference 2D while keeping the face independent from tile material and geometry.
+- Local asset library status, storage usage, semantic upload role, asset list and dependency-aware deletion in the Variant Workspace.
+- Browser Asset Store, authoring and runtime-binding regression tests plus architecture documentation.
+- Recursive Asset dependency resolution for Material Pack texture refs, Effect Pack layer refs and explicit manifest dependencies, including cycle rejection and dependency-aware runtime binding.
+
+### Changed
+
+- Formal video export now waits for active binary image decoding and rejects plans with unresolved local binary assets.
+- Updated the package version to `0.3.0-alpha.2`.
+- Single-file 3D import is restricted to structurally valid self-contained GLB 2.0 in v1; plain glTF with unresolved sidecar dependencies is rejected.
+- SVG runtime import is deferred until a sanitizer/rasterizer is available; raster images are decoded and checked against pixel budgets before registration.
+
+### Current boundary
+
+- Background and Reference 2D tile-face images are the first fully rendered binary roles.
+- Particle Sprites, Flipbooks, audio, GLB and texture maps are stored and compiled but remain Web-render-pass pending.
+- Binary data is local to one browser origin/profile; portable project-package transfer and cloud synchronization are not implemented.
+- The production `fixed-camera-cinematic` renderer and rendered-frame perceptual Quality Gate remain future milestones.
+
 ## 0.3.0-alpha.1 — 2026-09-02
 
 ### Added

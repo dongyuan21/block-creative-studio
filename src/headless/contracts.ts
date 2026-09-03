@@ -87,6 +87,8 @@ export interface AssetManifestBase<K extends AssetKind = AssetKind> {
   contentHash?: string;
   uri?: string;
   runtime: AssetRuntimeContract;
+  /** Explicit immutable dependencies not represented by a typed sub-contract. */
+  dependencies?: AssetRef[];
   provenance?: AssetProvenance;
   metadata?: Record<string, unknown>;
 }
@@ -302,6 +304,10 @@ export interface ResolvedRenderPlan {
   cameraProfile: ResolvedAsset;
   lookPack: ResolvedAsset;
   slots: Record<string, ResolvedAsset>;
+  /** Complete resolved dependency closure, keyed by id@version. */
+  assets?: Record<string, ResolvedAsset>;
+  /** Topological dependency order; dependencies appear before consumers. */
+  dependencyOrder?: AssetRef[];
   directorOverrides: Record<string, string | number | boolean>;
   output: OutputSpec;
   seed: number;

@@ -71,12 +71,13 @@ export default function App() {
 
           <div className="stage-frame">
             <div className="phone-frame">
-              {studio.project.style.renderer === 'reference-2d' ? (
+              {displayStyle.renderer === 'reference-2d' ? (
                 <Reference2DViewport
                   mode={studio.mode}
                   snapshot={studio.liveSnapshot}
                   frame={studio.presentationFrame}
                   style={displayStyle}
+                  runtimeAssets={studio.runtimeAssets}
                   fps={studio.project.render.fps}
                   clearSignal={studio.clearSignal}
                   onEditCell={studio.editBoardCell}
@@ -89,6 +90,7 @@ export default function App() {
                   snapshot={studio.liveSnapshot}
                   frame={studio.presentationFrame}
                   style={displayStyle}
+                  runtimeAssets={studio.runtimeAssets}
                   fps={studio.project.render.fps}
                   clearSignal={studio.clearSignal}
                   onEditCell={studio.editBoardCell}
