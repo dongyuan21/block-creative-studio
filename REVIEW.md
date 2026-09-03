@@ -7,7 +7,7 @@
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
-实现 Head SHA：`846ee6e114da638fb1bf25ef360382a3d4661b7f`  
+实现 Head SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`  
 依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
 执行环境：Linux, Node 22, Three.js 0.185.1  
 实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
@@ -33,10 +33,21 @@
 |---|---|---|---|
 | 源码/类型/构建检查 | PASS | `npm run check && npm run typecheck && npm run build` | 同上 |
 | 单元与负向测试 | PASS | 108 tests | `npm test` |
-| 真实浏览器捕获 | CI `capture-run` Artifact | `review-package/run/`（不写回 git frames/videos） | `npm run test:browser-e2e` / `npm run capture:review` |
+| 真实浏览器捕获 | PASS（本机 Full Capture；CI 另传 `capture-run`） | `review-package/run/`：20 帧 + 4 条 MP4；`reports/browser-e2e.json` | `npm run capture:review` |
 | Git 中旧 PNG/MP4 | stale | `review-package/frames/STALE.md` `videos/STALE.md` | 不得当作当前 HEAD 视觉证据 |
 | 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | 无源视频 |
 | 人工视觉批准 | PENDING | 实现者不得自批 | GPT Pro / 用户 |
+
+## 本机 Full Capture（`5c95db1`）
+
+- 状态：PASS；SwiftShader；20 张 PNG + 4 条 1080×1920 无声 MP4
+- Plan Hash（均为 `lockMode=frame-exact`，`clear.primary=effect.universal-clear`）：
+  - steel `fnv1a32:d3a00f57`
+  - wood `fnv1a32:f87dd1da`
+  - aurora `fnv1a32:1efc1d0c`
+- 抽查：`2d-illegal-preview` 为拖拽中的红色 3×3 非法预览（非 Game Over）；`2d-endgame` 标题为 Game Over（非 Combo 1）。
+- 3D idle 诊断无白环；peak 仍有冲击环，已减弱，**未视觉批准**。
+- 二进制只在 `review-package/run/` 与 CI Artifact `capture-run`，不要用 git 里的旧 PNG/MP4。
 
 ## 已知限制与未完成项
 

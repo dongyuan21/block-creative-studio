@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "mode": "full",
-  "startedAt": "2026-09-03T07:27:24.468Z",
+  "startedAt": "2026-09-03T10:49:14.220Z",
   "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
   "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
   "videoEncoder": true,
@@ -25,120 +25,141 @@
   "frames": [
     {
       "id": "2d-idle",
-      "path": "review-package/frames/after/2d-idle.png",
+      "path": "review-package/run/frames/after/2d-idle.png",
       "sha256": "42bdb6768eb35b8a3fda5fbc83307b1c095464dad498aa05e5332b128aee1811",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-pickup",
-      "path": "review-package/frames/after/2d-pickup.png",
+      "path": "review-package/run/frames/after/2d-pickup.png",
       "sha256": "782f6818a289d89a0eb27af04d2d9c7ebf80c26b344f23370a6dda2689cecb24",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-legal-preview",
-      "path": "review-package/frames/after/2d-legal-preview.png",
+      "path": "review-package/run/frames/after/2d-legal-preview.png",
       "sha256": "2a8354fddeaed116082ab30ca86fcb7c810eda50eb94e1e1c6c74d7ac52c0ea9",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-illegal-preview",
-      "path": "review-package/frames/after/2d-illegal-preview.png",
-      "sha256": "6a3cbd615064b2fdb2cc08d1062dcfad4820ec55d3ae3d976768d9f11f7dea9b",
+      "path": "review-package/run/frames/after/2d-illegal-preview.png",
+      "sha256": "70162889d6873ca34458427fc805c81d71738b91a21cf4a610d1df1c4723c18b",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-single-clear-start",
-      "path": "review-package/frames/after/2d-single-clear-start.png",
+      "path": "review-package/run/frames/after/2d-single-clear-start.png",
       "sha256": "fc3607c24cea9b3dfa6ca3c3575efc685b17150d36b696dcd13cb75e3ee5ebb5",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-single-clear-peak",
-      "path": "review-package/frames/after/2d-single-clear-peak.png",
+      "path": "review-package/run/frames/after/2d-single-clear-peak.png",
       "sha256": "3384a009b53dd14a3f63b2e54cb2f1357d9065ca9d091ffc28440ea896b47223",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-single-clear-end",
-      "path": "review-package/frames/after/2d-single-clear-end.png",
+      "path": "review-package/run/frames/after/2d-single-clear-end.png",
       "sha256": "b4b89b5c39d5a64f75711eb1bae3e385077c8615bf8bb60c16d1a698bed9bdfa",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-cross-clear-peak",
-      "path": "review-package/frames/after/2d-cross-clear-peak.png",
+      "path": "review-package/run/frames/after/2d-cross-clear-peak.png",
       "sha256": "ff1bdd6dd36112141b743b2cb7fbc1eaabac615e25e58237ad4f6ecea8e4c696",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-consecutive-peak",
-      "path": "review-package/frames/after/2d-consecutive-peak.png",
+      "path": "review-package/run/frames/after/2d-consecutive-peak.png",
       "sha256": "8420f061527c4bc2f02eb4ccaebff5d5903ed92eaea7ae7c808ae43a08a969d5",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-endgame",
-      "path": "review-package/frames/after/2d-endgame.png",
-      "sha256": "76c6fb8e431d167c81ab4735bf8caf96689c203ecb9e9f275bda1636ff44351d",
+      "path": "review-package/run/frames/after/2d-endgame.png",
+      "sha256": "ed7f15c358df5eab089e3c26b38028e942d32f31acc90e3d5af6b792b2f2f51e",
       "width": 1064,
       "height": 1788
     },
     {
       "id": "2d-background-only",
-      "path": "review-package/frames/pass-isolation/2d-background-only.png",
+      "path": "review-package/run/frames/pass-isolation/2d-background-only.png",
       "sha256": "aac1162a1eef54b0030f30be935740ebfdfac0ac3f29026eb0141e435ee62610",
       "width": 1064,
       "height": 1788
     },
     {
+      "id": "3d-steel-idle",
+      "path": "review-package/run/frames/after/3d-steel-idle.png",
+      "sha256": "b6f90068b6653286db1763f39ae69d992ceb19b6d4b472bca6042e07bc98e3ed",
+      "width": 1080,
+      "height": 1920
+    },
+    {
+      "id": "3d-wood-idle",
+      "path": "review-package/run/frames/after/3d-wood-idle.png",
+      "sha256": "d5df6d73ed7b9f96578118efa932b4e343cf538d42f8675e385abfd090807edb",
+      "width": 1080,
+      "height": 1920
+    },
+    {
+      "id": "3d-aurora-idle",
+      "path": "review-package/run/frames/after/3d-aurora-idle.png",
+      "sha256": "2e979992a445f2fae86eb22a6a2f63450ac62d229103a57d94a6e623f70de3b2",
+      "width": 1080,
+      "height": 1920
+    },
+    {
       "id": "3d-steel-peak",
-      "path": "review-package/frames/after/3d-steel-peak.png",
-      "sha256": "3dc7eb1c7f494d564dbc892ec038915a957ea8ed54f384b07d1ee4ed2d2e8391",
+      "path": "review-package/run/frames/after/3d-steel-peak.png",
+      "sha256": "055e080da2c0775d2f5dda288dd21a7567842e52a4bd218ffa09375fa4e6ce18",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-wood-peak",
-      "path": "review-package/frames/after/3d-wood-peak.png",
-      "sha256": "bf746dd8e8aeffc6a12c8cceef8a35573221cd9da4e1bc54fd24802ef7231f98",
+      "path": "review-package/run/frames/after/3d-wood-peak.png",
+      "sha256": "9e3432b68f2b1fcd8c584e80fee8724a2df0bd20799afafc1bbd392e44fc9728",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-aurora-peak",
-      "path": "review-package/frames/after/3d-aurora-peak.png",
-      "sha256": "445b8f878315636522b0df2d53f42cef0a894703eb9d0261e3115eef386f7afd",
+      "path": "review-package/run/frames/after/3d-aurora-peak.png",
+      "sha256": "38419511c2fff20601b60d72e1d84569cef1e872361c1efcdb8fb9642ebc7797",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-albedo",
-      "path": "review-package/frames/diagnostic/3d-steel-albedo.png",
-      "sha256": "bd11aa6189cd2452def5f40ae4c9a6b34ca247b43ccd5f3f06d9b4d60895265a",
+      "path": "review-package/run/frames/diagnostic/3d-steel-albedo.png",
+      "sha256": "4b152ca2870f29f3bdbd8562d3840a48e39f134e7d67ff1c7dd5df81fc23069f",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-roughness",
-      "path": "review-package/frames/diagnostic/3d-steel-roughness.png",
-      "sha256": "d9f418f7602105730a7ad6ad863acb9bf579f759b2afdfc8fce31e8a37a797b2",
+      "path": "review-package/run/frames/diagnostic/3d-steel-roughness.png",
+      "sha256": "4078220d85d688a7604fec1e39bfa075a5386110202f0cc6f40ef15028fb6b5c",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-metalness",
-      "path": "review-package/frames/diagnostic/3d-steel-metalness.png",
-      "sha256": "aad7a120ec64a53928aa1d0a495b33a904e35a493d38a83e692a95b6a83adcd8",
+      "path": "review-package/run/frames/diagnostic/3d-steel-metalness.png",
+      "sha256": "a835e797d7c7bdb28bd54dd1d159e9f08a20cce98168e56efc5e14078bcb551f",
       "width": 1080,
       "height": 1920
     }
@@ -146,37 +167,57 @@
   "videos": [
     {
       "id": "reference-2d",
-      "path": "review-package/videos/reference-2d-1080x1920.mp4",
-      "sha256": "dd5fe18ea42dca2ecf3b38e5328081929da88402b99105f58a1aac8ecc752505",
-      "bytes": 1121484,
+      "path": "review-package/run/videos/reference-2d-1080x1920.mp4",
+      "sha256": "45c4e8e9fb2fe0b9657ddebad8ffa1ccffc090ffaea9f163339debc2a80874ff",
+      "bytes": 1117742,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-steel",
-      "path": "review-package/videos/fixed-steel-1080x1920.mp4",
-      "sha256": "6d838b5c383c6909bbb36daa1ac8320d3fa4e37b3f3fd02d18f9e35573ca0fb7",
-      "bytes": 2067959,
+      "path": "review-package/run/videos/fixed-steel-1080x1920.mp4",
+      "sha256": "fd9d5a5d5ba20836b7242dcb732b20d719cf68abe1d02c48714510883857a662",
+      "bytes": 1960611,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-wood",
-      "path": "review-package/videos/fixed-wood-1080x1920.mp4",
-      "sha256": "603733f3effe6740290a4cf0b5987bb21c9a518b932970dc465fa4a1d9a00471",
-      "bytes": 1995929,
+      "path": "review-package/run/videos/fixed-wood-1080x1920.mp4",
+      "sha256": "1675b2bad9b0c7bde7b350a3b70c938c11c74461fe00705683162a357004de87",
+      "bytes": 1932159,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-aurora",
-      "path": "review-package/videos/fixed-aurora-1080x1920.mp4",
-      "sha256": "de4a0d1be6aee41427b952eb92289bff9fc541386fd08814d078835e3f86facf",
-      "bytes": 1899512,
+      "path": "review-package/run/videos/fixed-aurora-1080x1920.mp4",
+      "sha256": "e42a4a1097e7a4e636b67d48e163c23a191ee2102b39aa2e5ddfb3ce90f594a4",
+      "bytes": 1755937,
       "frameCount": 180,
       "durationSeconds": 6
     }
   ],
+  "planHashes": [
+    {
+      "materialId": "material.stainless-steel",
+      "planHash": "fnv1a32:d3a00f57",
+      "lockMode": "frame-exact",
+      "effectId": "effect.universal-clear"
+    },
+    {
+      "materialId": "material.oak-wood",
+      "planHash": "fnv1a32:f87dd1da",
+      "lockMode": "frame-exact",
+      "effectId": "effect.universal-clear"
+    },
+    {
+      "materialId": "material.aurora-shell",
+      "planHash": "fnv1a32:1efc1d0c",
+      "lockMode": "frame-exact",
+      "effectId": "effect.universal-clear"
+    }
+  ],
   "errors": [],
-  "finishedAt": "2026-09-03T07:38:02.817Z"
+  "finishedAt": "2026-09-03T10:59:52.924Z"
 }
