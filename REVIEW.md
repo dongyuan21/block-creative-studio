@@ -7,7 +7,8 @@
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
-实现 Head SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`  
+实现 Head SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`（Full Capture 绑定）  
+Pick/Plan 材质接线 SHA：`6a4e09f0305c103b4265d2333d359b8bc7810174`  
 依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
 执行环境：Linux, Node 22, Three.js 0.185.1  
 实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
