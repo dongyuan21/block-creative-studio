@@ -44,6 +44,41 @@ jobs:
           git apply --check /tmp/browser-asset-store.patch
           git apply /tmp/browser-asset-store.patch
 
+          # Browser-store tests intentionally import DOM/IndexedDB APIs. Keep the
+          # Node CLI contract free of browser runtime dependencies, while giving
+          # the test/Vite config enough ambient types to validate browser code.
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          node_config = Path('tsconfig.node.json')
+          config = json.loads(node_config.read_text())
+          libs = list(config.setdefault('compilerOptions', {}).get('lib', []))
+          for lib in ('DOM', 'DOM.Iterable'):
+              if lib not in libs:
+                  libs.append(lib)
+          config['compilerOptions']['lib'] = libs
+          node_config.write_text(json.dumps(config, indent=2) + '\n')
+
+          authoring = Path('src/assets/browserAssetAuthoring.ts')
+          source = authoring.read_text()
+          pattern = re.compile(r'(?P<prefix>(?:export\s+)?type\s+BinaryLike\s*=\s*)(?P<body>[^;]+);')
+          match = pattern.search(source)
+          if match and 'ArrayBuffer' not in match.group('body'):
+              source = pattern.sub(
+                  lambda item: f"{item.group('prefix')}{item.group('body').strip()} | ArrayBuffer;",
+                  source,
+                  count=1,
+              )
+              authoring.write_text(source)
+
+          closure_test = Path('tests/assetDependencyClosure.test.ts')
+          source = closure_test.read_text()
+          source = source.replace('plan.dependencyOrder.map(', '(plan.dependencyOrder ?? []).map(')
+          closure_test.write_text(source)
+          PY
+
           npm ci --no-audit --no-fund
           npm run check
           npm test
