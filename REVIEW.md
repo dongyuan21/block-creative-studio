@@ -7,7 +7,7 @@
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
-实现 Head SHA：见 PR Head  
+实现 Head SHA：`6a47f32e35af486e1afa67a605733ceab960b4c8`  
 依赖 PR/commit：无  
 执行环境：Linux 6.12, Node 22.14.0, npm 10.9.7, Three.js 0.185.1  
 实际 Renderer：单元测试为 Node；浏览器 E2E / GPU **NOT_RUN**
