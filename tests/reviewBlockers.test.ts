@@ -250,6 +250,14 @@ describe('review blockers', () => {
     };
     const lookPack = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/look.copper.json'), 'utf8')) as { contentHash: string };
     expect(recipe.lookPackRef.contentHash).toBe(lookPack.contentHash);
+    const master = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/master.demo.json'), 'utf8')) as {
+      layoutProfileRef: { id: string; contentHash: string };
+      cameraProfileRef: { id: string; contentHash: string };
+    };
+    const layout = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/layout.vertical.json'), 'utf8')) as { contentHash: string };
+    const camera = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/camera.fixed.json'), 'utf8')) as { contentHash: string };
+    expect(master.layoutProfileRef.contentHash).toBe(layout.contentHash);
+    expect(master.cameraProfileRef.contentHash).toBe(camera.contentHash);
     expect(createUniversalClearEffect().contentHash).toBe(
       (JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/effect.universal-clear.json'), 'utf8')) as { contentHash: string }).contentHash,
     );

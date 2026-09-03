@@ -91,6 +91,15 @@ if (lookHash) recipe.lookPackRef.contentHash = lookHash;
 writeJson(recipePath, recipe);
 console.log(`examples/headless/variant.copper.demo.json lookPackRef ${recipe.lookPackRef.contentHash}`);
 
+const masterPath = resolve(root, 'examples/headless/master.demo.json');
+const master = JSON.parse(readFileSync(masterPath, 'utf8'));
+const layoutHash = hashedById.get(master.layoutProfileRef?.id);
+const cameraHash = hashedById.get(master.cameraProfileRef?.id);
+if (layoutHash) master.layoutProfileRef.contentHash = layoutHash;
+if (cameraHash) master.cameraProfileRef.contentHash = cameraHash;
+writeJson(masterPath, master);
+console.log(`examples/headless/master.demo.json layout ${master.layoutProfileRef.contentHash} camera ${master.cameraProfileRef.contentHash}`);
+
 const universalJson = JSON.parse(readFileSync(resolve(root, 'examples/headless/assets/effect.universal-clear.json'), 'utf8'));
 const tsPath = resolve(root, 'src/headless/universalClearEffect.ts');
 let tsSource = readFileSync(tsPath, 'utf8');

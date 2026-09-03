@@ -232,7 +232,7 @@ export async function runBrowserCapture(options = {}) {
     planHashes: report.planHashes ?? [],
     files: listed,
   }, null, 2)}\n`);
-  if (mode === 'full') {
+  if (mode === 'full' && report.status === 'PASS') {
     const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
