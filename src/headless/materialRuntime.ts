@@ -2,12 +2,14 @@ import type {
   AssetRef,
   ColorSpaceTag,
   ContractIssue,
+  GenericAssetManifest,
   MaterialClass,
   MaterialMapBinding,
   MaterialPackManifest,
   MaterialRuntimeDescriptor,
   MaterialTextureRef,
   NormalYConvention,
+  ResolvedRenderPlan,
   TextureChannel,
 } from './contracts.js';
 import { BCS_CONTRACT_VERSION } from './contracts.js';
@@ -199,10 +201,10 @@ function resolveTextureRefUri(
 ): { uri: string; contentHash: string } {
   let uri = ref.uri;
   let contentHash = ref.contentHash;
-  if ((!uri || !contentHash) && input.registry) {
+  if (input.registry) {
     const resolved = input.registry.resolve(ref);
-    uri = uri ?? resolved.uri;
-    contentHash = contentHash ?? resolved.contentHash;
+    uri = resolved.uri ?? uri;
+    contentHash = resolved.contentHash ?? contentHash;
   }
   if (!uri || !contentHash) {
     throw new BcsHeadlessError(
@@ -567,3 +569,75 @@ export function parseMaterialRuntimeDescriptor(value: unknown): MaterialRuntimeD
   if (typeof value.emission === 'number') descriptor.emission = value.emission;
   return descriptor;
 }
+
+export function bitmapManifestFromTextureRef(ref: MaterialTextureRef): GenericAssetManifest {
+  if (!ref.uri || !ref.contentHash) {
+    throw new BcsHeadlessError(
+      'MATERIAL_TEXTURE_UNRESOLVED',
+      `Texture ${ref.id} must declare uri and contentHash before it can enter the asset registry.`,
+      { path: `$.textureRefs.${ref.id}` },
+    );
+  }
+  return {
+    contract: 'bcs.asset-manifest',
+    contractVersion: BCS_CONTRACT_VERSION,
+    id: ref.id,
+    version: ref.version,
+    kind: 'bitmap',
+    origin: 'generated',
+    contentHash: ref.contentHash,
+    uri: ref.uri,
+    runtime: {
+      renderers: ['reference-2d', 'three-3d', 'fixed-camera-cinematic'],
+      deterministic: true,
+    },
+  };
+}
+
+function planAssetKey(ref: Pick<AssetRef, 'id' | 'version'>): string {
+  return `${ref.id}@${ref.version}`;
+}
+
+/**
+ * Compile a MaterialRuntimeDescriptor from a ResolvedRenderPlan's `tile.material`
+ * slot and closed `assets` map. This is the Headless Core entry the renderer
+ * must consume — not a capture-side ID→filename table.
+ */
+export function materialRuntimeFromPlan(
+  plan: ResolvedRenderPlan,
+  options: { rewriteUri?: (uri: string) => string } = {},
+): MaterialRuntimeDescriptor {
+  const slot = plan.slots['tile.material'];
+  if (!slot || slot.manifest.kind !== 'material-pack') {
+    throw new BcsHeadlessError(
+      'TILE_MATERIAL_KIND_INVALID',
+      'ResolvedRenderPlan.slots["tile.material"] must be a material-pack.',
+      { path: '$.slots.tile.material' },
+    );
+  }
+  const pack = slot.manifest as MaterialPackManifest;
+  const assets = plan.assets ?? {};
+  return compileMaterialRuntime({
+    pack,
+    registry: {
+      resolve(ref) {
+        const resolved = assets[planAssetKey(ref)];
+        if (!resolved) {
+          throw new BcsHeadlessError(
+            'ASSET_NOT_FOUND',
+            `Plan is missing texture asset ${planAssetKey(ref)}.`,
+            { path: '$.assets' },
+          );
+        }
+        return {
+          ...(resolved.manifest.uri !== undefined ? { uri: resolved.manifest.uri } : {}),
+          ...(resolved.manifest.contentHash !== undefined
+            ? { contentHash: resolved.manifest.contentHash }
+            : ref.contentHash !== undefined ? { contentHash: ref.contentHash } : {}),
+        };
+      },
+    },
+    ...(options.rewriteUri ? { rewriteUri: options.rewriteUri } : {}),
+  });
+}
+

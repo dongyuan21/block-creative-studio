@@ -25,7 +25,7 @@ import {
 } from '../assets/runtimeAssetBindings';
 import type { ReferencePassId } from '../headless/contracts';
 import { REFERENCE_PASS_ORDER } from '../headless/contracts';
-import { isPassEnabled } from './passes';
+import { isPassEnabled, PRAISE_PASS } from './passes';
 import {
   REFERENCE_BACKGROUND,
   REFERENCE_BOARD_COLORS,
@@ -536,6 +536,11 @@ export class Reference2DScene {
     if (clearing && this.pass('clear')) {
       context.save();
       this.drawClearFx(clearing, seconds);
+      context.restore();
+    }
+    if (clearing && this.pass(PRAISE_PASS) && this.style?.reference2d.feedbackFx === 'praise-combo') {
+      context.save();
+      this.drawPraise(clearing);
       context.restore();
     }
     if (this.pass('interaction')) {
@@ -1277,10 +1282,6 @@ export class Reference2DScene {
         context.restore();
       }
       this.drawSparkCloud(clearing, seconds);
-    }
-
-    if (this.style.reference2d.feedbackFx === 'praise-combo') {
-      this.drawPraise(clearing);
     }
   }
 

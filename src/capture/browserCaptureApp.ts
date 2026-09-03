@@ -120,7 +120,7 @@ async function styleFor(
   };
   if (extras.diagnosticView) style.diagnosticView = extras.diagnosticView;
   if (extras.enabledPasses) style.enabledPasses = extras.enabledPasses;
-  if (materialId) style.materialRuntime = compileVariantRuntime(await loadPack(materialId));
+    if (materialId) style.materialRuntime = await compileVariantRuntime(await loadPack(materialId));
   return style;
 }
 

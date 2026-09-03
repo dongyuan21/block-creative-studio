@@ -21,7 +21,8 @@ import { compileTake, evaluateCompiledTake } from '../src/director/presentationC
 import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
 import { containedCompositionViewport, lockedCameraDistance, FIXED_SHOT_PROFILE } from '../src/renderer/shotProfile';
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
-import { compileVariantRuntime } from '../src/capture/materialVariants';
+import { compileRuntimeFromRegisteredPlan, rewriteMaterialMapUriForBrowser } from '../src/capture/materialVariants';
+import { PRAISE_PASS, PASS_RESPONSIBILITIES, isPassEnabled } from '../src/reference2d/passes';
 import { createPbrTileMaterial, normalScaleForConvention } from '../src/renderer/pbrMaterialFactory';
 import { resolveTakeAnchor, STILL_SPECS } from '../src/capture/capturePlan';
 import * as THREE from 'three';
@@ -167,9 +168,25 @@ describe('material runtime', () => {
     const steel = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
     const wood = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.oak-wood.json'), 'utf8'));
     const aurora = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.aurora-shell.json'), 'utf8'));
-    const steelRuntime = compileVariantRuntime(steel);
-    const woodRuntime = compileVariantRuntime(wood);
-    const auroraRuntime = compileVariantRuntime(aurora);
+    const fixture = makeFixture();
+    const steelRuntime = compileRuntimeFromRegisteredPlan(steel, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+      rewriteUri: rewriteMaterialMapUriForBrowser,
+    });
+    const woodRuntime = compileRuntimeFromRegisteredPlan(wood, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+      rewriteUri: rewriteMaterialMapUriForBrowser,
+    });
+    const auroraRuntime = compileRuntimeFromRegisteredPlan(aurora, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+      rewriteUri: rewriteMaterialMapUriForBrowser,
+    });
     expect(steelRuntime.maps).toHaveLength(5);
     expect(woodRuntime.maps).toHaveLength(5);
     expect(auroraRuntime.maps).toHaveLength(0);
@@ -193,19 +210,25 @@ describe('material runtime', () => {
     woodMat.dispose();
   });
 
-  it('still compiles maps after a textured pack is renamed to an arbitrary legal id', () => {
+  it('still compiles maps after a textured pack is renamed to an unknown user id via ResolvedRenderPlan', () => {
     const steel = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
-    steel.id = 'material.renamed-brushed-metal';
-    const fromPack = compileMaterialRuntime({ pack: steel });
-    const fromCapture = compileVariantRuntime(steel);
-    expect(fromPack.id).toBe('material.renamed-brushed-metal');
-    expect(fromPack.maps).toHaveLength(5);
-    expect(fromPack.maps.every((map) => map.uri.includes('steel-'))).toBe(true);
-    expect(fromCapture.maps).toHaveLength(5);
-    expect(fromCapture.maps.every((map) => map.uri.startsWith('/materials/maps/steel-'))).toBe(true);
-    expect(fromCapture.maps.map((map) => map.slot).sort()).toEqual(
-      fromPack.maps.map((map) => map.slot).sort(),
-    );
+    steel.id = 'material.user.blue-forged-alloy-v7';
+    const fixture = makeFixture();
+    const runtime = compileRuntimeFromRegisteredPlan(steel, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+    });
+    expect(runtime.id).toBe('material.user.blue-forged-alloy-v7');
+    expect(runtime.maps).toHaveLength(5);
+    expect(runtime.maps.every((map) => map.uri.includes('steel-'))).toBe(true);
+    expect(runtime.maps.map((map) => map.slot).sort()).toEqual([
+      'ao',
+      'baseColor',
+      'metallic',
+      'normal',
+      'roughness',
+    ]);
   });
 
   it('resolves texture URIs from the asset registry when the pack ref has no uri', () => {
@@ -386,5 +409,15 @@ describe('capture plan', () => {
     expect(resolved.frames.peak).toBeLessThan(resolved.frames.end);
     expect(STILL_SPECS.some((item) => item.id === '2d-idle')).toBe(true);
     expect(STILL_SPECS.filter((item) => item.renderer === 'fixed-camera-cinematic').length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('reference passes', () => {
+  it('gates praise on the feedback pass rather than clear', () => {
+    expect(PRAISE_PASS).toBe('feedback');
+    expect(PASS_RESPONSIBILITIES.feedback).toMatch(/praise/i);
+    expect(PASS_RESPONSIBILITIES.clear).not.toMatch(/praise/i);
+    expect(isPassEnabled(['clear'], PRAISE_PASS)).toBe(false);
+    expect(isPassEnabled(['feedback'], PRAISE_PASS)).toBe(true);
   });
 });

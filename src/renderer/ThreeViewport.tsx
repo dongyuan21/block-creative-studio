@@ -97,12 +97,16 @@ export function ThreeViewport({
     const stage = stageRef.current;
     if (!stage) return;
     let cancelled = false;
+    const apply = (): void => {
+      if (cancelled || stageRef.current !== stage) return;
+      if ((mode === 'replay' || mode === 'render') && frame) stage.setFrame(frame, style);
+      else stage.setLiveSnapshot(snapshot, style);
+    };
+    apply();
     void stage.prepareMaterialRuntime(style)
       .catch(() => undefined)
       .then(() => {
-        if (cancelled || stageRef.current !== stage) return;
-        if ((mode === 'replay' || mode === 'render') && frame) stage.setFrame(frame, style);
-        else stage.setLiveSnapshot(snapshot, style);
+        apply();
       });
     return () => {
       cancelled = true;

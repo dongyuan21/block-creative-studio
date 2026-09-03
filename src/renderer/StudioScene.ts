@@ -28,6 +28,7 @@ import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
 import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
 import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureCacheKey } from './runtimeTextures';
+import { MaterialRuntimeLoadGate } from './materialRuntimeLoadGate';
 import { containedCompositionViewport, FIXED_SHOT_PROFILE, lockedCameraDistance } from './shotProfile';
 import { materialCacheKey } from '../headless/materialRuntime';
 
@@ -310,7 +311,8 @@ export class StudioScene {
   private runtimeTextures: RuntimeTextureSet = {};
   private runtimeTextureKey = '';
   private runtimeTextureFailure: string | null = null;
-  private materialRuntimeLoadId = 0;
+  private readonly materialLoadGate = new MaterialRuntimeLoadGate();
+  private committedMaterialRuntime: StyleSpec['materialRuntime'];
 
   constructor(canvas: HTMLCanvasElement, options: StudioSceneOptions = {}) {
     this.canvas = canvas;
@@ -556,14 +558,16 @@ export class StudioScene {
   async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
     const maps = style.materialRuntime?.maps ?? [];
     const key = runtimeTextureCacheKey(maps);
-    if (key === this.runtimeTextureKey && !this.runtimeTextureFailure) return;
+    if (this.materialLoadGate.shouldSkip(key)) return;
 
-    const loadId = ++this.materialRuntimeLoadId;
+    const loadId = this.materialLoadGate.begin();
     if (maps.length === 0) {
+      if (!this.materialLoadGate.commit(loadId, key)) return;
       disposeRuntimeTextureSet(this.runtimeTextures);
       this.runtimeTextures = {};
       this.runtimeTextureKey = key;
       this.runtimeTextureFailure = null;
+      this.committedMaterialRuntime = style.materialRuntime;
       this.style = style;
       this.invalidateRuntimeMaterials();
       return;
@@ -571,7 +575,11 @@ export class StudioScene {
 
     try {
       const loaded = await loadRuntimeTextureSet(maps);
-      if (loadId !== this.materialRuntimeLoadId) {
+      if (!this.materialLoadGate.isCurrent(loadId)) {
+        disposeRuntimeTextureSet(loaded);
+        return;
+      }
+      if (!this.materialLoadGate.commit(loadId, key)) {
         disposeRuntimeTextureSet(loaded);
         return;
       }
@@ -579,16 +587,13 @@ export class StudioScene {
       this.runtimeTextures = loaded;
       this.runtimeTextureKey = key;
       this.runtimeTextureFailure = null;
+      this.committedMaterialRuntime = style.materialRuntime;
       this.style = style;
       this.invalidateRuntimeMaterials();
     } catch (error) {
-      if (loadId !== this.materialRuntimeLoadId) return;
-      disposeRuntimeTextureSet(this.runtimeTextures);
-      this.runtimeTextures = {};
-      this.runtimeTextureKey = '';
-      this.runtimeTextureFailure = error instanceof Error ? error.message : String(error);
-      this.style = style;
-      this.invalidateRuntimeMaterials();
+      const message = error instanceof Error ? error.message : String(error);
+      if (!this.materialLoadGate.fail(loadId, message)) return;
+      this.runtimeTextureFailure = message;
       throw error;
     }
   }
@@ -639,7 +644,8 @@ export class StudioScene {
     this.runtimeTextures = {};
     this.runtimeTextureKey = '';
     this.runtimeTextureFailure = null;
-    this.materialRuntimeLoadId += 1;
+    this.committedMaterialRuntime = undefined;
+    this.materialLoadGate.dispose();
     this.environmentTarget.dispose();
     for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();
@@ -688,7 +694,7 @@ export class StudioScene {
     const clearingKey = this.frame.clearing
       ? `${this.frame.clearing.seed}:${Math.round(this.frame.clearing.progress * 90)}`
       : 'none';
-    const lookKey = `${this.style.material}:${this.style.materialRuntime?.contentHash ?? 'preset'}:${this.style.diagnosticView ?? 'beauty'}`;
+    const lookKey = `${this.style.material}:${this.committedMaterialRuntime?.contentHash ?? this.style.materialRuntime?.contentHash ?? 'preset'}:${this.runtimeTextureKey}:${this.style.diagnosticView ?? 'beauty'}`;
     const boardKey = `${boardFingerprint(this.frame.board)}:${this.currentGeometryKey}:${lookKey}:${clearingKey}`;
     if (boardKey !== this.currentBoardKey) {
       this.rebuildBoardTiles();
@@ -870,7 +876,7 @@ export class StudioScene {
   private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
     if (!this.style) throw new Error('Style not initialized.');
     const environmentIntensity = this.style.lookDev.environmentIntensity;
-    const runtime = this.style.materialRuntime;
+    const runtime = this.committedMaterialRuntime ?? this.style.materialRuntime;
     const diagnostic = this.style.diagnosticView ?? 'beauty';
     const key = runtime
       ? `${materialCacheKey(runtime, { color, opacity, lookDevId: this.style.lookDev.id })}:${diagnostic}`

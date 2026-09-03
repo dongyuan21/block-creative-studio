@@ -102,7 +102,7 @@ npm run capture:review
 1. Reference 2D 导出 letterbox 是否接受（不再拉伸）。这是过渡性 reference-transfer，不是完成的 9:16 生产构图。  
 2. Golden 39 条全部 BLOCKED 是否符合“缺源视频不得造 PASS”；无 Take hash 时不得默认 exact-replay。  
 3. `fixed-camera-cinematic` 是否只是锁定构图的 Three.js 后端，而不是改名冒充新引擎。  
-4. 钢/木贴图是否来自 Pack `textureRefs`（改名后仍应带 maps），而不是 capture ID→文件名表。  
+4. 钢/木贴图是否来自 ResolvedRenderPlan 的 `tile.material` 闭包（`material.user.blue-forged-alloy-v7` 仍应带 maps），而不是 capture ID→文件名表。  
 5. DirectX 法线 Y 只翻转一次；split roughness/metallic `channels:'r'` 经 swizzle 后应与 ORM 等价。  
 6. 导入工程必须拒绝伪造的 `materialRuntime`（`..` / 非法协议 / 短 hash）。  
 7. `captureReferenceFrame()` 默认要求资源就绪；Golden Diff 不得静默比较内置回退。  
@@ -112,9 +112,9 @@ npm run capture:review
 
 已按 inline review 修改，不将 T0–T5 标为完成，也不做视觉自批：
 
-- 去掉 `SLOT_FILES` 材质 ID 表；`compileMaterialRuntime` 从 Pack `textureRefs`（及可选 Registry）解析 URI。  
+- 去掉 `SLOT_FILES` 材质 ID 表。Capture 与测试走 `MaterialPack → AssetRegistry → VariantRecipe → ResolvedRenderPlan → materialRuntimeFromPlan`；陌生 ID `material.user.blue-forged-alloy-v7` 仍应带 maps。  
 - 加载时按 Three.js 约定 swizzle 通道；emission map 不再跳过；DirectX `normalScale.y` 只乘一次。  
-- `prepareMaterialRuntime` 用 generation token，成功才提交 cache key，失败可重试，过期结果丢弃。  
+- `prepareMaterialRuntime` 用 generation token：成功才提交 cache key，失败保留上一套完整材质并可重试，过期结果丢弃。四类竞态回归：A→B→A、失败后重试、dispose 丢弃、加载中切换。  
 - 工程导入走 `parseMaterialRuntimeDescriptor`。  
 - 60→30fps 用 `round(sourceFrame * targetFps / sourceFps)`；exact-replay 必须带 `targetTakeHash`。  
 - `captureReferenceFrame()` `requireAssets: true`；预览单独使用 `capturePreviewFrame()`。  

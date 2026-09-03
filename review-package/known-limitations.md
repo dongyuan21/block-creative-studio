@@ -3,7 +3,7 @@
 - Original reference MP4/frames are not in the public repo. All 39 Golden content cases remain BLOCKED. Public-fixture tool checks and native captures are not a substitute for exact-replay against the commercial video. Without a target Take hash, Golden batch correspondence is `isolated-presentation`.
 - 1064×1788 → 1080×1920 letterbox is a transitional reference-transfer mapping, not a finished 9:16 production profile.
 - `world-normal`, `highlight-clip` and `bloom-contribution` diagnostic ids are proxy visualizations, not named G-buffer / HDR clip / bloom buffers.
-- T1 is still one `Reference2DScene` with pass conditionals. Praise is specified as a feedback concern but is currently painted from the clear pass.
+- T1 is still one `Reference2DScene` with pass conditionals. Praise is gated by the `feedback` pass (`PRAISE_PASS`) and painted after clear so it stays on top.
 - Browser capture ran on Headless Chrome 148 + SwiftShader. That proves WebCodecs/WebGL function, not high-end GPU performance or desktop interactive framerate.
 - Before/after/diff against the pre-T1 proxy-upscale path was not frozen before the refactor; `review-package/frames/after/` are current native frames. `frames/before` is absent on purpose (NOT_RUN).
 - Bloom is still UnrealBloomPass threshold-bloom. Not selective-bloom.
