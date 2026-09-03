@@ -188,6 +188,8 @@
   background: #101826;
 }
 .tpt-tool-group { display: flex; align-items: center; gap: 5px; }
+.mode-play .tpt-authoring-tools,
+.mode-play .tpt-snap-readout { display: none; }
 .tpt-stage-toolbar button { flex: 0 0 auto; min-height: 27px; padding: 0 9px; font-size: 10px; white-space: nowrap; }
 .tpt-stage-toolbar .tpt-magnet-button {
   display: inline-flex;
@@ -269,6 +271,33 @@
   color: #b9c5d7;
   background: #111b2a;
   font-size: 9px;
+}
+.tpt-play-display-control {
+  flex: 0 0 auto;
+  height: 29px;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid rgba(91, 113, 139, 0.55);
+  border-radius: 8px;
+  background: rgba(4, 12, 22, 0.5);
+}
+.tpt-layer-filter .tpt-play-display-control > span {
+  margin: 0 4px;
+  color: #8796aa;
+}
+.tpt-stage-toolbar .tpt-play-display-control button {
+  min-height: 23px;
+  padding: 0 8px;
+  border-radius: 6px;
+}
+.tpt-stage-toolbar .tpt-play-display-control button.is-active {
+  border-color: rgba(84, 225, 190, 0.68);
+  color: #effff9;
+  background: rgba(56, 198, 165, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(116, 255, 220, 0.06);
 }
 
 .tpt-validation-banner {
@@ -577,16 +606,16 @@
 .mode-play .stack-tile { cursor: pointer; }
 .mode-play .stack-tile.is-locked { cursor: pointer; }
 .mode-validate .stack-tile.is-game-blocked .tile-body,
-.mode-play .stack-tile.is-game-blocked .tile-body,
 .mode-replay .stack-tile.is-game-blocked .tile-body,
 .debug-playability .stack-tile.is-game-blocked .tile-body,
-.debug-blockers .stack-tile.is-game-blocked .tile-body {
+.debug-blockers .stack-tile.is-game-blocked .tile-body,
+.mode-play .stack-tile.is-play-display-dimmed .tile-body {
   filter: grayscale(0.65) brightness(0.63);
   opacity: 0.72;
 }
 .mode-validate .stack-tile.is-playable,
-.mode-play .stack-tile.is-playable,
-.debug-playability .stack-tile.is-playable {
+.debug-playability .stack-tile.is-playable,
+.mode-play .stack-tile.is-play-display-highlighted {
   filter: drop-shadow(0 0 4px rgba(91, 240, 191, 0.72));
 }
 .stack-tile.is-blocker-related::after {

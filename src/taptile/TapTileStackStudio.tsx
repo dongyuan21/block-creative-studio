@@ -71,6 +71,13 @@ import {
 import { GameplayTray } from './play/GameplayTray';
 import { useGameplaySession } from './play/useGameplaySession';
 import {
+  normalizeTapTilePlayDisplayMode,
+  TAPTILE_PLAY_DISPLAY_MODES,
+  TAPTILE_PLAY_DISPLAY_STORAGE_KEY,
+  tapTilePlayDisplayTreatment,
+  type TapTilePlayDisplayMode,
+} from './play/playDisplayMode';
+import {
   resolveTileVisual,
   resolveTileVisualForMatchKey,
   validateSkinPack,
@@ -226,6 +233,14 @@ function initialProject(): TapTileProjectV2 {
   return fitProjectBelowTopTray(createDefaultTapTileProject('hourglass'));
 }
 
+function initialPlayDisplayMode(): TapTilePlayDisplayMode {
+  try {
+    return normalizeTapTilePlayDisplayMode(window.localStorage.getItem(TAPTILE_PLAY_DISPLAY_STORAGE_KEY));
+  } catch {
+    return 'all';
+  }
+}
+
 interface DragSession {
   pointerId: number;
   startClientX: number;
@@ -296,6 +311,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const snapClearTimerRef = useRef<number | null>(null);
   const rejectClearTimerRef = useRef<number | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<TapTileWorkspaceMode>('edit');
+  const [playDisplayMode, setPlayDisplayMode] = useState<TapTilePlayDisplayMode>(initialPlayDisplayMode);
   const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
   const [liveMatchEffects, setLiveMatchEffects] = useState<GameplayMatchEffect[]>([]);
   const liveMatchTimersRef = useRef<Map<string, number>>(new Map());
@@ -432,6 +448,14 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     }, 240);
     return () => window.clearTimeout(timer);
   }, [project]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(TAPTILE_PLAY_DISPLAY_STORAGE_KEY, playDisplayMode);
+    } catch {
+      // A blocked preference store should not affect the gameplay session.
+    }
+  }, [playDisplayMode]);
 
   useEffect(() => () => {
     if (snapClearTimerRef.current !== null) window.clearTimeout(snapClearTimerRef.current);
@@ -1092,13 +1116,14 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
   return (
     <div
-      className={`tpt-studio mode-${workspaceMode} debug-${project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}
+      className={`tpt-studio mode-${workspaceMode} debug-${workspaceMode === 'play' ? 'normal' : project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}
       style={TAPTILE_STUDIO_STYLE}
       data-level-hash={compiledLevel.levelHash}
       data-state-hash={displayState ? tapTileStateHash(displayState) : ''}
       data-selected-theme={project.visuals.selectedThemeId}
       data-director-profile={compiledDirector?.profileId ?? ''}
       data-director-frame={directorPresentation?.frameNumber ?? ''}
+      data-play-display-mode={playDisplayMode}
     >
       <header className="tpt-topbar">
         <div className="tpt-brand">
@@ -1193,7 +1218,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
         <section className="tpt-stage-column">
           <div className="tpt-stage-toolbar">
-            <div className="tpt-tool-group">
+            <div className="tpt-tool-group tpt-authoring-tools">
               <button
                 className={`tpt-magnet-button${project.authoring.snap ? ' is-active' : ''}`}
                 disabled={workspaceMode !== 'edit'}
@@ -1251,17 +1276,37 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               {usedLayers.map((layer) => (
                 <button key={layer} className={layerFocus === layer ? 'is-active' : ''} onClick={() => setLayerFocus(layer)}>{layer + 1}</button>
               ))}
-              <select
-                aria-label="调试视图"
-                value={project.authoring.debugView}
-                onChange={(event) => setAuthoringOption('debugView', event.target.value as TapTileProjectV2['authoring']['debugView'])}
-                disabled={workspaceMode === 'play' || workspaceMode === 'replay'}
-              >
-                <option value="normal">普通</option>
-                <option value="playability">可点击态</option>
-                <option value="blockers">阻挡关系</option>
-                <option value="single-layer">单层</option>
-              </select>
+              {workspaceMode === 'play' ? (
+                <div className="tpt-play-display-control" role="group" aria-label="试玩显示模式">
+                  <span>试玩显示</span>
+                  {TAPTILE_PLAY_DISPLAY_MODES.map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      data-play-display-option={mode.id}
+                      className={playDisplayMode === mode.id ? 'is-active' : ''}
+                      aria-pressed={playDisplayMode === mode.id}
+                      title={mode.description}
+                      onClick={() => {
+                        setPlayDisplayMode(mode.id);
+                        setNotice(mode.description);
+                      }}
+                    >{mode.label}</button>
+                  ))}
+                </div>
+              ) : (
+                <select
+                  aria-label="调试视图"
+                  value={project.authoring.debugView}
+                  onChange={(event) => setAuthoringOption('debugView', event.target.value as TapTileProjectV2['authoring']['debugView'])}
+                  disabled={workspaceMode === 'replay'}
+                >
+                  <option value="normal">普通</option>
+                  <option value="playability">可点击态</option>
+                  <option value="blockers">阻挡关系</option>
+                  <option value="single-layer">单层</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -1323,7 +1368,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               )}
               <div className="tpt-safe-area" aria-hidden="true"><span>游戏区域</span></div>
 
-              {(workspaceMode === 'validate' || project.authoring.debugView === 'blockers') && (
+              {(workspaceMode === 'validate' || (workspaceMode !== 'play' && project.authoring.debugView === 'blockers')) && (
                 <svg className="tpt-blocker-graph" viewBox={`0 0 ${STACK_STAGE.width} ${STACK_STAGE.height}`} aria-hidden="true">
                   <defs>
                     <marker id="tpt-blocker-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
@@ -1408,6 +1453,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
                 const snapTarget = snapTargetIds.includes(tile.id);
                 const playable = displayedPlayableIds.has(tile.id);
+                const playTreatment = tapTilePlayDisplayTreatment(playDisplayMode, playable);
                 const related = primaryTile
                   ? (compiledLevel.blockersByTile[primaryTile.id] ?? []).includes(tile.id)
                     || (compiledLevel.dependentsByTile[primaryTile.id] ?? []).includes(tile.id)
@@ -1423,7 +1469,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                     data-tile-id={tile.id}
                     data-match-key={tile.faceId}
                     data-playable={playable ? 'true' : 'false'}
-                    className={`stack-tile${selected ? ' is-selected' : ''}${dimmed ? ' is-dimmed' : ''}${tile.locked ? ' is-locked' : ''}${snapTarget ? ' is-snap-target' : ''}${playable ? ' is-playable' : ' is-game-blocked'}${related ? ' is-blocker-related' : ''}${rejectedTileId === tile.id ? ' is-rejected' : ''}`}
+                    className={`stack-tile${selected ? ' is-selected' : ''}${dimmed ? ' is-dimmed' : ''}${tile.locked ? ' is-locked' : ''}${snapTarget ? ' is-snap-target' : ''}${playable ? ' is-playable' : ' is-game-blocked'}${workspaceMode === 'play' && playTreatment.dimmed ? ' is-play-display-dimmed' : ''}${workspaceMode === 'play' && playTreatment.highlighted ? ' is-play-display-highlighted' : ''}${related ? ' is-blocker-related' : ''}${rejectedTileId === tile.id ? ' is-rejected' : ''}`}
                     aria-label={`${faceGlyph(project, tile.faceId)} 第 ${tile.layer + 1} 层`}
                     style={{
                       left: `${(tile.x / STACK_STAGE.width) * 100}%`,
