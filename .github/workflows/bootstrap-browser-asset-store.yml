@@ -75,7 +75,7 @@ jobs:
 
           closure_test = Path('tests/assetDependencyClosure.test.ts')
           source = closure_test.read_text()
-          source = source.replace('plan.dependencyOrder.map(', '(plan.dependencyOrder ?? []).map(')
+          source = source.replace('plan.dependencyOrder', '(plan.dependencyOrder ?? [])')
           closure_test.write_text(source)
           PY
 
