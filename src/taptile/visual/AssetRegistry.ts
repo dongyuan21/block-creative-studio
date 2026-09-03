@@ -1,4 +1,5 @@
 import type { AssetManifest, AssetManifestEntry } from '../project';
+import { resolveTapTileBuiltinAssetUrl } from '../assetUrl';
 import type { ResolvedAsset } from './types';
 
 export class TapTileAssetRegistry {
@@ -21,7 +22,7 @@ export class TapTileAssetRegistry {
   resolve(assetId: string): ResolvedAsset {
     const entry = this.entry(assetId);
     if (entry.source.type === 'builtin') {
-      return { entry, uri: entry.source.uri, persistence: 'builtin' };
+      return { entry, uri: resolveTapTileBuiltinAssetUrl(entry.source.uri), persistence: 'builtin' };
     }
     return { entry, persistence: 'indexeddb' };
   }

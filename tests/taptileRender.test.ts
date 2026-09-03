@@ -11,6 +11,7 @@ import {
   createDefaultTapTileProject,
   type TapTileTakeAction,
 } from '../src/taptile/project';
+import { resolveTapTileBuiltinAssetUrl } from '../src/taptile/assetUrl';
 import {
   createTapTileRenderJob,
   hashPixelBytes,
@@ -77,6 +78,15 @@ describe('generic fixed-frame render jobs', () => {
 });
 
 describe('TapTile Canvas render pipeline', () => {
+  it('resolves built-in assets beneath a GitHub Pages project base without changing external URLs', () => {
+    expect(resolveTapTileBuiltinAssetUrl('/assets/taptile/tile.png', '/block-creative-studio/'))
+      .toBe('/block-creative-studio/assets/taptile/tile.png');
+    expect(resolveTapTileBuiltinAssetUrl('/assets/taptile/tile.png', '/'))
+      .toBe('/assets/taptile/tile.png');
+    expect(resolveTapTileBuiltinAssetUrl('https://cdn.example.com/tile.png', '/block-creative-studio/'))
+      .toBe('https://cdn.example.com/tile.png');
+  });
+
   it('deduplicates asset decoding and freezes asset versions', async () => {
     const project = createDefaultTapTileProject('hourglass');
     let decodes = 0;

@@ -503,7 +503,7 @@
   transform: translateY(-4%);
   border: 1px solid rgba(116, 119, 122, 0.72);
   background-color: #f7f2e8;
-  background-image: url("/assets/taptile/classic-tile-surface-v1.png");
+  background-image: var(--tpt-classic-tile-surface, none);
   background-position: center;
   background-size: cover;
   box-shadow:

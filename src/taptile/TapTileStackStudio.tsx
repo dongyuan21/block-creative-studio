@@ -5,6 +5,7 @@ import {
   useReducer,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import {
@@ -73,6 +74,7 @@ import { ensureTapTileProductionDefaults } from './production';
 import { TapTileProductionPanel } from './production/TapTileProductionPanel';
 import { exportFixedFrameVideo, type FrameRenderProgress } from '../exporter/fixedFrameExporter';
 import { safeFileName } from '../utils/download';
+import { resolveTapTileBuiltinAssetUrl } from './assetUrl';
 import {
   TAPTILE_WORKSPACE_MODES,
   type TapTileWorkspaceMode,
@@ -81,6 +83,9 @@ import './taptile-studio.css';
 
 const AUTOSAVE_KEY_V2 = 'taptile-director-project/autosave/v2';
 const AUTOSAVE_KEY_V1 = 'taptile-stack-studio/autosave/v1';
+const TAPTILE_STUDIO_STYLE = {
+  '--tpt-classic-tile-surface': `url("${resolveTapTileBuiltinAssetUrl('/assets/taptile/classic-tile-surface-v1.png')}")`,
+} as CSSProperties;
 
 const ALIGNMENT_ACTIONS: Array<{
   command: StackAlignmentCommand;
@@ -993,6 +998,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   return (
     <div
       className={`tpt-studio mode-${workspaceMode} debug-${project.authoring.debugView} theme-${project.authoring.sceneTheme} material-${project.authoring.material}`}
+      style={TAPTILE_STUDIO_STYLE}
       data-level-hash={compiledLevel.levelHash}
       data-state-hash={displayState ? tapTileStateHash(displayState) : ''}
       data-selected-theme={project.visuals.selectedThemeId}

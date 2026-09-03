@@ -1,4 +1,5 @@
 import { stableHash, type AssetManifestEntry, type TapTileProjectV2 } from '../project';
+import { resolveTapTileBuiltinAssetUrl } from '../assetUrl';
 
 export interface TapTileAssetCacheLoaders {
   image?(entry: AssetManifestEntry, uri: string): Promise<CanvasImageSource>;
@@ -52,7 +53,7 @@ export class TapTileAssetCache {
   }
 
   private async sourceUri(entry: AssetManifestEntry): Promise<string> {
-    if (entry.source.type === 'builtin') return entry.source.uri;
+    if (entry.source.type === 'builtin') return resolveTapTileBuiltinAssetUrl(entry.source.uri);
     if (!this.loaders.indexedDbBlob) throw new Error(`ASSET_INDEXEDDB_RESOLVER_MISSING: ${entry.id}`);
     const blob = await this.loaders.indexedDbBlob(entry.source.blobId);
     const uri = URL.createObjectURL(blob);
