@@ -49,6 +49,12 @@ import {
   type StackSelectionRect,
 } from './stackSelection';
 import {
+  formatTapTileSnapGapPx,
+  MAX_TAPTILE_SNAP_GAP_PX,
+  MIN_TAPTILE_SNAP_GAP_PX,
+  normalizeTapTileSnapGapPx,
+} from './snapGap';
+import {
   compileTapTileLevel,
   playableTapTileIds,
   solveTapTileTake,
@@ -530,6 +536,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     next.authoring.material = project.authoring.material;
     next.authoring.sceneTheme = project.authoring.sceneTheme;
     next.authoring.snap = project.authoring.snap;
+    next.authoring.snapGapPx = project.authoring.snapGapPx;
     next.authoring.showLayerBadges = project.authoring.showLayerBadges;
     next.visuals.selectedThemeId = project.visuals.selectedThemeId;
     dispatch({ type: 'commit', value: next });
@@ -628,6 +635,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       rawDx,
       rawDy,
       enabled: session.baseline.authoring.snap && !event.altKey,
+      snapGapPx: session.baseline.authoring.snapGapPx,
       previousLocks: session.locks,
       threshold: (9 * STACK_STAGE.width) / Math.max(1, rect.width),
       releaseThreshold: (18 * STACK_STAGE.width) / Math.max(1, rect.width),
@@ -738,6 +746,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const setProjectName = (name: string): void => commit((draft) => {
     draft.name = name;
   });
+
+  const setSnapGapPx = (value: number): void => {
+    const snapGapPx = normalizeTapTileSnapGapPx(value);
+    setAuthoringOption('snapGapPx', snapGapPx);
+    setNotice(`同层牌吸附缝隙已设为 ${formatTapTileSnapGapPx(snapGapPx)}`);
+  };
 
   const setVisualTheme = (themeId: string): void => {
     if (!project.visuals.themes[themeId]) return;
@@ -1109,6 +1123,28 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 }}
                 title="识别中心、边缘、两牌中线与等距轨道"
               ><span aria-hidden="true">⌁</span> 智能吸附</button>
+              <div className="tpt-snap-gap-control" role="group" aria-label="同层牌吸附缝隙">
+                <span>缝隙</span>
+                <button
+                  type="button"
+                  disabled={workspaceMode !== 'edit' || project.authoring.snapGapPx <= MIN_TAPTILE_SNAP_GAP_PX}
+                  onClick={() => setSnapGapPx(project.authoring.snapGapPx - 1)}
+                  title="最终成片中的吸附缝隙减小 1 像素"
+                >−1</button>
+                <button
+                  type="button"
+                  className={project.authoring.snapGapPx === 0 ? 'is-default' : ''}
+                  disabled={workspaceMode !== 'edit'}
+                  onClick={() => setSnapGapPx(0)}
+                  title="恢复最终成片默认缝隙 0 像素"
+                >{formatTapTileSnapGapPx(project.authoring.snapGapPx)}</button>
+                <button
+                  type="button"
+                  disabled={workspaceMode !== 'edit' || project.authoring.snapGapPx >= MAX_TAPTILE_SNAP_GAP_PX}
+                  onClick={() => setSnapGapPx(project.authoring.snapGapPx + 1)}
+                  title="最终成片中的吸附缝隙增大 1 像素"
+                >+1</button>
+              </div>
               <button onClick={selectAllVisible} disabled={workspaceMode !== 'edit' || visibleTileIds.length === 0} title="Ctrl+A">全选</button>
               <button onClick={clearSelection} disabled={selectedIds.length === 0} title="Esc">取消选择</button>
               <button onClick={duplicateSelected} disabled={workspaceMode !== 'edit' || selectedIds.length === 0}>＋ 复制</button>
@@ -1126,7 +1162,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               <i aria-hidden="true">⌁</i>
               <span>{snapGuides.length > 0
                 ? [...new Set(snapGuides.map((guide) => guide.label))].join(' · ')
-                : project.authoring.snap ? '等待吸附' : '吸附已关闭'}</span>
+                : project.authoring.snap ? `等待吸附 · ${formatTapTileSnapGapPx(project.authoring.snapGapPx)}` : '吸附已关闭'}</span>
             </div>
             <div className="tpt-tool-group tpt-layer-filter">
               <span>查看</span>

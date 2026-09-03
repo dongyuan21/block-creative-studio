@@ -202,6 +202,35 @@
   background: rgba(30, 187, 197, 0.12);
   box-shadow: inset 0 0 0 1px rgba(66, 236, 239, 0.06);
 }
+.tpt-snap-gap-control {
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid rgba(91, 113, 139, 0.48);
+  border-radius: 7px;
+  background: rgba(4, 12, 22, 0.42);
+}
+.tpt-snap-gap-control > span {
+  padding: 0 4px;
+  color: #7f8da2;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.tpt-stage-toolbar .tpt-snap-gap-control button {
+  min-width: 27px;
+  min-height: 21px;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.tpt-stage-toolbar .tpt-snap-gap-control button:nth-of-type(2) { min-width: 42px; }
+.tpt-stage-toolbar .tpt-snap-gap-control button.is-default {
+  color: #bffffd;
+  border-color: rgba(75, 225, 224, 0.36);
+  background: rgba(39, 190, 193, 0.11);
+}
 .tpt-snap-readout {
   min-width: 92px;
   display: flex;
@@ -352,6 +381,7 @@
   background: var(--snap-color);
   box-shadow: 0 0 0 1px rgba(8, 22, 34, 0.32), 0 0 10px color-mix(in srgb, var(--snap-color) 60%, transparent);
 }
+.tpt-snap-guide.kind-gap { --snap-color: #5cf1ee; }
 .tpt-snap-guide.kind-seam { --snap-color: #ff7ee2; }
 .tpt-snap-guide.kind-spacing { --snap-color: #ffd663; }
 .tpt-snap-guide.kind-stage { --snap-color: #9d8cff; }
@@ -998,6 +1028,7 @@
 
 @media (max-width: 1280px) {
   .tpt-snap-readout { display: none; }
+  .tpt-snap-gap-control > span { display: none; }
   .tpt-stage-toolbar { gap: 8px; }
   .tpt-stage-toolbar button { padding-inline: 7px; }
 }

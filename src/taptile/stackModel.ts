@@ -42,6 +42,7 @@ export interface TapTileStackProject {
   material: TileMaterialId;
   theme: SceneThemeId;
   snap: boolean;
+  snapGapPx?: number;
   showLayerBadges: boolean;
   tiles: StackTile[];
   updatedAt: string;
@@ -107,12 +108,12 @@ function pushCenteredRow(
   count: number,
   y: number,
   layer: number,
-  gap = 57,
+  pitch = STACK_STAGE.tileSize,
   centerX = STACK_STAGE.width / 2,
 ): void {
-  const startX = centerX - ((count - 1) * gap) / 2;
+  const startX = centerX - ((count - 1) * pitch) / 2;
   for (let column = 0; column < count; column += 1) {
-    target.push(templateTile(template, target.length, startX + column * gap, y, layer));
+    target.push(templateTile(template, target.length, startX + column * pitch, y, layer));
   }
 }
 
@@ -120,39 +121,39 @@ function hourglassTiles(): StackTile[] {
   const tiles: StackTile[] = [];
   const widths = [6, 5, 4, 3, 2, 2, 3, 4, 5, 6];
   widths.forEach((count, row) => {
-    pushCenteredRow(tiles, 'hourglass', count, 178 + row * 51, row % 3, 58);
+    pushCenteredRow(tiles, 'hourglass', count, 178 + row * 51, row % 3);
   });
-  pushCenteredRow(tiles, 'hourglass', 3, 320, 4, 54);
-  pushCenteredRow(tiles, 'hourglass', 3, 523, 4, 54);
-  pushCenteredRow(tiles, 'hourglass', 2, 706, 0, 58);
+  pushCenteredRow(tiles, 'hourglass', 3, 320, 4);
+  pushCenteredRow(tiles, 'hourglass', 3, 523, 4);
+  pushCenteredRow(tiles, 'hourglass', 2, 706, 0);
   return tiles;
 }
 
 function tShapeTiles(): StackTile[] {
   const tiles: StackTile[] = [];
-  pushCenteredRow(tiles, 't-shape', 6, 180, 0, 58);
-  pushCenteredRow(tiles, 't-shape', 6, 229, 1, 58, STACK_STAGE.width / 2 + 7);
-  pushCenteredRow(tiles, 't-shape', 5, 278, 2, 58);
+  pushCenteredRow(tiles, 't-shape', 6, 180, 0);
+  pushCenteredRow(tiles, 't-shape', 6, 229, 1, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + 7);
+  pushCenteredRow(tiles, 't-shape', 5, 278, 2);
   for (let row = 0; row < 5; row += 1) {
-    pushCenteredRow(tiles, 't-shape', 2, 327 + row * 49, 1 + (row % 3), 56);
+    pushCenteredRow(tiles, 't-shape', 2, 327 + row * 49, 1 + (row % 3));
   }
-  pushCenteredRow(tiles, 't-shape', 5, 574, 0, 58);
-  pushCenteredRow(tiles, 't-shape', 6, 623, 1, 58);
-  pushCenteredRow(tiles, 't-shape', 6, 672, 2, 58, STACK_STAGE.width / 2 - 5);
-  pushCenteredRow(tiles, 't-shape', 1, 724, 0, 58);
+  pushCenteredRow(tiles, 't-shape', 5, 574, 0);
+  pushCenteredRow(tiles, 't-shape', 6, 623, 1);
+  pushCenteredRow(tiles, 't-shape', 6, 672, 2, STACK_STAGE.tileSize, STACK_STAGE.width / 2 - 5);
+  pushCenteredRow(tiles, 't-shape', 1, 724, 0);
   return tiles;
 }
 
 function terraceTiles(): StackTile[] {
   const tiles: StackTile[] = [];
   for (let row = 0; row < 4; row += 1) {
-    pushCenteredRow(tiles, 'terraces', 6, 180 + row * 48, row, 58, STACK_STAGE.width / 2 + (row % 2 ? 8 : -8));
+    pushCenteredRow(tiles, 'terraces', 6, 180 + row * 48, row, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + (row % 2 ? 8 : -8));
   }
   for (let row = 0; row < 4; row += 1) {
-    pushCenteredRow(tiles, 'terraces', 5, 430 + row * 48, row % 3, 62, STACK_STAGE.width / 2 + (row % 2 ? -10 : 10));
+    pushCenteredRow(tiles, 'terraces', 5, 430 + row * 48, row % 3, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + (row % 2 ? -10 : 10));
   }
-  pushCenteredRow(tiles, 'terraces', 6, 650, 1, 59);
-  pushCenteredRow(tiles, 'terraces', 1, 716, 0, 59);
+  pushCenteredRow(tiles, 'terraces', 6, 650, 1);
+  pushCenteredRow(tiles, 'terraces', 1, 716, 0);
   return tiles;
 }
 
@@ -183,6 +184,7 @@ export function makeTemplateProject(templateId: StackTemplateId): TapTileStackPr
     material: 'porcelain',
     theme: 'deep-ocean',
     snap: true,
+    snapGapPx: 0,
     showLayerBadges: false,
     tiles,
     updatedAt: new Date().toISOString(),

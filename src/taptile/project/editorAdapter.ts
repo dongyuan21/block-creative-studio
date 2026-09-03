@@ -63,6 +63,7 @@ export function projectAsLegacyView(project: TapTileProjectV2): TapTileStackProj
     material: project.authoring.material,
     theme: project.authoring.sceneTheme,
     snap: project.authoring.snap,
+    snapGapPx: project.authoring.snapGapPx,
     showLayerBadges: project.authoring.showLayerBadges,
     tiles: projectStackTiles(project),
     updatedAt: project.updatedAt,

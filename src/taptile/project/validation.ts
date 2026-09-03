@@ -4,6 +4,11 @@ import {
   TAPTILE_SCHEMA_VERSION,
   type TapTileProjectV2,
 } from './types';
+import {
+  DEFAULT_TAPTILE_SNAP_GAP_PX,
+  MAX_TAPTILE_SNAP_GAP_PX,
+  MIN_TAPTILE_SNAP_GAP_PX,
+} from '../snapGap';
 
 export class TapTileProjectValidationError extends Error {
   constructor(
@@ -117,7 +122,13 @@ export function parseTapTileProjectV2(value: unknown): TapTileProjectV2 {
   record(root.director, 'root.director');
   const render = record(root.render, 'root.render');
   if (render.width !== 1080 || render.height !== 1920 || render.fps !== 30) fail('root.render', '一期输出必须是 1080×1920、30fps。');
-  record(root.authoring, 'root.authoring');
+  const authoring = record(root.authoring, 'root.authoring');
+  if (authoring.snapGapPx !== undefined) {
+    const snapGapPx = integer(authoring.snapGapPx, 'root.authoring.snapGapPx', MIN_TAPTILE_SNAP_GAP_PX);
+    if (snapGapPx > MAX_TAPTILE_SNAP_GAP_PX) {
+      fail('root.authoring.snapGapPx', `必须小于等于 ${MAX_TAPTILE_SNAP_GAP_PX}。`);
+    }
+  }
   const production = record(root.production, 'root.production');
   const audioPacks = record(production.audioPacks, 'root.production.audioPacks');
   const validateCue = (rawCue: unknown, path: string): void => {
@@ -191,5 +202,9 @@ export function parseTapTileProjectV2(value: unknown): TapTileProjectV2 {
     const selectedCutId = string(production.selectedCutId, 'root.production.selectedCutId');
     if (!cuts[selectedCutId]) fail('root.production.selectedCutId', `找不到 CutSpec ${selectedCutId}。`);
   }
-  return structuredClone(value) as TapTileProjectV2;
+  const parsed = structuredClone(value) as TapTileProjectV2;
+  parsed.authoring.snapGapPx = authoring.snapGapPx === undefined
+    ? DEFAULT_TAPTILE_SNAP_GAP_PX
+    : authoring.snapGapPx as number;
+  return parsed;
 }

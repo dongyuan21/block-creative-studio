@@ -1,8 +1,14 @@
 import { STACK_STAGE, type StackTile } from './stackModel';
+import { TAPTILE_EXPORT_SCALE } from './pixelGeometry';
+import {
+  DEFAULT_TAPTILE_SNAP_GAP_PX,
+  formatTapTileSnapGapPx,
+  normalizeTapTileSnapGapPx,
+} from './snapGap';
 
 export type SnapAxis = 'x' | 'y';
 export type SnapAnchor = 'start' | 'center' | 'end';
-export type SnapKind = 'seam' | 'center' | 'edge' | 'spacing' | 'stage' | 'track';
+export type SnapKind = 'gap' | 'seam' | 'center' | 'edge' | 'spacing' | 'stage' | 'track';
 
 export interface SnapGuide {
   axis: SnapAxis;
@@ -32,6 +38,7 @@ export interface SmartSnapInput {
   rawDx: number;
   rawDy: number;
   enabled: boolean;
+  snapGapPx?: number;
   previousLocks?: SnapLocks;
   threshold?: number;
   releaseThreshold?: number;
@@ -56,6 +63,7 @@ interface SnapTarget {
 }
 
 const KIND_PRIORITY: Record<SnapKind, number> = {
+  gap: -0.1,
   seam: 0,
   center: 0.15,
   spacing: 0.28,
@@ -100,7 +108,21 @@ function anchorValue(bounds: Bounds, axis: SnapAxis, anchor: SnapAnchor, delta: 
   return (anchor === 'start' ? bounds.startY : anchor === 'center' ? bounds.centerY : bounds.endY) + delta;
 }
 
-function addTileTargets(targets: SnapTarget[], tile: StackTile): void {
+function snapGapLabel(snapGapPx: number): string {
+  return snapGapPx === DEFAULT_TAPTILE_SNAP_GAP_PX
+    ? '默认缝隙 0px'
+    : `吸附缝隙 ${formatTapTileSnapGapPx(snapGapPx)}`;
+}
+
+function addTileTargets(
+  targets: SnapTarget[],
+  tile: StackTile,
+  sharesMovingLayer: boolean,
+  snapGapPx: number,
+  movingBounds: Bounds,
+  rawDx: number,
+  rawDy: number,
+): void {
   const radius = tileRadius(tile);
   targets.push(
     {
@@ -122,6 +144,33 @@ function addTileTargets(targets: SnapTarget[], tile: StackTile): void {
       axis: 'y', value: tile.y + radius, kind: 'edge', label: '边缘对齐', sourceAnchors: ['start', 'end'], targetIds: [tile.id],
     },
   );
+  if (!sharesMovingLayer) return;
+  const label = snapGapLabel(snapGapPx);
+  const authoringGap = snapGapPx / TAPTILE_EXPORT_SCALE;
+  const overlapsX = movingBounds.startX + rawDx < tile.x + radius
+    && movingBounds.endX + rawDx > tile.x - radius;
+  const overlapsY = movingBounds.startY + rawDy < tile.y + radius
+    && movingBounds.endY + rawDy > tile.y - radius;
+  if (overlapsY) {
+    targets.push(
+      {
+        axis: 'x', value: tile.x - radius - authoringGap, kind: 'gap', label, sourceAnchors: ['end'], targetIds: [tile.id],
+      },
+      {
+        axis: 'x', value: tile.x + radius + authoringGap, kind: 'gap', label, sourceAnchors: ['start'], targetIds: [tile.id],
+      },
+    );
+  }
+  if (overlapsX) {
+    targets.push(
+      {
+        axis: 'y', value: tile.y - radius - authoringGap, kind: 'gap', label, sourceAnchors: ['end'], targetIds: [tile.id],
+      },
+      {
+        axis: 'y', value: tile.y + radius + authoringGap, kind: 'gap', label, sourceAnchors: ['start'], targetIds: [tile.id],
+      },
+    );
+  }
 }
 
 function addPairTargets(targets: SnapTarget[], tiles: readonly StackTile[]): void {
@@ -226,9 +275,19 @@ function inferStep(tiles: readonly StackTile[], axis: SnapAxis): number {
   return median(differences) ?? (axis === 'x' ? 58 : 50);
 }
 
-function buildTargets(stationary: readonly StackTile[], bounds: Bounds, rawDx: number, rawDy: number): SnapTarget[] {
+function buildTargets(
+  moving: readonly StackTile[],
+  stationary: readonly StackTile[],
+  bounds: Bounds,
+  rawDx: number,
+  rawDy: number,
+  snapGapPx: number,
+): SnapTarget[] {
   const targets: SnapTarget[] = [];
-  for (const tile of stationary) addTileTargets(targets, tile);
+  const movingLayers = new Set(moving.map((tile) => tile.layer));
+  for (const tile of stationary) {
+    addTileTargets(targets, tile, movingLayers.has(tile.layer), snapGapPx, bounds, rawDx, rawDy);
+  }
   addPairTargets(targets, stationary);
 
   const boardCenterY = (142 + (STACK_STAGE.height - 26)) / 2;
@@ -312,6 +371,143 @@ function findBestTarget(
   return best;
 }
 
+interface SameLayerCollision {
+  moving: StackTile;
+  stationary: StackTile;
+  movingRadius: number;
+  stationaryRadius: number;
+}
+
+interface GapCorrectionCandidate {
+  dx: number;
+  dy: number;
+  guide: SnapGuide;
+}
+
+function sameLayerCollisions(
+  moving: readonly StackTile[],
+  stationary: readonly StackTile[],
+  dx: number,
+  dy: number,
+  authoringGap: number,
+): SameLayerCollision[] {
+  const collisions: SameLayerCollision[] = [];
+  for (const movingTile of moving) {
+    const movingRadius = tileRadius(movingTile);
+    for (const stationaryTile of stationary) {
+      if (movingTile.layer !== stationaryTile.layer) continue;
+      const stationaryRadius = tileRadius(stationaryTile);
+      const minimumDistance = movingRadius + stationaryRadius + authoringGap;
+      const distanceX = Math.abs(movingTile.x + dx - stationaryTile.x);
+      const distanceY = Math.abs(movingTile.y + dy - stationaryTile.y);
+      if (distanceX < minimumDistance - 0.001 && distanceY < minimumDistance - 0.001) {
+        collisions.push({ moving: movingTile, stationary: stationaryTile, movingRadius, stationaryRadius });
+      }
+    }
+  }
+  return collisions;
+}
+
+function correctionCandidates(
+  collision: SameLayerCollision,
+  dx: number,
+  dy: number,
+  snapGapPx: number,
+): GapCorrectionCandidate[] {
+  const { moving, stationary, movingRadius, stationaryRadius } = collision;
+  const authoringGap = snapGapPx / TAPTILE_EXPORT_SCALE;
+  const distance = movingRadius + stationaryRadius + authoringGap;
+  const label = snapGapLabel(snapGapPx);
+  return [
+    {
+      dx: stationary.x - distance - moving.x,
+      dy,
+      guide: {
+        axis: 'x',
+        value: stationary.x - stationaryRadius - authoringGap,
+        kind: 'gap',
+        label,
+        sourceAnchor: 'end',
+        targetIds: [stationary.id],
+      },
+    },
+    {
+      dx: stationary.x + distance - moving.x,
+      dy,
+      guide: {
+        axis: 'x',
+        value: stationary.x + stationaryRadius + authoringGap,
+        kind: 'gap',
+        label,
+        sourceAnchor: 'start',
+        targetIds: [stationary.id],
+      },
+    },
+    {
+      dx,
+      dy: stationary.y - distance - moving.y,
+      guide: {
+        axis: 'y',
+        value: stationary.y - stationaryRadius - authoringGap,
+        kind: 'gap',
+        label,
+        sourceAnchor: 'end',
+        targetIds: [stationary.id],
+      },
+    },
+    {
+      dx,
+      dy: stationary.y + distance - moving.y,
+      guide: {
+        axis: 'y',
+        value: stationary.y + stationaryRadius + authoringGap,
+        kind: 'gap',
+        label,
+        sourceAnchor: 'start',
+        targetIds: [stationary.id],
+      },
+    },
+  ];
+}
+
+function enforceSameLayerGap(
+  moving: readonly StackTile[],
+  stationary: readonly StackTile[],
+  dx: number,
+  dy: number,
+  snapGapPx: number,
+): { dx: number; dy: number; guides: SnapGuide[] } {
+  const authoringGap = snapGapPx / TAPTILE_EXPORT_SCALE;
+  let resolvedDx = dx;
+  let resolvedDy = dy;
+  const guides = new Map<SnapAxis, SnapGuide>();
+  const visited = new Set<string>();
+  const maximumPasses = Math.max(1, Math.min(16, moving.length * stationary.length));
+
+  for (let pass = 0; pass < maximumPasses; pass += 1) {
+    const collisions = sameLayerCollisions(moving, stationary, resolvedDx, resolvedDy, authoringGap);
+    if (collisions.length === 0) break;
+    const collision = collisions[0];
+    if (!collision) break;
+    const candidates = correctionCandidates(collision, resolvedDx, resolvedDy, snapGapPx)
+      .filter((candidate) => !visited.has(`${candidate.dx.toFixed(3)}:${candidate.dy.toFixed(3)}`))
+      .map((candidate) => ({
+        ...candidate,
+        remaining: sameLayerCollisions(moving, stationary, candidate.dx, candidate.dy, authoringGap).length,
+        movement: Math.hypot(candidate.dx - resolvedDx, candidate.dy - resolvedDy),
+      }))
+      .sort((left, right) => left.remaining - right.remaining || left.movement - right.movement);
+    const best = candidates[0];
+    if (!best) break;
+    visited.add(`${best.dx.toFixed(3)}:${best.dy.toFixed(3)}`);
+    resolvedDx = best.dx;
+    resolvedDy = best.dy;
+    guides.set(best.guide.axis, best.guide);
+  }
+
+  return { dx: resolvedDx, dy: resolvedDy, guides: [...guides.values()] };
+}
+
 export function solveSmartSnap(input: SmartSnapInput): SmartSnapResult {
   const movingIds = new Set(input.movingIds);
   const moving = input.tiles.filter((tile) => movingIds.has(tile.id));
@@ -324,19 +520,33 @@ export function solveSmartSnap(input: SmartSnapInput): SmartSnapResult {
 
   const threshold = input.threshold ?? 8;
   const releaseThreshold = input.releaseThreshold ?? 16;
-  const targets = buildTargets(stationary, bounds, input.rawDx, input.rawDy);
+  const snapGapPx = normalizeTapTileSnapGapPx(input.snapGapPx ?? DEFAULT_TAPTILE_SNAP_GAP_PX);
+  const targets = buildTargets(moving, stationary, bounds, input.rawDx, input.rawDy, snapGapPx);
   const previous = input.previousLocks ?? emptyLocks;
   const retainedX = retainLock('x', previous.x, bounds, input.rawDx, releaseThreshold);
   const retainedY = retainLock('y', previous.y, bounds, input.rawDy, releaseThreshold);
   const xMatch = retainedX ?? findBestTarget('x', targets, bounds, input.rawDx, threshold);
   const yMatch = retainedY ?? findBestTarget('y', targets, bounds, input.rawDy, threshold);
-  const guides = [xMatch?.guide, yMatch?.guide].filter((guide): guide is SnapGuide => Boolean(guide));
-  const locks: SnapLocks = { x: xMatch?.guide ?? null, y: yMatch?.guide ?? null };
+  let guides = [xMatch?.guide, yMatch?.guide].filter((guide): guide is SnapGuide => Boolean(guide));
+  let dx = input.rawDx + (xMatch?.correction ?? 0);
+  let dy = input.rawDy + (yMatch?.correction ?? 0);
+  if (guides.length > 0) {
+    const gapResolution = enforceSameLayerGap(moving, stationary, dx, dy, snapGapPx);
+    dx = gapResolution.dx;
+    dy = gapResolution.dy;
+    for (const gapGuide of gapResolution.guides) {
+      guides = [...guides.filter((guide) => guide.axis !== gapGuide.axis), gapGuide];
+    }
+  }
+  const locks: SnapLocks = {
+    x: guides.find((guide) => guide.axis === 'x') ?? null,
+    y: guides.find((guide) => guide.axis === 'y') ?? null,
+  };
   const targetIds = [...new Set(guides.flatMap((guide) => guide.targetIds))];
 
   return {
-    dx: input.rawDx + (xMatch?.correction ?? 0),
-    dy: input.rawDy + (yMatch?.correction ?? 0),
+    dx,
+    dy,
     guides,
     locks,
     targetIds,

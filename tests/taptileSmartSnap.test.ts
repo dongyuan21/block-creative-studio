@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { solveSmartSnap } from '../src/taptile/smartSnap';
 import type { StackTile } from '../src/taptile/stackModel';
+import { TAPTILE_EXPORT_SCALE } from '../src/taptile/pixelGeometry';
 
 function tile(id: string, x: number, y: number): StackTile {
   return {
@@ -16,6 +17,45 @@ function tile(id: string, x: number, y: number): StackTile {
 }
 
 describe('TapTile smart snapping', () => {
+  it.each([
+    { snapGapPx: 0, expectedCenter: 168, label: '默认缝隙 0px' },
+    { snapGapPx: 1, expectedCenter: 168.4, label: '吸附缝隙 +1px' },
+    { snapGapPx: -1, expectedCenter: 167.6, label: '吸附缝隙 -1px' },
+  ])('keeps same-layer neighbors at the configured $snapGapPx px edge gap', ({ snapGapPx, expectedCenter, label }) => {
+    const tiles = [tile('target', 100, 300), tile('moving', 200, 300)];
+    const result = solveSmartSnap({
+      tiles,
+      movingIds: ['moving'],
+      rawDx: -43,
+      rawDy: 0,
+      enabled: true,
+      snapGapPx,
+    });
+
+    expect(200 + result.dx).toBeCloseTo(expectedCenter, 6);
+    expect(((200 + result.dx) - 100 - 68) * TAPTILE_EXPORT_SCALE).toBeCloseTo(snapGapPx, 6);
+    expect(result.guides.find((guide) => guide.axis === 'x')).toMatchObject({
+      kind: 'gap',
+      label,
+      targetIds: ['target'],
+    });
+  });
+
+  it('allows different layers to share the same center', () => {
+    const moving = { ...tile('moving', 200, 300), layer: 1 };
+    const result = solveSmartSnap({
+      tiles: [tile('target', 100, 300), moving],
+      movingIds: ['moving'],
+      rawDx: -100,
+      rawDy: 0,
+      enabled: true,
+    });
+
+    expect(moving.x + result.dx).toBe(100);
+    expect(moving.y + result.dy).toBe(300);
+    expect(result.guides.every((guide) => guide.kind !== 'gap')).toBe(true);
+  });
+
   it('snaps a moving tile center to the seam between two aligned tiles', () => {
     const tiles = [tile('left', 100, 300), tile('right', 168, 300), tile('moving', 260, 430)];
     const result = solveSmartSnap({

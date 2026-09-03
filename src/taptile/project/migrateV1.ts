@@ -296,6 +296,7 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
       material: source.material,
       sceneTheme: source.theme,
       snap: source.snap,
+      snapGapPx: source.snapGapPx ?? 0,
       showLayerBadges: source.showLayerBadges,
       debugView: 'normal',
     },

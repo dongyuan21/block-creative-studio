@@ -4,6 +4,7 @@ import {
   makeTemplateProject,
   maxLayer,
   normalizeTile,
+  STACK_STAGE,
   type StackTemplateId,
 } from '../src/taptile/stackModel';
 
@@ -15,6 +16,23 @@ describe('TapTile stack model', () => {
       expect(project.tiles.length).toBeGreaterThan(10);
       expect(new Set(project.tiles.map((tile) => tile.id)).size).toBe(project.tiles.length);
       expect(maxLayer(project.tiles)).toBeGreaterThan(0);
+    }
+  });
+
+  it('does not overlap horizontally aligned tiles on the same template layer', () => {
+    const templates: StackTemplateId[] = ['hourglass', 't-shape', 'terraces', 'free'];
+    for (const template of templates) {
+      const tiles = makeTemplateProject(template).tiles;
+      for (let leftIndex = 0; leftIndex < tiles.length; leftIndex += 1) {
+        const left = tiles[leftIndex];
+        if (!left) continue;
+        for (let rightIndex = leftIndex + 1; rightIndex < tiles.length; rightIndex += 1) {
+          const right = tiles[rightIndex];
+          if (!right || left.layer !== right.layer || Math.abs(left.y - right.y) > 0.001) continue;
+          const minimumDistance = (STACK_STAGE.tileSize * left.scale) / 2 + (STACK_STAGE.tileSize * right.scale) / 2;
+          expect(Math.abs(left.x - right.x), `${template}: ${left.id} / ${right.id}`).toBeGreaterThanOrEqual(minimumDistance - 0.001);
+        }
+      }
     }
   });
 

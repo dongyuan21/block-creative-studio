@@ -22,6 +22,15 @@ describe('TapTile Project V2 migration', () => {
     expect(parseTapTileProjectV2(JSON.parse(JSON.stringify(project)))).toEqual(project);
   });
 
+  it('defaults older V2 projects without a snap gap to edge contact', () => {
+    const serialized = JSON.parse(JSON.stringify(migrateTapTileStackProjectV1(makeTemplateProject('free')))) as {
+      authoring: { snapGapPx?: number };
+    };
+    delete serialized.authoring.snapGapPx;
+
+    expect(parseTapTileProjectV2(serialized).authoring.snapGapPx).toBe(0);
+  });
+
   it('keeps gameplay hash invariant across visual theme and body changes', () => {
     const project = migrateTapTileStackProjectV1(makeTemplateProject('free'));
     const firstHash = compileTapTileLevel(project).levelHash;

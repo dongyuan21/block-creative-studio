@@ -223,6 +223,7 @@ export interface TapTileAuthoringSettings {
   material: TileMaterialId;
   sceneTheme: SceneThemeId;
   snap: boolean;
+  snapGapPx: number;
   showLayerBadges: boolean;
   debugView: 'normal' | 'playability' | 'blockers' | 'single-layer';
 }
