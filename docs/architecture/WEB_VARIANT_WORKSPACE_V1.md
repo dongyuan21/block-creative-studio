@@ -50,7 +50,7 @@ The panel can export:
 
 An external Agent can modify or generate compatible manifests and recipes, then return them through the two JSON import controls.
 
-Imported data is stored locally in the browser and validated before registration. An existing `id@version` cannot be replaced by different content; the producer must publish a new version. The first Web bridge intentionally accepts manifest JSON only. Binary texture, GLB, audio, Flipbook, and plugin package storage/transport will be added through a dedicated project asset store rather than embedding arbitrary data in LocalStorage.
+Imported manifests and recipes are stored locally and validated before registration. An existing `id@version` cannot be replaced by different content; the producer must publish a new version. Browser Asset Store v1 now stores actual binary bytes in IndexedDB by SHA-256 and binds them through `bcs-asset://sha256/…`. Background images and Reference 2D tile-face images have runtime preview/export adapters; GLB, Flipbook, audio, texture maps and particle assets currently remain compile-only until their Render Passes are implemented.
 
 ## Preview binding versus compile support
 
@@ -84,8 +84,8 @@ The Quality Gate rejects output aspect ratios that do not match the fixed-camera
 ## Current limitations
 
 - The existing `ProjectSpec` remains the authoring document for board editing, recording, and legacy style controls. `CreativeMaster` and `VariantRecipe` are derived views in this release; the persisted project schema is not yet replaced.
-- Imported files are manifest JSON only. Runtime binary asset storage is not implemented.
-- `metadata.studio.style` is a temporary browser adapter for built-in and deliberately Web-bindable packs. It is not the final renderer-neutral asset representation.
+- Binary asset storage is implemented with IndexedDB, but portable project-package export/import is not yet available.
+- `metadata.studio.style` remains the temporary style adapter; actual uploaded bytes now enter renderers through `RuntimeAssetBindings` rather than being embedded into `ProjectSpec`.
 - The browser currently compiles one active project recipe plus imported recipes. Cartesian variant-matrix authoring and batch queue execution remain next-stage work.
 - The structural Quality Gate is not yet a rendered-frame perceptual gate.
 - `fixed-camera-cinematic` remains a compile target; the production hybrid renderer is not implemented in this release.

@@ -1,6 +1,6 @@
 {
   "name": "block-creative-studio",
-  "version": "0.3.0-alpha.1",
+  "version": "0.3.0-alpha.2",
   "private": true,
   "type": "module",
   "description": "A reference-first browser studio for block-placement gameplay authoring, replay direction, and deterministic video rendering.",

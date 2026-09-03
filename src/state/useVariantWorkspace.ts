@@ -11,6 +11,15 @@ import type {
   VariantLockMode,
   VariantRecipe,
 } from '../headless/contracts';
+import type { BrowserAssetMetadata, BrowserAssetStoreEstimate } from '../assets/browserAssetStore';
+import {
+  BROWSER_ASSET_IMPORT_OPTIONS,
+  createBrowserAssetManifest,
+  createBrowserAssetVariant,
+  validateBrowserAssetFile,
+  type BrowserAssetImportRole,
+} from '../assets/browserAssetAuthoring';
+import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import {
   PROJECT_CURRENT_LOOK_KEY,
   createStudioAssetCatalog,
@@ -31,6 +40,7 @@ import type {
   Take,
 } from '../domain/types';
 import { downloadBlob, safeFileName } from '../utils/download';
+import { useBrowserAssetStore, type BrowserAssetStoreStatus } from './useBrowserAssetStore';
 
 const VARIANT_AUTOSAVE_KEY = 'block-creative-studio/variant-workspace/v1';
 
@@ -51,12 +61,19 @@ export interface VariantWorkspacePanelModel {
   rows: StudioVariantRow[];
   importedAssetCount: number;
   importedRecipeCount: number;
+  assetStoreStatus: BrowserAssetStoreStatus;
+  storedAssets: BrowserAssetMetadata[];
+  assetStoreEstimate: BrowserAssetStoreEstimate;
+  runtimeAssetMissingCount: number;
+  binaryImportOptions: typeof BROWSER_ASSET_IMPORT_OPTIONS;
   workspaceError: string | null;
   onLockMode(lockMode: VariantLockMode): void;
   onSelectLook(key: string): void;
   onSelectRecipe(id: string): void;
   onImportAssets(file: File): Promise<void>;
   onImportRecipe(file: File): Promise<void>;
+  onImportBinary(file: File, role: BrowserAssetImportRole): Promise<void>;
+  onDeleteBinary(contentHash: string): Promise<void>;
   onExportArtifact(
     kind: 'master' | 'recipe' | 'plan' | 'quality' | 'asset-bundle',
   ): void;
@@ -73,6 +90,8 @@ export interface UseVariantWorkspaceInput {
 export interface VariantWorkspaceController {
   resolvedStyle: StyleSpec;
   activeRow: StudioVariantRow | null;
+  runtimeAssets: RuntimeAssetBindings;
+  runtimeReady: boolean;
   panel: VariantWorkspacePanelModel;
   resetToCurrentLook(): void;
 }
@@ -131,6 +150,34 @@ function loadVariantWorkspace(): StoredVariantWorkspace {
     window.localStorage.removeItem(VARIANT_AUTOSAVE_KEY);
     return defaultVariantWorkspace();
   }
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function valueReferencesAssetKeys(value: unknown, assetKeys: Set<string>): boolean {
+  if (Array.isArray(value)) return value.some((entry) => valueReferencesAssetKeys(entry, assetKeys));
+  if (!isObject(value)) return false;
+  if (
+    typeof value.id === 'string'
+    && typeof value.version === 'string'
+    && assetKeys.has(`${value.id}@${value.version}`)
+  ) return true;
+  return Object.values(value).some((entry) => valueReferencesAssetKeys(entry, assetKeys));
+}
+
+function isBrowserDerivedLookFor(
+  asset: AssetManifest,
+  directKeys: Set<string>,
+): boolean {
+  if (asset.kind !== 'look-pack' || !isObject(asset.metadata)) return false;
+  const derived = asset.metadata.browserDerivedLook;
+  if (!isObject(derived) || !isObject(derived.replacementAsset)) return false;
+  const replacement = derived.replacementAsset;
+  return typeof replacement.id === 'string'
+    && typeof replacement.version === 'string'
+    && directKeys.has(`${replacement.id}@${replacement.version}`);
 }
 
 function mergeImportedAssets(
@@ -228,6 +275,7 @@ export function useVariantWorkspace({
   const activeRow = matrix?.rows.find((row) => row.recipe.id === activeRecipeId)
     ?? matrix?.rows[0]
     ?? null;
+  const browserAssets = useBrowserAssetStore(activeRow?.plan ?? null);
   const resolvedStyle = activeRow?.previewSupported
     ? activeRow.resolvedStyle
     : project.style;
@@ -320,6 +368,106 @@ export function useVariantWorkspace({
     }
   }, [mode]);
 
+  const importBinary = useCallback(async (
+    file: File,
+    role: BrowserAssetImportRole,
+  ): Promise<void> => {
+    if (mode === 'play' || mode === 'render') return;
+    let storedHash: string | null = null;
+    try {
+      await validateBrowserAssetFile(file, role);
+      const stored = await browserAssets.putFile(file);
+      storedHash = stored.contentHash;
+      const asset = createBrowserAssetManifest(stored, { role });
+      setImportedAssets((current) => mergeImportedAssets(current, [asset]));
+
+      if (!matrix?.master || !activeRow?.plan) {
+        setWorkspaceError('文件已写入 Browser Asset Store；当前没有可用 Render Plan，因此尚未生成 Variant。');
+        return;
+      }
+      if (!asset.runtime.renderers.includes(activeRow.plan.renderer)) {
+        setWorkspaceError(
+          `文件已存储并生成 ${asset.kind} Manifest，但当前 Renderer ${activeRow.plan.renderer} 不支持该资产。可交给外部 Renderer 或切换后端后再组装。`,
+        );
+        return;
+      }
+
+      const authored = createBrowserAssetVariant({
+        plan: activeRow.plan,
+        masterId: matrix.master.id,
+        lockMode: activeRow.recipe.lockMode,
+        seed: project.seed,
+        asset,
+        role,
+      });
+      setImportedAssets((current) => mergeImportedAssets(current, [authored.asset, authored.look]));
+      setImportedRecipes((current) => [
+        ...current.filter((candidate) => candidate.id !== authored.recipe.id),
+        cloneVariantRecipe(authored.recipe),
+      ]);
+      setSelectedLookKey(`${authored.look.id}@${authored.look.version}`);
+      setActiveRecipeId(authored.recipe.id);
+      setVariantLockModeState(authored.recipe.lockMode);
+      setWorkspaceError(
+        authored.previewSupported
+          ? null
+          : '二进制资产和 Variant 已生成，但当前网页后端尚未实现该资产角色的预览 Pass。CLI 与未来 Renderer 可以继续消费。',
+      );
+    } catch (error) {
+      if (storedHash) {
+        // Preserve the content-addressed blob when authoring fails: another
+        // manifest can still reference it later. The UI reports the failure.
+      }
+      setWorkspaceError(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeRow, browserAssets, matrix, mode, project.seed]);
+
+  const deleteBinary = useCallback(async (contentHash: string): Promise<void> => {
+    if (mode === 'play' || mode === 'render') return;
+    try {
+      const direct = importedAssets.filter((asset) => asset.contentHash === contentHash);
+      const directKeys = new Set(direct.map(assetIdentity));
+      const derivedLooks = importedAssets.filter((asset) => isBrowserDerivedLookFor(asset, directKeys));
+      const derivedLookKeys = new Set(derivedLooks.map(assetIdentity));
+      const removableKeys = new Set([...directKeys, ...derivedLookKeys]);
+      const blockingAssets = importedAssets.filter((asset) =>
+        !removableKeys.has(assetIdentity(asset))
+        && valueReferencesAssetKeys(asset, removableKeys),
+      );
+      const removedRecipeIds = new Set(
+        importedRecipes
+          .filter((recipe) => derivedLookKeys.has(assetIdentity(recipe.lookPackRef)))
+          .map((recipe) => recipe.id),
+      );
+      const blockingRecipes = importedRecipes.filter((recipe) =>
+        !removedRecipeIds.has(recipe.id)
+        && valueReferencesAssetKeys(recipe, removableKeys),
+      );
+      if (blockingAssets.length > 0 || blockingRecipes.length > 0) {
+        const blockers = [
+          ...blockingAssets.map((asset) => assetIdentity(asset)),
+          ...blockingRecipes.map((recipe) => recipe.id),
+        ];
+        throw new Error(
+          `不能删除：该 Blob 仍被 ${blockers.slice(0, 5).join('、')}${blockers.length > 5 ? ` 等 ${blockers.length} 项` : ''} 引用。请先更新或删除这些 Manifest / Recipe。`,
+        );
+      }
+
+      await browserAssets.deleteAsset(contentHash);
+      setImportedAssets((current) => current.filter((asset) =>
+        asset.contentHash !== contentHash && !derivedLookKeys.has(assetIdentity(asset)),
+      ));
+      setImportedRecipes((current) => current.filter((recipe) => !removedRecipeIds.has(recipe.id)));
+      if (removedRecipeIds.has(activeRecipeId)) {
+        setActiveRecipeId(PROJECT_CURRENT_VARIANT_ID);
+        setSelectedLookKey(PROJECT_CURRENT_LOOK_KEY);
+      }
+      setWorkspaceError(null);
+    } catch (error) {
+      setWorkspaceError(error instanceof Error ? error.message : String(error));
+    }
+  }, [activeRecipeId, browserAssets, importedAssets, importedRecipes, mode]);
+
   const exportArtifact = useCallback((
     kind: 'master' | 'recipe' | 'plan' | 'quality' | 'asset-bundle',
   ): void => {
@@ -361,14 +509,21 @@ export function useVariantWorkspace({
     setWorkspaceError(null);
   }, [activeRow, matrix, project.name]);
 
+  const runtimeMissingError = browserAssets.runtimeAssets.missing.length > 0
+    ? `当前 Render Plan 引用了 ${browserAssets.runtimeAssets.missing.length} 个本机缺失或尚未适配的二进制资产。请重新导入对应文件，或切换到完整的 Look Pack。`
+    : null;
   const effectiveError = workspaceError
     ?? compilation.error
     ?? activeRow?.error?.message
+    ?? runtimeMissingError
+    ?? (browserAssets.runtimeAssets.missing.length > 0 ? browserAssets.error : null)
     ?? null;
 
   return {
     resolvedStyle,
     activeRow,
+    runtimeAssets: browserAssets.runtimeAssets,
+    runtimeReady: browserAssets.runtimeReady,
     resetToCurrentLook,
     panel: {
       lockMode: variantLockMode,
@@ -378,12 +533,19 @@ export function useVariantWorkspace({
       rows: matrix?.rows ?? [],
       importedAssetCount: importedAssets.length,
       importedRecipeCount: importedRecipes.length,
+      assetStoreStatus: browserAssets.status,
+      storedAssets: browserAssets.records,
+      assetStoreEstimate: browserAssets.estimate,
+      runtimeAssetMissingCount: browserAssets.runtimeAssets.missing.length,
+      binaryImportOptions: BROWSER_ASSET_IMPORT_OPTIONS,
       workspaceError: effectiveError,
       onLockMode: setLockMode,
       onSelectLook: selectLook,
       onSelectRecipe: selectRecipe,
       onImportAssets: importAssets,
       onImportRecipe: importRecipe,
+      onImportBinary: importBinary,
+      onDeleteBinary: deleteBinary,
       onExportArtifact: exportArtifact,
     },
   };

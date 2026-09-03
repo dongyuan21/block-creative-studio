@@ -139,6 +139,16 @@ export function validateAssetManifest(value: unknown): ContractIssue[] {
     issues.push(issue('ASSET_DETERMINISM_REQUIRED', 'runtime.deterministic must be boolean.', '$.runtime.deterministic'));
   }
 
+  if (manifest.dependencies !== undefined) {
+    if (!Array.isArray(manifest.dependencies)) {
+      issues.push(issue('ASSET_DEPENDENCIES_INVALID', 'dependencies must be an array of AssetRef values.', '$.dependencies'));
+    } else {
+      manifest.dependencies.forEach((ref, index) => {
+        issues.push(...validateRef(ref, `$.dependencies[${index}]`));
+      });
+    }
+  }
+
   if (manifest.kind === 'material-pack') {
     if (!isObject((manifest as unknown as Record<string, unknown>).appearance)) {
       issues.push(issue('MATERIAL_APPEARANCE_REQUIRED', 'Material appearance profile is required.', '$.appearance'));

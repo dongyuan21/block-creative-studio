@@ -55,7 +55,9 @@ export function runQualityGate(
   }
 
   const uniqueAssets = new Map<string, ResolvedRenderPlan['lookPack']>();
-  const allAssets = [plan.layoutProfile, plan.cameraProfile, plan.lookPack, ...Object.values(plan.slots)];
+  const allAssets = plan.assets && Object.keys(plan.assets).length > 0
+    ? Object.values(plan.assets)
+    : [plan.layoutProfile, plan.cameraProfile, plan.lookPack, ...Object.values(plan.slots)];
   for (const asset of allAssets) uniqueAssets.set(`${asset.manifest.id}@${asset.manifest.version}`, asset);
 
   let textureMemoryMiB = 0;

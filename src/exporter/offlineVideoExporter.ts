@@ -8,6 +8,7 @@ import {
 } from 'mediabunny';
 import { compileTake, evaluateCompiledTake } from '../director/presentationCompiler';
 import type { PresentationFrame, RenderSpec, RhythmProfile, StyleSpec, Take } from '../domain/types';
+import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import { StudioScene } from '../renderer/StudioScene';
 import { Reference2DScene } from '../reference2d/Reference2DScene';
 import { safeFileName } from '../utils/download';
@@ -26,6 +27,7 @@ export interface ExportVideoOptions {
   style: StyleSpec;
   render: RenderSpec;
   projectName: string;
+  runtimeAssets?: RuntimeAssetBindings;
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -46,6 +48,7 @@ interface QualitySettings {
 interface OfflineRenderStage {
   readonly canvas: HTMLCanvasElement;
   resize(width: number, height: number, pixelRatio?: number): void;
+  setRuntimeAssets(bindings: RuntimeAssetBindings): void;
   warmup(frame: PresentationFrame, style: StyleSpec): Promise<void>;
   renderAt(frame: PresentationFrame, style: StyleSpec): void;
   dispose(): void;
@@ -105,6 +108,7 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
   outputContext.imageSmoothingQuality = 'high';
 
   const stage = createOfflineStage(renderCanvas, options.style);
+  if (options.runtimeAssets) stage.setRuntimeAssets(options.runtimeAssets);
   stage.resize(options.render.width, options.render.height, quality.renderScale);
 
   const target = new BufferTarget();

@@ -187,6 +187,7 @@ export function useStudioModel() {
   });
   const resolvedStyle = variantWorkspace.resolvedStyle;
   const activeVariantRow = variantWorkspace.activeRow;
+  const runtimeAssets = variantWorkspace.runtimeAssets;
   const resetVariantToCurrentLook = variantWorkspace.resetToCurrentLook;
 
   useEffect(() => {
@@ -506,6 +507,14 @@ export function useStudioModel() {
       });
       return;
     }
+    if (!variantWorkspace.runtimeReady) {
+      setExportState({
+        running: false,
+        progress: null,
+        error: '当前 Render Plan 的本机二进制资产尚未全部解析，不能进入正式导出。',
+      });
+      return;
+    }
     const exportProjectSnapshot = structuredClone(project);
     const exportStyleSnapshot = structuredClone(resolvedStyle);
     const exportTakeSnapshot = cloneTake(selectedTake);
@@ -521,6 +530,7 @@ export function useStudioModel() {
         style: exportStyleSnapshot,
         render: exportProjectSnapshot.render,
         projectName: exportProjectSnapshot.name,
+        runtimeAssets,
         signal: controller.signal,
         onProgress: (progress) => setExportState({ running: true, progress, error: null }),
       });
@@ -537,7 +547,7 @@ export function useStudioModel() {
       exportAbortRef.current = null;
       setMode('replay');
     }
-  }, [activeVariantRow, exportState.running, mode, project, resolvedStyle, selectedTake]);
+  }, [activeVariantRow, exportState.running, mode, project, resolvedStyle, runtimeAssets, selectedTake, variantWorkspace.runtimeReady]);
 
   const cancelExport = useCallback((): void => {
     exportAbortRef.current?.abort();
@@ -596,6 +606,7 @@ export function useStudioModel() {
     clearSignal,
     exportState,
     variantWorkspace: variantWorkspace.panel,
+    runtimeAssets,
     recordedActionCount: recordingActionsRef.current.length,
     boardPresets: BOARD_PRESETS,
     setSelectedColor,

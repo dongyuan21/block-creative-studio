@@ -56,6 +56,8 @@ References one master and one look, then applies optional slot/output/director o
 
 The compiler output. All indirect look references have been resolved, required slots are present, renderer compatibility is known, material/effect compatibility has passed, and a deterministic plan hash has been generated.
 
+The compiler also emits a topologically ordered dependency closure. Explicit `dependencies`, Material Pack texture channels, Effect Pack layer assets, and Look Pack slots are all resolved through the same registry. Cycles, missing nested assets, renderer incompatibility, and hash mismatches fail before rendering. Older v1 plans without the optional closure fields remain readable; newly compiled plans always include them.
+
 ## Required visual slots in v1
 
 ```text

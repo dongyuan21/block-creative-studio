@@ -18,6 +18,11 @@ import type {
   StyleSpec,
   TileColor,
 } from '../domain/types';
+import {
+  EMPTY_RUNTIME_ASSET_BINDINGS,
+  type RuntimeAssetBindings,
+  type RuntimeImageFit,
+} from '../assets/runtimeAssetBindings';
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
 
@@ -59,6 +64,33 @@ function clamp01(value: number): number {
 function easeOutCubic(value: number): number {
   const t = clamp01(value);
   return 1 - Math.pow(1 - t, 3);
+}
+
+function drawImageFitted(
+  context: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  fit: RuntimeImageFit,
+): void {
+  const sourceWidth = Math.max(1, image.naturalWidth);
+  const sourceHeight = Math.max(1, image.naturalHeight);
+  if (fit === 'stretch') {
+    context.drawImage(image, 0, 0, width, height);
+    return;
+  }
+  const scale = fit === 'contain'
+    ? Math.min(width / sourceWidth, height / sourceHeight)
+    : Math.max(width / sourceWidth, height / sourceHeight);
+  const drawWidth = sourceWidth * scale;
+  const drawHeight = sourceHeight * scale;
+  context.drawImage(
+    image,
+    (width - drawWidth) / 2,
+    (height - drawHeight) / 2,
+    drawWidth,
+    drawHeight,
+  );
 }
 
 function disposeGroupObjects(group: THREE.Group): void {
@@ -264,6 +296,9 @@ export class StudioScene {
   private height = 960;
   private readonly quality: 'interactive' | 'cinematic';
   private backgroundTexture: THREE.CanvasTexture | null = null;
+  private runtimeAssets: RuntimeAssetBindings = EMPTY_RUNTIME_ASSET_BINDINGS;
+  private runtimeBackgroundImage: HTMLImageElement | null = null;
+  private runtimeAssetsReady: Promise<void> = Promise.resolve();
 
   constructor(canvas: HTMLCanvasElement, options: StudioSceneOptions = {}) {
     this.canvas = canvas;
@@ -364,6 +399,35 @@ export class StudioScene {
     this.style = style;
     this.syncCamera(frame.cameraPunch);
     this.syncScene();
+  }
+
+  setRuntimeAssets(bindings: RuntimeAssetBindings): void {
+    if (bindings.revision === this.runtimeAssets.revision) return;
+    this.runtimeAssets = bindings;
+    this.runtimeBackgroundImage = null;
+    this.currentBackground = '';
+    const background = bindings.background;
+    if (!background) {
+      this.runtimeAssetsReady = Promise.resolve();
+      if (this.style) this.syncBackground();
+      return;
+    }
+    const revision = bindings.revision;
+    this.runtimeAssetsReady = new Promise<void>((resolve) => {
+      const image = new Image();
+      image.decoding = 'async';
+      image.onload = () => {
+        if (this.runtimeAssets.revision === revision) {
+          this.runtimeBackgroundImage = image;
+          this.currentBackground = '';
+          if (this.style) this.syncBackground();
+          this.render();
+        }
+        resolve();
+      };
+      image.onerror = () => resolve();
+      image.src = background.objectUrl;
+    });
   }
 
   setLiveSnapshot(snapshot: GameSnapshot, style: StyleSpec): void {
@@ -469,6 +533,7 @@ export class StudioScene {
 
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
     this.renderAt(frame, style);
+    await this.runtimeAssetsReady;
     await this.renderer.compileAsync(this.scene, this.camera);
     this.renderAt(frame, style);
   }
@@ -492,6 +557,9 @@ export class StudioScene {
     this.pointerMesh.geometry.dispose();
     this.pointerMaterial.dispose();
     this.backgroundTexture?.dispose();
+    this.runtimeAssets = EMPTY_RUNTIME_ASSET_BINDINGS;
+    this.runtimeBackgroundImage = null;
+    this.runtimeAssetsReady = Promise.resolve();
     this.environmentTarget.dispose();
     for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();
@@ -623,22 +691,43 @@ export class StudioScene {
   }
 
   private syncBackground(): void {
-    if (!this.style || this.currentBackground === this.style.background) return;
+    if (!this.style) return;
+    const runtimeBackground = this.runtimeAssets.background;
+    const backgroundKey = runtimeBackground
+      ? `${this.style.background}:${runtimeBackground.contentHash}:${runtimeBackground.fit}:${runtimeBackground.opacity}`
+      : this.style.background;
+    if (this.currentBackground === backgroundKey) return;
     this.backgroundTexture?.dispose();
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 1024;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Unable to create background canvas context.');
-    const base = new THREE.Color(this.style.background);
-    const top = base.clone().lerp(new THREE.Color(0x253f82), 0.35);
-    const bottom = base.clone().multiplyScalar(0.42);
-    const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, `#${top.getHexString()}`);
-    gradient.addColorStop(0.55, `#${base.getHexString()}`);
-    gradient.addColorStop(1, `#${bottom.getHexString()}`);
-    context.fillStyle = gradient;
+    context.fillStyle = this.style.background;
     context.fillRect(0, 0, canvas.width, canvas.height);
+    if (runtimeBackground && this.runtimeBackgroundImage) {
+      context.globalAlpha = runtimeBackground.opacity;
+      context.globalCompositeOperation = runtimeBackground.blendMode;
+      drawImageFitted(context, this.runtimeBackgroundImage, canvas.width, canvas.height, runtimeBackground.fit);
+      context.globalAlpha = 1;
+      context.globalCompositeOperation = 'source-over';
+      const grade = context.createLinearGradient(0, 0, 0, canvas.height);
+      grade.addColorStop(0, 'rgba(4,15,34,0.04)');
+      grade.addColorStop(0.62, 'rgba(5,14,36,0.08)');
+      grade.addColorStop(1, 'rgba(2,5,16,0.28)');
+      context.fillStyle = grade;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+      const base = new THREE.Color(this.style.background);
+      const top = base.clone().lerp(new THREE.Color(0x253f82), 0.35);
+      const bottom = base.clone().multiplyScalar(0.42);
+      const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, `#${top.getHexString()}`);
+      gradient.addColorStop(0.55, `#${base.getHexString()}`);
+      gradient.addColorStop(1, `#${bottom.getHexString()}`);
+      context.fillStyle = gradient;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
     const glow = context.createRadialGradient(256, 410, 10, 256, 410, 380);
     glow.addColorStop(0, 'rgba(125,160,255,0.24)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
@@ -648,7 +737,7 @@ export class StudioScene {
     this.backgroundTexture = new THREE.CanvasTexture(canvas);
     this.backgroundTexture.colorSpace = THREE.SRGBColorSpace;
     this.scene.background = this.backgroundTexture;
-    this.currentBackground = this.style.background;
+    this.currentBackground = backgroundKey;
   }
 
   private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
