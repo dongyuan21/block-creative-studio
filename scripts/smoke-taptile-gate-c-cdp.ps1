@@ -5,7 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$directorTarget = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5 |
+$directorTargets = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5
+$directorTarget = @($directorTargets) |
   Where-Object { $_.type -eq 'page' -and $_.url -eq $PageUrl } |
   Select-Object -First 1
 if (-not $directorTarget) { throw "No CDP page target found for $PageUrl" }
