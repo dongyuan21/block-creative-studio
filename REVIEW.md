@@ -9,7 +9,7 @@
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
 先前 Full Capture SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`  
 先前 CI 全绿 HEAD：`526aee6c6a1ab01c005f868f555cafa81b6bbdd9`（20 帧 + 4 条 MP4；Review `5102027159`）  
-本轮 P0 修复：见本文件末尾实现 SHA（docs pin commit）  
+本轮 P0 修复 SHA：`dda27c210f6c998784377884d711ff8526e347bb`  
 依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
 执行环境：Linux, Node 22, Three.js 0.185.1  
 实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
