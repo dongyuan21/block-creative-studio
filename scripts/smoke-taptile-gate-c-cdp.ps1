@@ -55,6 +55,8 @@ function Wait-DirectorExpression {
 
 function Set-DirectorProfile {
   param([Parameter(Mandatory)][string]$ProfileId)
+  $directorPreviousProfile = [string](Invoke-DirectorExpression -Expression "document.querySelector('.tpt-director-timeline')?.dataset.profileId || ''")
+  $directorPreviousIdentity = [string](Invoke-DirectorExpression -Expression "document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderIdentity || ''")
   $directorSetProfile = (@'
 (() => {
   const select = document.querySelector('select[data-director-profile]');
@@ -66,6 +68,11 @@ function Set-DirectorProfile {
 '@).Replace('__PROFILE__', $ProfileId)
   Invoke-DirectorExpression -Expression $directorSetProfile | Out-Null
   Wait-DirectorExpression -Expression "document.querySelector('.tpt-director-timeline')?.dataset.profileId === '$ProfileId'"
+  if ($directorPreviousProfile -ne $ProfileId -and -not [string]::IsNullOrWhiteSpace($directorPreviousIdentity)) {
+    Wait-DirectorExpression -Expression "document.querySelector('.tpt-canvas-preview')?.dataset.previewStatus === 'ready' && document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderIdentity !== '$directorPreviousIdentity'"
+  } else {
+    Wait-DirectorExpression -Expression "document.querySelector('.tpt-canvas-preview')?.dataset.previewStatus === 'ready'"
+  }
 }
 
 function Set-DirectorFrame {
@@ -81,7 +88,7 @@ function Set-DirectorFrame {
 })()
 '@).Replace('__FRAME__', [string]$Frame)
   Invoke-DirectorExpression -Expression $directorSetFrame | Out-Null
-  Wait-DirectorExpression -Expression "document.querySelector('.tpt-studio')?.dataset.directorFrame === '$Frame'"
+  Wait-DirectorExpression -Expression "document.querySelector('.tpt-studio')?.dataset.directorFrame === '$Frame' && document.querySelector('.tpt-canvas-preview')?.dataset.previewStatus === 'ready' && document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderedFrame === '$Frame'"
 }
 
 function Save-DirectorScreenshot {
@@ -144,10 +151,9 @@ foreach ($directorProfileId in $directorProfiles) {
 JSON.stringify({
   stateHash: document.querySelector('.tpt-studio').dataset.stateHash,
   frame: document.querySelector('.tpt-studio').dataset.directorFrame,
-  overlay: document.querySelector('.tpt-director-stage-overlay')?.getAttribute('style'),
-  moving: document.querySelector('.tpt-director-stage-overlay')?.dataset.movingCount,
-  effects: document.querySelector('.tpt-director-stage-overlay')?.dataset.effectCount,
-  particles: [...document.querySelectorAll('.tpt-director-particle')].slice(0, 4).map((item) => item.getAttribute('style')),
+  source: document.querySelector('.tpt-phone-stage').dataset.renderSource,
+  renderIdentity: document.querySelector('.tpt-canvas-preview').dataset.previewRenderIdentity,
+  pixelHash: document.querySelector('.tpt-canvas-preview').dataset.previewPixelHash,
 })
 '@
   Set-DirectorFrame -Frame ([Math]::Min($directorMeta.totalFrames - 1, $directorFrame + 7))
@@ -156,10 +162,9 @@ JSON.stringify({
 JSON.stringify({
   stateHash: document.querySelector('.tpt-studio').dataset.stateHash,
   frame: document.querySelector('.tpt-studio').dataset.directorFrame,
-  overlay: document.querySelector('.tpt-director-stage-overlay')?.getAttribute('style'),
-  moving: document.querySelector('.tpt-director-stage-overlay')?.dataset.movingCount,
-  effects: document.querySelector('.tpt-director-stage-overlay')?.dataset.effectCount,
-  particles: [...document.querySelectorAll('.tpt-director-particle')].slice(0, 4).map((item) => item.getAttribute('style')),
+  source: document.querySelector('.tpt-phone-stage').dataset.renderSource,
+  renderIdentity: document.querySelector('.tpt-canvas-preview').dataset.previewRenderIdentity,
+  pixelHash: document.querySelector('.tpt-canvas-preview').dataset.previewPixelHash,
 })
 '@
   if ($directorSnapshotA -ne $directorSnapshotB) { throw "Direct seek drifted for $directorProfileId" }

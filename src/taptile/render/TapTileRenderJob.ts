@@ -51,44 +51,46 @@ export function createTapTileRenderJob(
   compiledTake: CompiledTapTileTake,
   loaders: TapTileAssetCacheLoaders = {},
 ): TapTileRenderJob {
-  const snapshot = deepFreeze(structuredClone(project));
-  const assets = new TapTileAssetCache(snapshot, loaders);
-  const requiredAssetIds = collectTapTileDrawableAssetIds(snapshot);
-  const themeId = snapshot.visuals.selectedThemeId;
-  const visualIdentities = Object.keys(snapshot.visuals.archetypes).sort().map((archetypeId) =>
-    resolveTileVisual(snapshot, archetypeId, themeId, 'board').identityHash);
+  const projectSnapshot = deepFreeze(structuredClone(project));
+  const levelSnapshot = deepFreeze(structuredClone(level));
+  const takeSnapshot = deepFreeze(structuredClone(compiledTake));
+  const assets = new TapTileAssetCache(projectSnapshot, loaders);
+  const requiredAssetIds = collectTapTileDrawableAssetIds(projectSnapshot);
+  const themeId = projectSnapshot.visuals.selectedThemeId;
+  const visualIdentities = Object.keys(projectSnapshot.visuals.archetypes).sort().map((archetypeId) =>
+    resolveTileVisual(projectSnapshot, archetypeId, themeId, 'board').identityHash);
   const identity: TapTileRenderIdentity = Object.freeze({
-    projectHash: stableHash(snapshot, 'project'),
-    levelHash: level.levelHash,
-    takeHash: stableHash(compiledTake.sourceTake, 'take'),
-    finalStateHash: compiledTake.finalStateHash,
+    projectHash: stableHash(projectSnapshot, 'project'),
+    levelHash: levelSnapshot.levelHash,
+    takeHash: stableHash(takeSnapshot.sourceTake, 'take'),
+    finalStateHash: takeSnapshot.finalStateHash,
     skinHash: stableHash({ themeId, visualIdentities }, 'skin'),
-    directorHash: stableHash({ id: compiledTake.id, profile: compiledTake.profile, actions: compiledTake.actions.map((action) => action.timing) }, 'director'),
+    directorHash: stableHash({ id: takeSnapshot.id, profile: takeSnapshot.profile, actions: takeSnapshot.actions.map((action) => action.timing) }, 'director'),
     assetVersionHash: assets.versionHash,
   });
   let prepared = false;
   return {
-    width: snapshot.stage.exportWidth,
-    height: snapshot.stage.exportHeight,
-    fps: compiledTake.fps,
-    totalFrames: compiledTake.totalFrames,
-    project: snapshot,
-    level,
-    compiledTake,
+    width: projectSnapshot.stage.exportWidth,
+    height: projectSnapshot.stage.exportHeight,
+    fps: takeSnapshot.fps,
+    totalFrames: takeSnapshot.totalFrames,
+    project: projectSnapshot,
+    level: levelSnapshot,
+    compiledTake: takeSnapshot,
     assets,
     requiredAssetIds,
     identity,
-    evaluate: (frameIndex) => evaluateTapTileFrame(compiledTake, frameIndex),
+    evaluate: (frameIndex) => evaluateTapTileFrame(takeSnapshot, frameIndex),
     prepare: async (canvas) => {
-      canvas.width = snapshot.stage.exportWidth;
-      canvas.height = snapshot.stage.exportHeight;
+      canvas.width = projectSnapshot.stage.exportWidth;
+      canvas.height = projectSnapshot.stage.exportHeight;
       if (!prepared) {
         await assets.preload(requiredAssetIds);
         prepared = true;
       }
     },
     render: (frame, canvas) => {
-      renderTapTilePresentationFrame(canvas, frame, { project: snapshot, level, assets });
+      renderTapTilePresentationFrame(canvas, frame, { project: projectSnapshot, level: levelSnapshot, assets });
     },
     dispose: () => assets.dispose(),
   };

@@ -13,8 +13,11 @@ import {
 } from '../src/taptile/project';
 import { resolveTapTileBuiltinAssetUrl } from '../src/taptile/assetUrl';
 import {
+  assertTapTileFrameProofsMatch,
   collectTapTileDrawableAssetIds,
+  compareTapTileFrameProofs,
   createTapTileRenderJob,
+  hashTapTileRenderIdentity,
   hashPixelBytes,
   renderTapTilePresentationFrame,
   selectTapTileRegressionFrames,
@@ -133,6 +136,11 @@ describe('TapTile Canvas render pipeline', () => {
     expect(second.identity).toEqual(first.identity);
     expect(Object.isFrozen(first.project)).toBe(true);
     expect(Object.isFrozen(first.project.visuals)).toBe(true);
+    expect(Object.isFrozen(first.level)).toBe(true);
+    expect(Object.isFrozen(first.level.tiles)).toBe(true);
+    expect(Object.isFrozen(first.compiledTake)).toBe(true);
+    expect(Object.isFrozen(first.compiledTake.actions)).toBe(true);
+    expect(hashTapTileRenderIdentity(second.identity)).toBe(hashTapTileRenderIdentity(first.identity));
     project.visuals.selectedThemeId = 'food-v1';
     expect(first.project.visuals.selectedThemeId).toBe('animals-v1');
     const foodJob = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) });
@@ -244,5 +252,34 @@ describe('TapTile Canvas render pipeline', () => {
     expect(hashPixelBytes(second)).toBe(hashPixelBytes(first));
     second[5] = 6;
     expect(hashPixelBytes(second)).not.toBe(hashPixelBytes(first));
+  });
+
+  it('blocks export when the checked preview frame differs by identity, frame, dimensions, or pixels', () => {
+    const base = {
+      renderIdentityHash: 'render-a',
+      frameNumber: 12,
+      pixelHash: 'pixels-a',
+      width: 1080,
+      height: 1920,
+    };
+    expect(compareTapTileFrameProofs(base, { ...base })).toEqual({ valid: true, reasons: [] });
+    expect(() => assertTapTileFrameProofsMatch(base, { ...base })).not.toThrow();
+    expect(compareTapTileFrameProofs(base, {
+      ...base,
+      renderIdentityHash: 'render-b',
+      frameNumber: 13,
+      pixelHash: 'pixels-b',
+      width: 720,
+    })).toEqual({
+      valid: false,
+      reasons: [
+        'RENDER_IDENTITY_MISMATCH',
+        'RENDER_FRAME_MISMATCH',
+        'RENDER_DIMENSIONS_MISMATCH',
+        'RENDER_PIXELS_MISMATCH',
+      ],
+    });
+    expect(() => assertTapTileFrameProofsMatch(base, { ...base, pixelHash: 'pixels-b' }))
+      .toThrow('PREVIEW_EXPORT_PARITY_FAILED: RENDER_PIXELS_MISMATCH');
   });
 });

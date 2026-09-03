@@ -144,6 +144,18 @@ Wait-RenderExpression -Expression "document.querySelector('.tpt-director-timelin
 Invoke-RenderExpression -Expression "document.querySelector('[data-mode-id=export]').click(); true" | Out-Null
 Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-export-panel'))"
 Wait-RenderExpression -Expression "document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderedFrame === '0' && document.querySelector('.tpt-canvas-preview')?.dataset.previewPixelHash !== 'pending'"
+Wait-RenderExpression -Expression "document.querySelector('.tpt-export-panel')?.dataset.previewParity === 'ready' && !document.querySelector('[data-action=start-taptile-export]')?.disabled"
+$renderAuthority = Invoke-RenderExpression -Expression @'
+(() => JSON.stringify({
+  source: document.querySelector('.tpt-phone-stage')?.dataset.renderSource,
+  previewStatus: document.querySelector('.tpt-canvas-preview')?.dataset.previewStatus,
+  identity: document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderIdentity,
+  duplicateDirectorOverlay: Boolean(document.querySelector('.tpt-director-stage-overlay')),
+}))()
+'@ | ConvertFrom-Json
+if ($renderAuthority.source -ne 'fixed-frame-canvas') { throw "Director/export stage is not using the authoritative Canvas: $($renderAuthority.source)" }
+if ($renderAuthority.previewStatus -ne 'ready' -or [string]::IsNullOrWhiteSpace($renderAuthority.identity)) { throw 'Authoritative preview did not publish a frame proof.' }
+if ($renderAuthority.duplicateDirectorOverlay) { throw 'Legacy DOM director overlay is still mounted beneath the export Canvas.' }
 
 $renderArtifactRoot = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $ArtifactDirectory))
 [IO.Directory]::CreateDirectory($renderArtifactRoot) | Out-Null
@@ -186,6 +198,12 @@ $renderExport = Invoke-RenderExpression -Expression @'
     frames: Number(panel.dataset.exportFrames),
     bytes: Number(panel.dataset.exportBytes),
     duration: Number(panel.dataset.exportDuration),
+    verifiedFrame: Number(panel.dataset.exportVerifiedFrame),
+    verifiedPixelHash: panel.dataset.exportVerifiedPixelHash,
+    exportRenderIdentity: panel.dataset.exportRenderIdentity,
+    previewFrame: Number(document.querySelector('.tpt-canvas-preview').dataset.previewRenderedFrame),
+    previewPixelHash: document.querySelector('.tpt-canvas-preview').dataset.previewPixelHash,
+    previewRenderIdentity: document.querySelector('.tpt-canvas-preview').dataset.previewRenderIdentity,
     type: blob.type,
     fileName: link.download,
     base64: btoa(binary),
@@ -196,6 +214,9 @@ $renderMp4Path = Join-Path $renderArtifactRoot 'm8-six-action-combo-rush-1080x19
 [IO.File]::WriteAllBytes($renderMp4Path, [Convert]::FromBase64String([string]$renderExport.base64))
 $renderErrors = Invoke-RenderExpression -Expression "JSON.stringify(window.__tptRenderErrors || [])" | ConvertFrom-Json
 if ($renderExport.type -ne 'video/mp4') { throw "Unexpected export MIME: $($renderExport.type)" }
+if ($renderExport.verifiedFrame -ne $renderExport.previewFrame -or $renderExport.verifiedPixelHash -ne $renderExport.previewPixelHash -or $renderExport.exportRenderIdentity -ne $renderExport.previewRenderIdentity) {
+  throw "Preview/export proof drift: $($renderExport | Select-Object verifiedFrame, previewFrame, verifiedPixelHash, previewPixelHash, exportRenderIdentity, previewRenderIdentity | ConvertTo-Json -Compress)"
+}
 if (@($renderErrors).Count -gt 0) { throw "Browser errors: $($renderErrors | ConvertTo-Json -Compress)" }
 
 [ordered]@{
@@ -206,6 +227,11 @@ if (@($renderErrors).Count -gt 0) { throw "Browser errors: $($renderErrors | Con
   bytes = $renderExport.bytes
   mime = $renderExport.type
   canceledWithoutMutation = ($renderTakeCountBefore -eq $renderTakeCountAfterCancel)
+  authoritativeRenderSource = $renderAuthority.source
+  previewIdentity = $renderAuthority.identity
+  verifiedFrame = $renderExport.verifiedFrame
+  verifiedPixelHash = $renderExport.verifiedPixelHash
+  duplicateDirectorOverlay = $renderAuthority.duplicateDirectorOverlay
   checkpointHashes = $renderHashes
   consoleErrors = @($renderErrors).Count
   mp4 = $renderMp4Path
