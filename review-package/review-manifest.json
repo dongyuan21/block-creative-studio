@@ -303,7 +303,7 @@
     }
   ],
   "referenceCorrespondence": {
-    "mode": "exact-replay",
+    "mode": "isolated-presentation",
     "sourceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
     "caseManifest": "review-package/reports/golden-report.json",
     "contentStatus": "BLOCKED"

@@ -24,6 +24,9 @@ export interface ContainMapping {
 /**
  * Maps a source rectangle into a target rectangle with contain (letterbox),
  * never stretch. This is the only allowed 1064×1788 → 1080×1920 mapping.
+ *
+ * Transitional reference-transfer only — not a finished 9:16 production framing
+ * profile. Letterboxed video edges are expected until a native 1080×1920 layout exists.
  */
 export function containMapping(
   source: { width: number; height: number },

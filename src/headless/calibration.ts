@@ -77,6 +77,24 @@ export function createCalibrationCase(input: {
   return value;
 }
 
+/**
+ * Convert a source-media frame index into a target presentation frame.
+ *
+ * Time origin: frame 0 is t = 0. Presentation timestamp is `sourceFrame / sourceFps`.
+ * The target frame is the nearest frame at the same timestamp
+ * (`round(sourceFrame * targetFps / sourceFps)`). A 60 fps source frame 60 is
+ * t = 1.0s, which is target frame 30 at 30 fps — not target frame 60.
+ */
+export function mapSourceFrameToTarget(sourceFrame: number, sourceFps: number, targetFps: number): number {
+  if (!(sourceFps > 0) || !(targetFps > 0)) {
+    throw new Error('sourceFps and targetFps must be greater than 0.');
+  }
+  if (!Number.isFinite(sourceFrame) || sourceFrame < 0) {
+    throw new Error('sourceFrame must be a finite number ≥ 0.');
+  }
+  return Math.max(0, Math.round((sourceFrame * targetFps) / sourceFps));
+}
+
 export function expandGoldenSceneCases(
   scenes: GoldenSceneDefinition[],
   options: {
@@ -90,7 +108,11 @@ export function expandGoldenSceneCases(
     targetTakeHash?: string;
   },
 ): CalibrationCase[] {
+  if (options.correspondence === 'exact-replay' && !options.targetTakeHash) {
+    throw new Error('exact-replay requires targetTakeHash; omit it and use isolated-presentation instead.');
+  }
   const cases: CalibrationCase[] = [];
+  const targetFps = options.targetFps ?? 30;
   for (const scene of scenes) {
     for (const [anchor, frame] of [
       ['start', scene.startFrame],
@@ -98,12 +120,15 @@ export function expandGoldenSceneCases(
       ['end', scene.endFrame],
     ] as const) {
       const sourcePts = options.sourceFps ? frame / options.sourceFps : undefined;
+      const targetFrame = options.sourceFps
+        ? mapSourceFrameToTarget(frame, options.sourceFps, targetFps)
+        : frame;
       cases.push(createCalibrationCase({
         id: `${scene.id}:${anchor}`,
         eventId: scene.id,
         eventType: scene.purpose,
-        targetFrame: frame,
-        targetFps: options.targetFps ?? 30,
+        targetFrame,
+        targetFps,
         correspondence: options.correspondence,
         reviewStatus: options.reviewStatus,
         unresolvedReasons: options.unresolvedReasons,

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { existsSync } from 'node:fs';
 import { readFile, readdir, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -209,50 +208,13 @@ async function commandQuality(args: ParsedArgs): Promise<unknown> {
   return { ok: report.passed, out: out ? resolve(out) : null, report };
 }
 
-function slotFromMapFile(fileName: string): 'baseColor' | 'normal' | 'roughness' | 'metallic' | 'ao' | null {
-  const lower = fileName.toLowerCase();
-  if (lower.includes('basecolor')) return 'baseColor';
-  if (lower.includes('roughness')) return 'roughness';
-  if (lower.includes('metallic')) return 'metallic';
-  if (lower.includes('normal')) return 'normal';
-  if (lower.includes('-ao.') || lower.endsWith('ao.png')) return 'ao';
-  return null;
-}
-
-function mapsFromPack(pack: MaterialPackManifest, packPath: string): MaterialCompileMaps {
-  const maps: MaterialCompileMaps = [];
-  const packDir = dirname(packPath);
-  for (const uri of pack.provenance?.sourceUris ?? []) {
-    const fileName = uri.split('/').pop() ?? '';
-    const slot = slotFromMapFile(fileName);
-    if (!slot) continue;
-    const abs = resolve(packDir, 'maps', fileName);
-    const ref = pack.appearance.textureRefs?.[slot];
-    if (!ref?.contentHash) continue;
-    const item: MaterialCompileMaps[number] = {
-      slot,
-      uri,
-      contentHash: ref.contentHash,
-      colorSpace: slot === 'baseColor' ? 'srgb' : 'linear',
-      channels: slot === 'baseColor' || slot === 'normal' ? 'rgb' : 'r',
-    };
-    if (!existsSync(abs)) continue;
-    if (slot === 'normal') item.normalY = 'opengl';
-    maps.push(item);
-  }
-  return maps;
-}
-
-type MaterialCompileMaps = NonNullable<Parameters<typeof compileMaterialRuntime>[0]['maps']>;
-
 async function commandMaterial(args: ParsedArgs): Promise<unknown> {
   if (args.positionals[0] !== 'compile') {
     throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `material compile --pack …`.', { path: 'material' });
   }
   const packPath = flagString(args, 'pack', true)!;
   const pack = await readJson<MaterialPackManifest>(packPath);
-  const maps = mapsFromPack(pack, packPath);
-  const descriptor = compileMaterialRuntime({ pack, ...(maps.length > 0 ? { maps } : {}) });
+  const descriptor = compileMaterialRuntime({ pack });
   const out = flagString(args, 'out');
   if (out) await writeFile(out, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
   return {
@@ -273,13 +235,22 @@ async function commandGolden(args: ParsedArgs): Promise<unknown> {
     sourceVideoSha256?: string;
     scenes: Array<{ id: string; startFrame: number; peakFrame: number; endFrame: number; purpose: string }>;
   }>(indexPath);
+  const targetTakeHash = flagString(args, 'target-take-hash');
+  const correspondence = targetTakeHash ? 'exact-replay' as const : 'isolated-presentation' as const;
+  const unresolvedReasons = [
+    'Reference source video is not in the public repository.',
+    ...(targetTakeHash
+      ? []
+      : ['No target Take hash; correspondence is isolated-presentation, not exact-replay.']),
+  ];
   const cases = expandGoldenSceneCases(index.scenes, {
-    correspondence: 'exact-replay',
+    correspondence,
     reviewStatus: 'BLOCKED',
-    unresolvedReasons: ['Reference source video is not in the public repository.'],
+    unresolvedReasons,
     ...(index.sourceVideoSha256 ? { referenceMediaHash: `sha256:${index.sourceVideoSha256}` } : {}),
     sourceFps: 60,
     targetFps: 30,
+    ...(targetTakeHash !== undefined ? { targetTakeHash } : {}),
   });
   const report: GoldenBatchReport = {
     contract: 'bcs.golden-batch-report',

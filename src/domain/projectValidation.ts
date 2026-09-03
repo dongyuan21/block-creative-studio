@@ -1,10 +1,10 @@
 import { boardFingerprint, createGame, replayActions } from './gameEngine';
 import { getShape, TILE_COLORS } from './shapes';
+import { parseMaterialRuntimeDescriptor } from '../headless/materialRuntime';
 import type {
   BoardState,
   DiagnosticViewId,
   GameSnapshot,
-  MaterialRuntimeDescriptor,
   PieceInstance,
   PlacementAction,
   ProjectSpec,
@@ -370,14 +370,12 @@ function parseStyle(value: unknown, path: string): StyleSpec {
     );
   }
   if (source.materialRuntime !== undefined) {
-    if (!source.materialRuntime || typeof source.materialRuntime !== 'object') {
-      fail(`${path}.materialRuntime`, '必须是对象。');
+    try {
+      style.materialRuntime = parseMaterialRuntimeDescriptor(source.materialRuntime);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '材质运行时无效。';
+      fail(`${path}.materialRuntime`, `材质运行时无效：${message}`);
     }
-    const runtime = source.materialRuntime as MaterialRuntimeDescriptor;
-    if (runtime.contract !== 'bcs.material-runtime') {
-      fail(`${path}.materialRuntime.contract`, '必须是 bcs.material-runtime。');
-    }
-    style.materialRuntime = runtime;
   }
   return style;
 }

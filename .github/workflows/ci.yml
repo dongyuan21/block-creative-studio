@@ -12,8 +12,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
       - run: npm install --no-audit --no-fund
       - run: npm run check
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - name: Browser capture smoke
+        env:
+          CI: true
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npm run test:browser-e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capture-frames
+          path: review-package/frames/
+          if-no-files-found: ignore

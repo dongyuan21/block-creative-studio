@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { DiagnosticViewId, MaterialRuntimeDescriptor } from '../headless/contracts';
+import type { DiagnosticViewId, MaterialRuntimeDescriptor, NormalYConvention } from '../headless/contracts';
 import { combineFactorAndSample } from '../headless/materialRuntime';
 import type { TileColor } from '../domain/types';
 import { TILE_COLOR_HEX } from './materialPresets';
@@ -10,6 +10,16 @@ export interface RuntimeTextureSet {
   roughness?: THREE.Texture;
   metallic?: THREE.Texture;
   ao?: THREE.Texture;
+  emission?: THREE.Texture;
+}
+
+/** OpenGL keeps +Y; DirectX flips Y once. Strength is applied on both axes. */
+export function normalScaleForConvention(
+  strength: number,
+  convention: NormalYConvention | undefined,
+): { x: number; y: number } {
+  const sign = convention === 'directx' ? -1 : 1;
+  return { x: strength, y: strength * sign };
 }
 
 function applyUv(texture: THREE.Texture, descriptor: MaterialRuntimeDescriptor): void {
@@ -55,6 +65,13 @@ function assignMaps(
   if (textures.ao) {
     material.aoMap = textures.ao;
     applyUv(textures.ao, descriptor);
+  }
+  if (textures.emission) {
+    material.emissiveMap = textures.emission;
+    applyUv(textures.emission, descriptor);
+    if (material.emissive.r === 0 && material.emissive.g === 0 && material.emissive.b === 0) {
+      material.emissive.setRGB(1, 1, 1);
+    }
   }
 }
 
@@ -114,6 +131,7 @@ export function createPbrTileMaterial(options: {
       metalness: 0,
       envMapIntensity: 0,
       emissive: diagnostic === 'emission' ? color.clone().multiplyScalar(Math.max(0.05, emission)) : 0x000000,
+      // Proxy: flatShading stands in for a world-normal buffer; this is not a G-buffer view.
       flatShading: diagnostic === 'world-normal',
     });
   }
@@ -123,6 +141,7 @@ export function createPbrTileMaterial(options: {
       roughness,
       metalness,
       envMapIntensity: 0.2,
+      // Proxy: extra emissive / LDR near-white, not an HDR clip or bloom buffer.
       emissive: diagnostic === 'bloom-contribution' ? color.clone().multiplyScalar(0.15) : 0x000000,
     });
   }
@@ -141,17 +160,11 @@ export function createPbrTileMaterial(options: {
     thickness: options.descriptor.thickness ?? 0,
     emissive: color.clone().multiplyScalar(options.descriptor.emission ?? 0),
   });
-  if (options.descriptor.normalStrength !== undefined) {
-    const yFlip = options.descriptor.maps.find((map) => map.slot === 'normal')?.normalY === 'directx' ? -1 : 1;
-    material.normalScale = new THREE.Vector2(
-      options.descriptor.normalStrength,
-      options.descriptor.normalStrength * yFlip,
-    );
+  const convention = options.descriptor.maps.find((map) => map.slot === 'normal')?.normalY;
+  if (options.textures?.normal || options.descriptor.normalStrength !== undefined) {
+    const scale = normalScaleForConvention(options.descriptor.normalStrength ?? 1, convention);
+    material.normalScale = new THREE.Vector2(scale.x, scale.y);
   }
   assignMaps(material, options.textures, options.descriptor);
-  if (options.textures?.normal) {
-    const y = options.descriptor.maps.find((map) => map.slot === 'normal')?.normalY;
-    if (y === 'directx') material.normalScale.y *= -1;
-  }
   return material;
 }

@@ -270,7 +270,20 @@ export class Reference2DScene {
     this.renderAt(frame, style);
   }
 
+  /**
+   * Authoritative native-resolution capture. Requires decoded runtime assets
+   * (background / tile face). Missing resources throw instead of comparing
+   * builtin fallback pixels.
+   */
   captureReferenceFrame(): HTMLCanvasElement {
+    return this.captureNativeFrame({ requireAssets: true });
+  }
+
+  /**
+   * Non-authoritative overlay/preview capture. May paint builtin fallbacks when
+   * uploaded images are missing. Do not use for Golden Diff or formal stills.
+   */
+  capturePreviewFrame(): HTMLCanvasElement {
     return this.captureNativeFrame({ requireAssets: false });
   }
 

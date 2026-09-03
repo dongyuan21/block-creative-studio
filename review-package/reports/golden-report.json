@@ -16,7 +16,7 @@
         "targetFps": 30,
         "eventId": "idle-start",
         "eventType": "Initial layout, HUD, empty board and first tray.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -50,25 +50,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 0,
         "sourcePtsSeconds": 0,
         "sourceTimeBase": "60/1"
       },
-      "identity": "idle-start:start:exact-replay:0"
+      "identity": "idle-start:start:isolated-presentation:0"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "idle-start:peak",
-        "targetFrame": 20,
+        "targetFrame": 10,
         "targetFps": 30,
         "eventId": "idle-start",
         "eventType": "Initial layout, HUD, empty board and first tray.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -102,25 +103,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 20,
         "sourcePtsSeconds": 0.3333333333333333,
         "sourceTimeBase": "60/1"
       },
-      "identity": "idle-start:peak:exact-replay:20"
+      "identity": "idle-start:peak:isolated-presentation:10"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "idle-start:end",
-        "targetFrame": 60,
+        "targetFrame": 30,
         "targetFps": 30,
         "eventId": "idle-start",
         "eventType": "Initial layout, HUD, empty board and first tray.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -154,25 +156,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 60,
         "sourcePtsSeconds": 1,
         "sourceTimeBase": "60/1"
       },
-      "identity": "idle-start:end:exact-replay:60"
+      "identity": "idle-start:end:isolated-presentation:30"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-pickup-drag:start",
-        "targetFrame": 60,
+        "targetFrame": 30,
         "targetFps": 30,
         "eventId": "first-pickup-drag",
         "eventType": "Rack-to-board scale, lift, shadow and placement.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -206,25 +209,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 60,
         "sourcePtsSeconds": 1,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-pickup-drag:start:exact-replay:60"
+      "identity": "first-pickup-drag:start:isolated-presentation:30"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-pickup-drag:peak",
-        "targetFrame": 88,
+        "targetFrame": 44,
         "targetFps": 30,
         "eventId": "first-pickup-drag",
         "eventType": "Rack-to-board scale, lift, shadow and placement.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -258,25 +262,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 88,
         "sourcePtsSeconds": 1.4666666666666666,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-pickup-drag:peak:exact-replay:88"
+      "identity": "first-pickup-drag:peak:isolated-presentation:44"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-pickup-drag:end",
-        "targetFrame": 120,
+        "targetFrame": 60,
         "targetFps": 30,
         "eventId": "first-pickup-drag",
         "eventType": "Rack-to-board scale, lift, shadow and placement.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -310,25 +315,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 120,
         "sourcePtsSeconds": 2,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-pickup-drag:end:exact-replay:120"
+      "identity": "first-pickup-drag:end:isolated-presentation:60"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-tray-refresh:start",
-        "targetFrame": 185,
+        "targetFrame": 93,
         "targetFps": 30,
         "eventId": "first-tray-refresh",
         "eventType": "Flower/halo refresh and three new pieces.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -362,25 +368,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 185,
         "sourcePtsSeconds": 3.0833333333333335,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-tray-refresh:start:exact-replay:185"
+      "identity": "first-tray-refresh:start:isolated-presentation:93"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-tray-refresh:peak",
-        "targetFrame": 210,
+        "targetFrame": 105,
         "targetFps": 30,
         "eventId": "first-tray-refresh",
         "eventType": "Flower/halo refresh and three new pieces.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -414,25 +421,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 210,
         "sourcePtsSeconds": 3.5,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-tray-refresh:peak:exact-replay:210"
+      "identity": "first-tray-refresh:peak:isolated-presentation:105"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-tray-refresh:end",
-        "targetFrame": 240,
+        "targetFrame": 120,
         "targetFps": 30,
         "eventId": "first-tray-refresh",
         "eventType": "Flower/halo refresh and three new pieces.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -466,25 +474,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 240,
         "sourcePtsSeconds": 4,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-tray-refresh:end:exact-replay:240"
+      "identity": "first-tray-refresh:end:isolated-presentation:120"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "placement-thumb-overlap:start",
-        "targetFrame": 340,
+        "targetFrame": 170,
         "targetFps": 30,
         "eventId": "placement-thumb-overlap",
         "eventType": "Placement thumb/glow persists while next interaction begins.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -518,25 +527,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 340,
         "sourcePtsSeconds": 5.666666666666667,
         "sourceTimeBase": "60/1"
       },
-      "identity": "placement-thumb-overlap:start:exact-replay:340"
+      "identity": "placement-thumb-overlap:start:isolated-presentation:170"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "placement-thumb-overlap:peak",
-        "targetFrame": 365,
+        "targetFrame": 183,
         "targetFps": 30,
         "eventId": "placement-thumb-overlap",
         "eventType": "Placement thumb/glow persists while next interaction begins.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -570,25 +580,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 365,
         "sourcePtsSeconds": 6.083333333333333,
         "sourceTimeBase": "60/1"
       },
-      "identity": "placement-thumb-overlap:peak:exact-replay:365"
+      "identity": "placement-thumb-overlap:peak:isolated-presentation:183"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "placement-thumb-overlap:end",
-        "targetFrame": 420,
+        "targetFrame": 210,
         "targetFps": 30,
         "eventId": "placement-thumb-overlap",
         "eventType": "Placement thumb/glow persists while next interaction begins.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -622,25 +633,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 420,
         "sourcePtsSeconds": 7,
         "sourceTimeBase": "60/1"
       },
-      "identity": "placement-thumb-overlap:end:exact-replay:420"
+      "identity": "placement-thumb-overlap:end:isolated-presentation:210"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-preclear:start",
-        "targetFrame": 515,
+        "targetFrame": 258,
         "targetFps": 30,
         "eventId": "first-preclear",
         "eventType": "Legal ghost and full-row pre-clear fill before release.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -674,25 +686,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 515,
         "sourcePtsSeconds": 8.583333333333334,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-preclear:start:exact-replay:515"
+      "identity": "first-preclear:start:isolated-presentation:258"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-preclear:peak",
-        "targetFrame": 540,
+        "targetFrame": 270,
         "targetFps": 30,
         "eventId": "first-preclear",
         "eventType": "Legal ghost and full-row pre-clear fill before release.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -726,25 +739,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 540,
         "sourcePtsSeconds": 9,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-preclear:peak:exact-replay:540"
+      "identity": "first-preclear:peak:isolated-presentation:270"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-preclear:end",
-        "targetFrame": 560,
+        "targetFrame": 280,
         "targetFps": 30,
         "eventId": "first-preclear",
         "eventType": "Legal ghost and full-row pre-clear fill before release.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -778,25 +792,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 560,
         "sourcePtsSeconds": 9.333333333333334,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-preclear:end:exact-replay:560"
+      "identity": "first-preclear:end:isolated-presentation:280"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-clear-great-combo:start",
-        "targetFrame": 555,
+        "targetFrame": 278,
         "targetFps": 30,
         "eventId": "first-clear-great-combo",
         "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -830,25 +845,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 555,
         "sourcePtsSeconds": 9.25,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-clear-great-combo:start:exact-replay:555"
+      "identity": "first-clear-great-combo:start:isolated-presentation:278"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-clear-great-combo:peak",
-        "targetFrame": 600,
+        "targetFrame": 300,
         "targetFps": 30,
         "eventId": "first-clear-great-combo",
         "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -882,25 +898,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 600,
         "sourcePtsSeconds": 10,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-clear-great-combo:peak:exact-replay:600"
+      "identity": "first-clear-great-combo:peak:isolated-presentation:300"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "first-clear-great-combo:end",
-        "targetFrame": 675,
+        "targetFrame": 338,
         "targetFps": 30,
         "eventId": "first-clear-great-combo",
         "eventType": "Horizontal clear, cell 5/9 glyphs, Great and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -934,25 +951,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 675,
         "sourcePtsSeconds": 11.25,
         "sourceTimeBase": "60/1"
       },
-      "identity": "first-clear-great-combo:end:exact-replay:675"
+      "identity": "first-clear-great-combo:end:isolated-presentation:338"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "amazing:start",
-        "targetFrame": 930,
+        "targetFrame": 465,
         "targetFps": 30,
         "eventId": "amazing",
         "eventType": "Amazing praise art and surrounding feedback.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -986,25 +1004,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 930,
         "sourcePtsSeconds": 15.5,
         "sourceTimeBase": "60/1"
       },
-      "identity": "amazing:start:exact-replay:930"
+      "identity": "amazing:start:isolated-presentation:465"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "amazing:peak",
-        "targetFrame": 970,
+        "targetFrame": 485,
         "targetFps": 30,
         "eventId": "amazing",
         "eventType": "Amazing praise art and surrounding feedback.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1038,25 +1057,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 970,
         "sourcePtsSeconds": 16.166666666666668,
         "sourceTimeBase": "60/1"
       },
-      "identity": "amazing:peak:exact-replay:970"
+      "identity": "amazing:peak:isolated-presentation:485"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "amazing:end",
-        "targetFrame": 1045,
+        "targetFrame": 523,
         "targetFps": 30,
         "eventId": "amazing",
         "eventType": "Amazing praise art and surrounding feedback.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1090,25 +1110,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1045,
         "sourcePtsSeconds": 17.416666666666668,
         "sourceTimeBase": "60/1"
       },
-      "identity": "amazing:end:exact-replay:1045"
+      "identity": "amazing:end:isolated-presentation:523"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "nice:start",
-        "targetFrame": 1180,
+        "targetFrame": 590,
         "targetFps": 30,
         "eventId": "nice",
         "eventType": "Nice praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1142,25 +1163,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1180,
         "sourcePtsSeconds": 19.666666666666668,
         "sourceTimeBase": "60/1"
       },
-      "identity": "nice:start:exact-replay:1180"
+      "identity": "nice:start:isolated-presentation:590"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "nice:peak",
-        "targetFrame": 1215,
+        "targetFrame": 608,
         "targetFps": 30,
         "eventId": "nice",
         "eventType": "Nice praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1194,25 +1216,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1215,
         "sourcePtsSeconds": 20.25,
         "sourceTimeBase": "60/1"
       },
-      "identity": "nice:peak:exact-replay:1215"
+      "identity": "nice:peak:isolated-presentation:608"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "nice:end",
-        "targetFrame": 1265,
+        "targetFrame": 633,
         "targetFps": 30,
         "eventId": "nice",
         "eventType": "Nice praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1246,25 +1269,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1265,
         "sourcePtsSeconds": 21.083333333333332,
         "sourceTimeBase": "60/1"
       },
-      "identity": "nice:end:exact-replay:1265"
+      "identity": "nice:end:isolated-presentation:633"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "unbelievable:start",
-        "targetFrame": 1520,
+        "targetFrame": 760,
         "targetFps": 30,
         "eventId": "unbelievable",
         "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1298,25 +1322,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1520,
         "sourcePtsSeconds": 25.333333333333332,
         "sourceTimeBase": "60/1"
       },
-      "identity": "unbelievable:start:exact-replay:1520"
+      "identity": "unbelievable:start:isolated-presentation:760"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "unbelievable:peak",
-        "targetFrame": 1575,
+        "targetFrame": 788,
         "targetFps": 30,
         "eventId": "unbelievable",
         "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1350,25 +1375,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1575,
         "sourcePtsSeconds": 26.25,
         "sourceTimeBase": "60/1"
       },
-      "identity": "unbelievable:peak:exact-replay:1575"
+      "identity": "unbelievable:peak:isolated-presentation:788"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "unbelievable:end",
-        "targetFrame": 1645,
+        "targetFrame": 823,
         "targetFps": 30,
         "eventId": "unbelievable",
         "eventType": "Full-board wash, Unbelievable, +300 and high-intensity particles.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1402,25 +1428,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 1645,
         "sourcePtsSeconds": 27.416666666666668,
         "sourceTimeBase": "60/1"
       },
-      "identity": "unbelievable:end:exact-replay:1645"
+      "identity": "unbelievable:end:isolated-presentation:823"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "fantastic:start",
-        "targetFrame": 2240,
+        "targetFrame": 1120,
         "targetFps": 30,
         "eventId": "fantastic",
         "eventType": "Fantastic praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1454,25 +1481,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 2240,
         "sourcePtsSeconds": 37.333333333333336,
         "sourceTimeBase": "60/1"
       },
-      "identity": "fantastic:start:exact-replay:2240"
+      "identity": "fantastic:start:isolated-presentation:1120"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "fantastic:peak",
-        "targetFrame": 2285,
+        "targetFrame": 1143,
         "targetFps": 30,
         "eventId": "fantastic",
         "eventType": "Fantastic praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1506,25 +1534,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 2285,
         "sourcePtsSeconds": 38.083333333333336,
         "sourceTimeBase": "60/1"
       },
-      "identity": "fantastic:peak:exact-replay:2285"
+      "identity": "fantastic:peak:isolated-presentation:1143"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "fantastic:end",
-        "targetFrame": 2345,
+        "targetFrame": 1173,
         "targetFps": 30,
         "eventId": "fantastic",
         "eventType": "Fantastic praise tier.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1558,25 +1587,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 2345,
         "sourcePtsSeconds": 39.083333333333336,
         "sourceTimeBase": "60/1"
       },
-      "identity": "fantastic:end:exact-replay:2345"
+      "identity": "fantastic:end:isolated-presentation:1173"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "incredible-multicolumn:start",
-        "targetFrame": 3190,
+        "targetFrame": 1595,
         "targetFps": 30,
         "eventId": "incredible-multicolumn",
         "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1610,25 +1640,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 3190,
         "sourcePtsSeconds": 53.166666666666664,
         "sourceTimeBase": "60/1"
       },
-      "identity": "incredible-multicolumn:start:exact-replay:3190"
+      "identity": "incredible-multicolumn:start:isolated-presentation:1595"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "incredible-multicolumn:peak",
-        "targetFrame": 3240,
+        "targetFrame": 1620,
         "targetFps": 30,
         "eventId": "incredible-multicolumn",
         "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1662,25 +1693,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 3240,
         "sourcePtsSeconds": 54,
         "sourceTimeBase": "60/1"
       },
-      "identity": "incredible-multicolumn:peak:exact-replay:3240"
+      "identity": "incredible-multicolumn:peak:isolated-presentation:1620"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "incredible-multicolumn:end",
-        "targetFrame": 3300,
+        "targetFrame": 1650,
         "targetFps": 30,
         "eventId": "incredible-multicolumn",
         "eventType": "Multi-column light pillars, flower stamps and Incredible art.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1714,25 +1746,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 3300,
         "sourcePtsSeconds": 55,
         "sourceTimeBase": "60/1"
       },
-      "identity": "incredible-multicolumn:end:exact-replay:3300"
+      "identity": "incredible-multicolumn:end:isolated-presentation:1650"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "new-high-score:start",
-        "targetFrame": 11745,
+        "targetFrame": 5873,
         "targetFps": 30,
         "eventId": "new-high-score",
         "eventType": "New high score banner overlaps clear and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1766,25 +1799,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 11745,
         "sourcePtsSeconds": 195.75,
         "sourceTimeBase": "60/1"
       },
-      "identity": "new-high-score:start:exact-replay:11745"
+      "identity": "new-high-score:start:isolated-presentation:5873"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "new-high-score:peak",
-        "targetFrame": 11800,
+        "targetFrame": 5900,
         "targetFps": 30,
         "eventId": "new-high-score",
         "eventType": "New high score banner overlaps clear and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1818,25 +1852,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 11800,
         "sourcePtsSeconds": 196.66666666666666,
         "sourceTimeBase": "60/1"
       },
-      "identity": "new-high-score:peak:exact-replay:11800"
+      "identity": "new-high-score:peak:isolated-presentation:5900"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "new-high-score:end",
-        "targetFrame": 11845,
+        "targetFrame": 5923,
         "targetFps": 30,
         "eventId": "new-high-score",
         "eventType": "New high score banner overlaps clear and Combo.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1870,25 +1905,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 11845,
         "sourcePtsSeconds": 197.41666666666666,
         "sourceTimeBase": "60/1"
       },
-      "identity": "new-high-score:end:exact-replay:11845"
+      "identity": "new-high-score:end:isolated-presentation:5923"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "endgame-continue:start",
-        "targetFrame": 13448,
+        "targetFrame": 6724,
         "targetFps": 30,
         "eventId": "endgame-continue",
         "eventType": "Dim overlay, final Combo and rewarded continue card.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1922,25 +1958,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 13448,
         "sourcePtsSeconds": 224.13333333333333,
         "sourceTimeBase": "60/1"
       },
-      "identity": "endgame-continue:start:exact-replay:13448"
+      "identity": "endgame-continue:start:isolated-presentation:6724"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "endgame-continue:peak",
-        "targetFrame": 13470,
+        "targetFrame": 6735,
         "targetFps": 30,
         "eventId": "endgame-continue",
         "eventType": "Dim overlay, final Combo and rewarded continue card.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -1974,25 +2011,26 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 13470,
         "sourcePtsSeconds": 224.5,
         "sourceTimeBase": "60/1"
       },
-      "identity": "endgame-continue:peak:exact-replay:13470"
+      "identity": "endgame-continue:peak:isolated-presentation:6735"
     },
     {
       "case": {
         "contract": "bcs.calibration-case",
         "contractVersion": "1.0.0",
         "id": "endgame-continue:end",
-        "targetFrame": 13545,
+        "targetFrame": 6773,
         "targetFps": 30,
         "eventId": "endgame-continue",
         "eventType": "Dim overlay, final Combo and rewarded continue card.",
-        "correspondence": "exact-replay",
+        "correspondence": "isolated-presentation",
         "roi": [
           {
             "id": "board",
@@ -2026,14 +2064,15 @@
         "excludedRegions": [],
         "reviewStatus": "BLOCKED",
         "unresolvedReasons": [
-          "Reference source video is not in the public repository."
+          "Reference source video is not in the public repository.",
+          "No target Take hash; correspondence is isolated-presentation, not exact-replay."
         ],
         "referenceMediaHash": "sha256:7aec0cb6336742247c9f4648e80f0cffd4e373d0eb835bb22848a797f2ed7cba",
         "sourceFrameIndex": 13545,
         "sourcePtsSeconds": 225.75,
         "sourceTimeBase": "60/1"
       },
-      "identity": "endgame-continue:end:exact-replay:13545"
+      "identity": "endgame-continue:end:isolated-presentation:6773"
     }
   ],
   "summary": {

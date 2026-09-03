@@ -9,44 +9,24 @@ export const VARIANT_PACK_PATHS = {
 
 export type VariantMaterialId = keyof typeof VARIANT_PACK_PATHS;
 
-const SLOT_FILES: Record<string, Array<{ slot: 'baseColor' | 'normal' | 'roughness' | 'metallic' | 'ao'; file: string }>> = {
-  'material.stainless-steel': [
-    { slot: 'baseColor', file: 'steel-basecolor.png' },
-    { slot: 'roughness', file: 'steel-roughness.png' },
-    { slot: 'metallic', file: 'steel-metallic.png' },
-    { slot: 'normal', file: 'steel-normal.png' },
-    { slot: 'ao', file: 'steel-ao.png' },
-  ],
-  'material.oak-wood': [
-    { slot: 'baseColor', file: 'wood-basecolor.png' },
-    { slot: 'roughness', file: 'wood-roughness.png' },
-    { slot: 'metallic', file: 'wood-metallic.png' },
-    { slot: 'normal', file: 'wood-normal.png' },
-    { slot: 'ao', file: 'wood-ao.png' },
-  ],
-};
+/** Rewrite pack/source map URIs onto the Vite-served public materials directory. */
+export function rewriteMaterialMapUriForBrowser(
+  uri: string,
+  mapBaseUrl = '/materials/maps',
+): string {
+  const file = uri.split(/[/\\]/).pop();
+  if (file && (uri.includes('materials/maps/') || uri.startsWith('/materials/maps/'))) {
+    return `${mapBaseUrl.replace(/\/$/, '')}/${file}`;
+  }
+  return uri;
+}
 
 export function compileVariantRuntime(
   pack: MaterialPackManifest,
   mapBaseUrl = '/materials/maps',
 ): MaterialRuntimeDescriptor {
-  const refs = pack.appearance.textureRefs ?? {};
-  const files = SLOT_FILES[pack.id] ?? [];
   return compileMaterialRuntime({
     pack,
-    maps: files.map((item) => {
-      const ref = refs[item.slot];
-      if (!ref?.contentHash) {
-        throw new Error(`Missing textureRef hash for ${pack.id} ${item.slot}`);
-      }
-      return {
-        slot: item.slot,
-        uri: `${mapBaseUrl}/${item.file}`,
-        contentHash: ref.contentHash,
-        colorSpace: item.slot === 'baseColor' ? 'srgb' as const : 'linear' as const,
-        channels: item.slot === 'baseColor' || item.slot === 'normal' ? 'rgb' as const : 'r' as const,
-        ...(item.slot === 'normal' ? { normalY: 'opengl' as const } : {}),
-      };
-    }),
+    rewriteUri: (uri) => rewriteMaterialMapUriForBrowser(uri, mapBaseUrl),
   });
 }

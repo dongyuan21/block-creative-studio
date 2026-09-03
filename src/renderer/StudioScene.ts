@@ -309,6 +309,8 @@ export class StudioScene {
   private runtimeAssetsReady: Promise<void> = Promise.resolve();
   private runtimeTextures: RuntimeTextureSet = {};
   private runtimeTextureKey = '';
+  private runtimeTextureFailure: string | null = null;
+  private materialRuntimeLoadId = 0;
 
   constructor(canvas: HTMLCanvasElement, options: StudioSceneOptions = {}) {
     this.canvas = canvas;
@@ -554,13 +556,53 @@ export class StudioScene {
   async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
     const maps = style.materialRuntime?.maps ?? [];
     const key = runtimeTextureCacheKey(maps);
-    if (key === this.runtimeTextureKey) return;
-    disposeRuntimeTextureSet(this.runtimeTextures);
-    this.runtimeTextures = {};
-    this.runtimeTextureKey = key;
+    if (key === this.runtimeTextureKey && !this.runtimeTextureFailure) return;
+
+    const loadId = ++this.materialRuntimeLoadId;
+    if (maps.length === 0) {
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = {};
+      this.runtimeTextureKey = key;
+      this.runtimeTextureFailure = null;
+      this.style = style;
+      this.invalidateRuntimeMaterials();
+      return;
+    }
+
+    try {
+      const loaded = await loadRuntimeTextureSet(maps);
+      if (loadId !== this.materialRuntimeLoadId) {
+        disposeRuntimeTextureSet(loaded);
+        return;
+      }
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = loaded;
+      this.runtimeTextureKey = key;
+      this.runtimeTextureFailure = null;
+      this.style = style;
+      this.invalidateRuntimeMaterials();
+    } catch (error) {
+      if (loadId !== this.materialRuntimeLoadId) return;
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = {};
+      this.runtimeTextureKey = '';
+      this.runtimeTextureFailure = error instanceof Error ? error.message : String(error);
+      this.style = style;
+      this.invalidateRuntimeMaterials();
+      throw error;
+    }
+  }
+
+  private invalidateRuntimeMaterials(): void {
+    for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();
-    if (maps.length === 0) return;
-    this.runtimeTextures = await loadRuntimeTextureSet(maps);
+    this.currentBoardKey = '';
+    this.currentRackKey = '';
+    this.currentDragKey = '';
+    if (this.frame && this.style) {
+      this.syncScene();
+      this.render();
+    }
   }
 
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
@@ -596,6 +638,8 @@ export class StudioScene {
     disposeRuntimeTextureSet(this.runtimeTextures);
     this.runtimeTextures = {};
     this.runtimeTextureKey = '';
+    this.runtimeTextureFailure = null;
+    this.materialRuntimeLoadId += 1;
     this.environmentTarget.dispose();
     for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();

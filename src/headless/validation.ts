@@ -12,7 +12,8 @@ import type {
 import { BCS_CONTRACT_VERSION } from './contracts.js';
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
-const HASH_PATTERN = /^(sha256:[0-9a-f]{64}|fnv1a32:[0-9a-f]{8})$/i;
+export const CONTENT_HASH_PATTERN = /^(sha256:[0-9a-f]{64}|fnv1a32:[0-9a-f]{8})$/i;
+const HASH_PATTERN = CONTENT_HASH_PATTERN;
 const SEMVER_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
 function issue(

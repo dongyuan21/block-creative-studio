@@ -159,11 +159,15 @@ for (const [name, pixels] of Object.entries(files)) {
 }
 
 function bitmapRef(id, fileName) {
+  const slotIsColorOrNormal = fileName.includes('basecolor') || fileName.includes('normal');
   return {
     id,
     version: '1.0.0',
     kind: 'bitmap',
     contentHash: `sha256:${hashes[fileName]}`,
+    uri: `examples/headless/materials/maps/${fileName}`,
+    channels: slotIsColorOrNormal ? 'rgb' : 'r',
+    ...(fileName.includes('normal') ? { normalY: 'opengl' } : {}),
   };
 }
 

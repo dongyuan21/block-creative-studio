@@ -16,7 +16,7 @@ export const PASS_RESPONSIBILITIES: Record<ReferencePassId, string> = {
   tray: 'Candidate rack pieces',
   interaction: 'Pickup, drag, ghost and pre-clear fill',
   placement: 'Placement confirmation glow and thumb',
-  clear: 'Clear sweep, sparks and cell exit',
-  feedback: 'HUD, score, praise and combo',
+  clear: 'Clear sweep, sparks, cell exit; current 2D also paints praise when feedbackFx is praise-combo',
+  feedback: 'HUD and score; praise/combo belong here by contract but are still drawn from the clear pass',
   endgame: 'Continue / game-over modal',
 };

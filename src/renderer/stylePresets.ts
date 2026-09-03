@@ -123,12 +123,12 @@ export const CAMERA_OPTIONS: Array<NamedPreset<CameraPresetId>> = [
 export const DIAGNOSTIC_VIEW_OPTIONS: Array<NamedPreset<import('../domain/types').DiagnosticViewId>> = [
   { id: 'beauty', label: 'Beauty', description: '最终合成。' },
   { id: 'albedo', label: 'Albedo', description: '读取实际底色/贴图，关闭环境反射。' },
-  { id: 'world-normal', label: 'World Normal', description: '法线响应诊断。' },
+  { id: 'world-normal', label: 'World Normal (proxy)', description: 'flatShading 代理，不是 world-normal G-buffer。' },
   { id: 'roughness', label: 'Roughness', description: '粗糙度通道。' },
   { id: 'metalness', label: 'Metalness', description: '金属度通道。' },
   { id: 'emission', label: 'Emission', description: '自发光贡献。' },
-  { id: 'bloom-contribution', label: 'Bloom Contribution', description: '哪些区域会进入 threshold bloom。' },
-  { id: 'highlight-clip', label: 'Highlight Clip', description: '近白高光诊断，测量空间为 LDR 输出。' },
+  { id: 'bloom-contribution', label: 'Bloom Contribution (proxy)', description: '额外 emissive 代理，不是 bloom 缓冲。' },
+  { id: 'highlight-clip', label: 'Highlight Clip (proxy)', description: 'LDR 近白诊断，不是 HDR highlight-clip 缓冲。' },
 ];
 
 export const FX_OPTIONS: Array<NamedPreset<FxPresetId>> = [

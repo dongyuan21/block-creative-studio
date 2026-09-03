@@ -225,5 +225,5 @@ if (isMain) {
   const mode = process.argv.includes('--full') || process.env.BCS_CAPTURE_FULL === '1' ? 'full' : 'smoke';
   const report = await runBrowserCapture({ mode });
   console.log(JSON.stringify({ status: report.status, mode: report.mode, frames: report.frames?.length ?? 0, videos: report.videos?.length ?? 0, errors: report.errors ?? [] }, null, 2));
-  if (report.status === 'FAIL') process.exit(1);
+  if (report.status === 'FAIL' || (report.status === 'NOT_RUN' && process.env.CI === 'true')) process.exit(1);
 }

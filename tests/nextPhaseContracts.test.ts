@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { designToVideoMapping, mapDesignPointToVideo, boardScreenRectInSpace, DESIGN_RESOLUTION, VIDEO_RESOLUTION } from '../src/headless/coordinateMapping';
 import { createFrameRenderRequest, validateFrameRenderRequest, presentationSeconds } from '../src/headless/frameRequest';
-import { compileMaterialRuntime, sampleOrmChannel, combineFactorAndSample } from '../src/headless/materialRuntime';
-import { expandGoldenSceneCases, summarizeCalibrationCases } from '../src/headless/calibration';
+import { compileMaterialRuntime, sampleOrmChannel, combineFactorAndSample, parseMaterialRuntimeDescriptor, remapChannelsForThreeJsSlot, needsThreeJsChannelSwizzle } from '../src/headless/materialRuntime';
+import { expandGoldenSceneCases, summarizeCalibrationCases, mapSourceFrameToTarget } from '../src/headless/calibration';
 import { compareCalibrationFrames, calibrationScore } from '../src/reference2d/calibrationMetrics';
 import { makeFixture } from './headlessFixtures';
 import {
@@ -22,7 +22,7 @@ import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
 import { containedCompositionViewport, lockedCameraDistance, FIXED_SHOT_PROFILE } from '../src/renderer/shotProfile';
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
 import { compileVariantRuntime } from '../src/capture/materialVariants';
-import { createPbrTileMaterial } from '../src/renderer/pbrMaterialFactory';
+import { createPbrTileMaterial, normalScaleForConvention } from '../src/renderer/pbrMaterialFactory';
 import { resolveTakeAnchor, STILL_SPECS } from '../src/capture/capturePlan';
 import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
@@ -193,6 +193,103 @@ describe('material runtime', () => {
     woodMat.dispose();
   });
 
+  it('still compiles maps after a textured pack is renamed to an arbitrary legal id', () => {
+    const steel = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
+    steel.id = 'material.renamed-brushed-metal';
+    const fromPack = compileMaterialRuntime({ pack: steel });
+    const fromCapture = compileVariantRuntime(steel);
+    expect(fromPack.id).toBe('material.renamed-brushed-metal');
+    expect(fromPack.maps).toHaveLength(5);
+    expect(fromPack.maps.every((map) => map.uri.includes('steel-'))).toBe(true);
+    expect(fromCapture.maps).toHaveLength(5);
+    expect(fromCapture.maps.every((map) => map.uri.startsWith('/materials/maps/steel-'))).toBe(true);
+    expect(fromCapture.maps.map((map) => map.slot).sort()).toEqual(
+      fromPack.maps.map((map) => map.slot).sort(),
+    );
+  });
+
+  it('resolves texture URIs from the asset registry when the pack ref has no uri', () => {
+    const { material } = makeFixture();
+    const textureUri = 'bcs-asset://sha256/' + 'c'.repeat(64);
+    const textureHash = `sha256:${'c'.repeat(64)}`;
+    material.appearance.textureRefs = {
+      baseColor: {
+        id: 'texture.copper.base-color',
+        version: '1.0.0',
+        kind: 'bitmap',
+        contentHash: textureHash,
+      },
+    };
+    const runtime = compileMaterialRuntime({
+      pack: material,
+      registry: {
+        resolve: () => ({ uri: textureUri, contentHash: textureHash }),
+      },
+    });
+    expect(runtime.maps).toEqual([
+      expect.objectContaining({ slot: 'baseColor', uri: textureUri, contentHash: textureHash }),
+    ]);
+  });
+
+  it('maps split grayscale channels onto the Three.js ORM layout equivalently to a packed map', () => {
+    const packed = { r: 51, g: 102, b: 204 };
+    expect(sampleOrmChannel(packed, 'ao')).toBe(51);
+    expect(sampleOrmChannel(packed, 'roughness')).toBe(102);
+    expect(sampleOrmChannel(packed, 'metallic')).toBe(204);
+    expect(needsThreeJsChannelSwizzle('roughness', 'r')).toBe(true);
+    expect(needsThreeJsChannelSwizzle('metallic', 'r')).toBe(true);
+    expect(needsThreeJsChannelSwizzle('ao', 'r')).toBe(false);
+    expect(needsThreeJsChannelSwizzle('orm', 'rgb')).toBe(false);
+    const splitAo = remapChannelsForThreeJsSlot({ r: 51, g: 0, b: 0 }, 'ao', 'r');
+    const splitRough = remapChannelsForThreeJsSlot({ r: 102, g: 0, b: 0 }, 'roughness', 'r');
+    const splitMetal = remapChannelsForThreeJsSlot({ r: 204, g: 0, b: 0 }, 'metallic', 'r');
+    expect(sampleOrmChannel({ r: splitAo.r, g: splitRough.g, b: splitMetal.b }, 'ao')).toBe(sampleOrmChannel(packed, 'ao'));
+    expect(sampleOrmChannel({ r: splitAo.r, g: splitRough.g, b: splitMetal.b }, 'roughness')).toBe(sampleOrmChannel(packed, 'roughness'));
+    expect(sampleOrmChannel({ r: splitAo.r, g: splitRough.g, b: splitMetal.b }, 'metallic')).toBe(sampleOrmChannel(packed, 'metallic'));
+  });
+
+  it('flips DirectX normal Y once and opposite to OpenGL', () => {
+    const openGl = normalScaleForConvention(0.4, 'opengl');
+    const directX = normalScaleForConvention(0.4, 'directx');
+    expect(openGl.x).toBe(0.4);
+    expect(openGl.y).toBe(0.4);
+    expect(directX.x).toBe(0.4);
+    expect(directX.y).toBe(-0.4);
+    expect(openGl.y).not.toBe(directX.y);
+    const descriptor = compileMaterialRuntime({
+      pack: makeFixture().material,
+      maps: [{
+        slot: 'normal',
+        uri: 'examples/headless/materials/maps/steel-normal.png',
+        contentHash: `sha256:${'d'.repeat(64)}`,
+        colorSpace: 'linear',
+        normalY: 'directx',
+      }],
+    });
+    descriptor.normalStrength = 0.4;
+    const texture = new THREE.Texture();
+    const material = createPbrTileMaterial({
+      descriptor,
+      color: 'coral',
+      textures: { normal: texture },
+    });
+    expect(material.normalScale.x).toBeCloseTo(0.4);
+    expect(material.normalScale.y).toBeCloseTo(-0.4);
+    material.dispose();
+  });
+
+  it('rejects a forged persisted runtime with path traversal or a short hash', () => {
+    const steel = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
+    const runtime = compileMaterialRuntime({ pack: steel });
+    expect(parseMaterialRuntimeDescriptor(runtime).maps).toHaveLength(5);
+    const forgedUri = structuredClone(runtime);
+    forgedUri.maps[0]!.uri = '../secret.png';
+    expect(() => parseMaterialRuntimeDescriptor(forgedUri)).toThrow(/URI/);
+    const forgedHash = structuredClone(runtime);
+    forgedHash.maps[0]!.contentHash = 'sha256:aa';
+    expect(() => parseMaterialRuntimeDescriptor(forgedHash)).toThrow(/contentHash|HASH/i);
+  });
+
   it('rejects unspecified normal Y instead of flipping silently', () => {
     const { material } = makeFixture();
     try {
@@ -209,9 +306,20 @@ describe('material runtime', () => {
 });
 
 describe('golden batch', () => {
-  it('lists all 13 golden scenes as BLOCKED without source video', () => {
-    const cases = expandGoldenSceneCases(goldenIndex.scenes, {
+  it('maps 60 fps source frames onto 30 fps target time and does not default exact-replay', () => {
+    expect(mapSourceFrameToTarget(60, 60, 30)).toBe(30);
+    expect(mapSourceFrameToTarget(20, 60, 30)).toBe(10);
+    expect(mapSourceFrameToTarget(0, 60, 30)).toBe(0);
+    expect(() => expandGoldenSceneCases(goldenIndex.scenes, {
       correspondence: 'exact-replay',
+      reviewStatus: 'BLOCKED',
+      unresolvedReasons: ['missing take'],
+      sourceFps: 60,
+      targetFps: 30,
+    })).toThrow(/targetTakeHash/);
+
+    const cases = expandGoldenSceneCases(goldenIndex.scenes, {
+      correspondence: 'isolated-presentation',
       reviewStatus: 'BLOCKED',
       unresolvedReasons: ['Reference source video is not in the public repository.'],
       referenceMediaHash: `sha256:${goldenIndex.sourceVideoSha256}`,
@@ -224,6 +332,14 @@ describe('golden batch', () => {
     expect(cases[0]?.targetFps).toBe(30);
     expect(cases[0]?.sourcePtsSeconds).toBeTypeOf('number');
     expect(cases.every((item) => item.reviewStatus === 'BLOCKED')).toBe(true);
+    expect(cases.every((item) => item.correspondence === 'isolated-presentation')).toBe(true);
+    const idleEnd = cases.find((item) => item.id === 'idle-start:end');
+    expect(idleEnd?.sourceFrameIndex).toBe(60);
+    expect(idleEnd?.sourcePtsSeconds).toBeCloseTo(1);
+    expect(idleEnd?.targetFrame).toBe(30);
+    const pickupStart = cases.find((item) => item.id === 'first-pickup-drag:start');
+    expect(pickupStart?.sourceFrameIndex).toBe(60);
+    expect(pickupStart?.targetFrame).toBe(30);
   });
 
   it('fails a deliberately shifted board comparison', () => {

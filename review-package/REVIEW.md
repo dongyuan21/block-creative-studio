@@ -56,8 +56,9 @@
 before：`74a2fba` 单帧 Golden Diff + LookDev 三档，2D 捕获为放大预览。  
 after：原生 1064×1788 捕获、Pass 隔离、Shot Profile、PBR maps 进入 Three.js、6s 连续落子切片的 2D+三材质 MP4。  
 diff：无重构前 PNG（NOT_RUN）。当前 after 帧可人工对比。  
-参考/目标事件对应：39 cases，`exact-replay` 声明但内容 BLOCKED。  
+参考/目标事件对应：39 cases，无 target Take hash 时对应关系为 `isolated-presentation`，内容仍全部 BLOCKED。  
 源录像对比：BLOCKED，不是 exact-replay 完成。
+1064×1788 → 1080×1920 letterbox 是过渡性 reference-transfer，不是完成的 9:16 生产构图。
 
 ## 复现步骤
 
@@ -98,8 +99,23 @@ npm run capture:review
 
 ## 给 Review 者的重点
 
-1. Reference 2D 导出 letterbox 是否接受（不再拉伸）。  
-2. Golden 39 条全部 BLOCKED 是否符合“缺源视频不得造 PASS”。  
+1. Reference 2D 导出 letterbox 是否接受（不再拉伸）。这是过渡性 reference-transfer，不是完成的 9:16 生产构图。  
+2. Golden 39 条全部 BLOCKED 是否符合“缺源视频不得造 PASS”；无 Take hash 时不得默认 exact-replay。  
 3. `fixed-camera-cinematic` 是否只是锁定构图的 Three.js 后端，而不是改名冒充新引擎。  
-4. 钢/木贴图是否为两套独立图案，aurora 是否仅靠参数/任意 ID 改变外观。  
-5. 四条 MP4 规格是否自洽（1080×1920、30fps、6s、无声），以及 SwiftShader 成片能否作为质感结论（实现者认为：**不能**，只证明导出通路）。
+4. 钢/木贴图是否来自 Pack `textureRefs`（改名后仍应带 maps），而不是 capture ID→文件名表。  
+5. DirectX 法线 Y 只翻转一次；split roughness/metallic `channels:'r'` 经 swizzle 后应与 ORM 等价。  
+6. 导入工程必须拒绝伪造的 `materialRuntime`（`..` / 非法协议 / 短 hash）。  
+7. `captureReferenceFrame()` 默认要求资源就绪；Golden Diff 不得静默比较内置回退。  
+8. 四条 MP4 规格是否自洽（1080×1920、30fps、6s、无声），以及 SwiftShader 成片能否作为质感结论（实现者认为：**不能**，只证明导出通路）。
+
+## GPT Pro 审查阻塞项（本轮）
+
+已按 inline review 修改，不将 T0–T5 标为完成，也不做视觉自批：
+
+- 去掉 `SLOT_FILES` 材质 ID 表；`compileMaterialRuntime` 从 Pack `textureRefs`（及可选 Registry）解析 URI。  
+- 加载时按 Three.js 约定 swizzle 通道；emission map 不再跳过；DirectX `normalScale.y` 只乘一次。  
+- `prepareMaterialRuntime` 用 generation token，成功才提交 cache key，失败可重试，过期结果丢弃。  
+- 工程导入走 `parseMaterialRuntimeDescriptor`。  
+- 60→30fps 用 `round(sourceFrame * targetFps / sourceFps)`；exact-replay 必须带 `targetTakeHash`。  
+- `captureReferenceFrame()` `requireAssets: true`；预览单独使用 `capturePreviewFrame()`。  
+- 诊断标签标明 proxy；letterbox 标明 transitional；CI 增加 Chrome smoke，`NOT_RUN` 在 CI 中失败。

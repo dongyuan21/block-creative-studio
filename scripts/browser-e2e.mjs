@@ -8,8 +8,10 @@ writeFileSync(
   new URL('../review-package/reports/browser-e2e.json', import.meta.url),
   `${JSON.stringify(report, null, 2)}\n`,
 );
+const skipAllowed = process.env.CI !== 'true' && process.env.BCS_ALLOW_E2E_SKIP === '1';
+const ok = report.status === 'PASS' || (report.status === 'NOT_RUN' && skipAllowed);
 console.log(JSON.stringify({
-  ok: report.status !== 'FAIL',
+  ok,
   status: report.status,
   mode: report.mode,
   reason: report.reason,
@@ -17,4 +19,4 @@ console.log(JSON.stringify({
   videos: report.videos?.length ?? 0,
   renderer: report.webglRenderer ?? report.renderer ?? 'unknown',
 }, null, 2));
-if (report.status === 'FAIL') process.exit(1);
+if (!ok) process.exit(1);

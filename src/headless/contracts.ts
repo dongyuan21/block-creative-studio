@@ -45,6 +45,14 @@ export interface AssetRef {
   contentHash?: string;
 }
 
+/** Texture binding on a Material Pack: AssetRef plus optional runtime URI/channel metadata. */
+export interface MaterialTextureRef extends AssetRef {
+  uri?: string;
+  channels?: TextureChannel;
+  colorSpace?: ColorSpaceTag;
+  normalY?: NormalYConvention;
+}
+
 export interface RuntimeBudget {
   textureMemoryMiB?: number;
   triangleCount?: number;
@@ -116,7 +124,10 @@ export interface MaterialAppearanceProfile {
   thickness?: number;
   normalStrength?: number;
   emission?: number;
-  textureRefs?: Partial<Record<'baseColor' | 'normal' | 'roughness' | 'metallic' | 'height' | 'ao' | 'emission' | 'opacity', AssetRef>>;
+  textureRefs?: Partial<Record<
+    'baseColor' | 'normal' | 'roughness' | 'metallic' | 'height' | 'ao' | 'emission' | 'opacity' | 'orm',
+    MaterialTextureRef
+  >>;
 }
 
 export type FractureMode =

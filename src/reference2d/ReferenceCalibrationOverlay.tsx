@@ -150,14 +150,13 @@ export function ReferenceCalibrationOverlay({
       );
       return;
     }
-    const candidateCanvas = captureCurrentFrame();
-    if (!candidateCanvas) {
-      setError('当前 Reference 2D 场景尚未准备好。');
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
+      const candidateCanvas = captureCurrentFrame();
+      if (!candidateCanvas) {
+        throw new Error('当前 Reference 2D 场景尚未准备好。');
+      }
       const referenceCanvas = document.createElement('canvas');
       referenceCanvas.width = REFERENCE_CANVAS.width;
       referenceCanvas.height = REFERENCE_CANVAS.height;
@@ -202,14 +201,13 @@ export function ReferenceCalibrationOverlay({
   };
 
   const exportCurrentFrame = async (): Promise<void> => {
-    const canvas = captureCurrentFrame();
-    if (!canvas) {
-      setError('当前 Reference 2D 场景尚未准备好。');
-      return;
-    }
     setBusy(true);
     setError(null);
     try {
+      const canvas = captureCurrentFrame();
+      if (!canvas) {
+        throw new Error('当前 Reference 2D 场景尚未准备好。');
+      }
       downloadBlob(
         await canvasBlob(canvas),
         `reference-2d-${frameLabel.replace(/[^0-9A-Za-z_-]+/gu, '-')}.png`,
