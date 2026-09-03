@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { mkdtempSync, mkdirSync, writeFileSync, existsSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,6 +12,30 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 function sha256(buffer) {
   return createHash('sha256').update(buffer).digest('hex');
+}
+
+function captureIdentity() {
+  let sourceHeadSha = process.env.GITHUB_SHA ?? '';
+  let checkoutMergeSha = process.env.GITHUB_SHA ?? '';
+  if (process.env.GITHUB_EVENT_PATH && existsSync(process.env.GITHUB_EVENT_PATH)) {
+    try {
+      const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+      if (event?.pull_request?.head?.sha) sourceHeadSha = event.pull_request.head.sha;
+    } catch {
+      // keep GITHUB_SHA
+    }
+  }
+  if (!sourceHeadSha) {
+    sourceHeadSha = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).stdout.trim();
+    checkoutMergeSha = sourceHeadSha;
+  }
+  return {
+    sourceHeadSha,
+    checkoutMergeSha,
+    workflowRunId: process.env.GITHUB_RUN_ID ?? null,
+    workflow: process.env.GITHUB_WORKFLOW ?? null,
+    capturedAt: new Date().toISOString(),
+  };
 }
 
 function findChrome() {
@@ -228,7 +252,7 @@ export async function runBrowserCapture(options = {}) {
   writeFileSync(resolve(runRoot, 'artifact-manifest.json'), `${JSON.stringify({
     mode: report.mode,
     status: report.status,
-    implementationHint: 'current HEAD; REVIEW.md records the commit after capture',
+    ...captureIdentity(),
     planHashes: report.planHashes ?? [],
     files: listed,
   }, null, 2)}\n`);

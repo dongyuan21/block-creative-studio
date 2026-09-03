@@ -34,8 +34,11 @@ import type {
 import { exportTakeVideo, type RenderProgress } from '../exporter/offlineVideoExporter';
 import { useVariantWorkspace } from './useVariantWorkspace';
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
+import { materialDescriptorKey } from '../headless/materialRuntime';
+import { runtimeTextureResourceKey } from '../renderer/runtimeTextures';
 import {
   IDLE_MATERIAL_RUNTIME_STATUS,
+  materialRuntimeReadyFor,
   type MaterialRuntimeStatus,
 } from '../renderer/materialRuntimeStatus';
 import { downloadBlob, safeFileName } from '../utils/download';
@@ -520,12 +523,20 @@ export function useStudioModel() {
       });
       return;
     }
-    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state !== 'ready') {
+    if (
+      resolvedStyle.renderer !== 'reference-2d'
+      && !materialRuntimeReadyFor(materialRuntimeStatus, {
+        descriptorKey: resolvedStyle.materialRuntime ? materialDescriptorKey(resolvedStyle.materialRuntime) : '',
+        resourceKey: runtimeTextureResourceKey(resolvedStyle.materialRuntime?.maps ?? [], runtimeAssets),
+      })
+    ) {
       const reason = materialRuntimeStatus.state === 'error'
         ? `新材质加载失败，当前仍显示上一套材质：${materialRuntimeStatus.error ?? '加载失败'}`
         : materialRuntimeStatus.state === 'stale'
           ? '新材质尚未提交，当前仍显示上一套材质，不能进入正式导出。'
-          : '三维材质尚未就绪，不能进入正式导出。';
+          : materialRuntimeStatus.state === 'ready'
+            ? '三维材质状态与当前 Plan descriptor 不一致，不能进入正式导出。'
+            : '三维材质尚未就绪，不能进入正式导出。';
       setExportState({
         running: false,
         progress: null,

@@ -19,6 +19,19 @@ export const IDLE_MATERIAL_RUNTIME_STATUS: MaterialRuntimeStatus = {
 };
 
 /** Formal 3D export may proceed only after the requested descriptor has committed. */
-export function materialRuntimeBlocksExport(status: MaterialRuntimeStatus): boolean {
-  return status.state !== 'ready';
+export function materialRuntimeReadyFor(
+  status: MaterialRuntimeStatus,
+  expected?: { descriptorKey?: string; resourceKey?: string },
+): boolean {
+  if (status.state !== 'ready') return false;
+  if (expected?.descriptorKey !== undefined && status.descriptorKey !== expected.descriptorKey) return false;
+  if (expected?.resourceKey !== undefined && status.resourceKey !== expected.resourceKey) return false;
+  return true;
+}
+
+export function materialRuntimeBlocksExport(
+  status: MaterialRuntimeStatus,
+  expected?: { descriptorKey?: string; resourceKey?: string },
+): boolean {
+  return !materialRuntimeReadyFor(status, expected);
 }

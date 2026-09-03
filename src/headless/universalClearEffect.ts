@@ -13,13 +13,19 @@ export function createUniversalClearEffect(): EffectPackManifest {
     kind: 'effect-pack',
     origin: 'generated',
     label: 'Universal clear (test fixture)',
-    contentHash: 'sha256:e4ecce818ff21a53002717fccb26c5b95d934629105118f4fb348580b81b1b50',
+    contentHash: 'sha256:fc038d45b39be0e712bf6c7d93e79af709fe96380aedf0ff147e28b8d7eaae84',
     runtime: {
       renderers: ['fixed-camera-cinematic'],
       deterministic: true,
       budget: {
         textureMemoryMiB: 18,
         triangleCount: 12000,
+      },
+    },
+    metadata: {
+      studio: {
+        stylePatch: { fx: 'crystal-shatter' },
+        rendererAdapter: 'fixed-camera-cinematic',
       },
     },
     supportedEvents: ['line-clear', 'cross-clear', 'combo', 'all-clear'],

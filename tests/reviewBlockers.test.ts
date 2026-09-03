@@ -8,7 +8,10 @@ import {
   compileMaterialRuntime,
   defaultCombineForMaps,
   materialDescriptorKey,
+  materialMapsPublicBase,
   parseMaterialRuntimeDescriptor,
+  remapChannelsForThreeJsSlot,
+  rewriteMaterialMapUriForBrowser,
 } from '../src/headless/materialRuntime';
 import { omitContentHash, stableStringify } from '../src/headless/stableHash';
 import { compileVariant } from '../src/headless/variantCompiler';
@@ -16,6 +19,7 @@ import { AssetRegistry } from '../src/headless/assetRegistry';
 import { createPbrTileMaterial } from '../src/renderer/pbrMaterialFactory';
 import {
   assertSha256ContentHash,
+  resolveMaterialMapFetchUrl,
   runtimeTextureResourceKey,
 } from '../src/renderer/runtimeTextures';
 import {
@@ -25,8 +29,9 @@ import {
   webglViewportFromCss,
 } from '../src/renderer/shotProfile';
 import { createStudioVariantMatrix, studioPreviewStyle } from '../src/integration/studioVariantBridge';
+import { overlayPlanMaterialOnStyle, planRenderEvidence } from '../src/integration/studioAssetCatalog';
 import { MaterialRuntimeLoadGate } from '../src/renderer/materialRuntimeLoadGate';
-import { materialRuntimeBlocksExport } from '../src/renderer/materialRuntimeStatus';
+import { materialRuntimeBlocksExport, materialRuntimeReadyFor } from '../src/renderer/materialRuntimeStatus';
 import { createUniversalClearEffect } from '../src/headless/universalClearEffect';
 import { DEFAULT_STYLE } from '../src/renderer/stylePresets';
 import { createCrossClearBoard } from '../src/domain/boardPresets';
@@ -34,7 +39,9 @@ import { createGame, createPieceSet } from '../src/domain/gameEngine';
 import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
 import type { MaterialPackManifest } from '../src/headless/contracts';
 import type { ProjectSpec } from '../src/domain/types';
+import { compileRegisteredMaterialPlan } from '../src/capture/materialVariants';
 import { STILL_SPECS } from '../src/capture/capturePlan';
+import { collectRuntimeAssetRequests } from '../src/assets/runtimeAssetBindings';
 
 function packPath(name: string): string {
   return resolve(process.cwd(), `examples/headless/materials/${name}`);
@@ -160,6 +167,21 @@ describe('review blockers', () => {
     expect(replace.specularIntensity).toBeCloseTo(0.42);
     replace.dispose();
 
+    const { emission: _explicitZero, ...appearanceWithoutEmission } = material.appearance;
+    const mappedDefault = createPbrTileMaterial({
+      descriptor: compileMaterialRuntime({
+        pack: { ...material, appearance: { ...appearanceWithoutEmission, specular: 0.42 } },
+        maps,
+        combine: 'replace',
+      }),
+      color: 'coral',
+      textures,
+    });
+    expect(mappedDefault.emissive.r).toBe(1);
+    expect(mappedDefault.emissive.g).toBe(1);
+    expect(mappedDefault.emissive.b).toBe(1);
+    mappedDefault.dispose();
+
     const multiply = createPbrTileMaterial({
       descriptor: compileMaterialRuntime({ pack: material, maps, combine: 'multiply-factor' }),
       color: 'coral',
@@ -248,10 +270,12 @@ describe('review blockers', () => {
     expect(row?.resolvedStyle.materialRuntime?.materialClass).toBeTruthy();
     expect(row?.resolvedStyle.renderer).toBe(project.style.renderer);
     expect(studioPreviewStyle(row, project.style).materialRuntime).toEqual(row?.resolvedStyle.materialRuntime);
-    expect(studioPreviewStyle(
+    const unboundPreview = studioPreviewStyle(
       row ? { ...row, previewSupported: false } : null,
       project.style,
-    ).materialRuntime).toEqual(row?.resolvedStyle.materialRuntime);
+    );
+    expect(unboundPreview.materialRuntime).toEqual(row?.resolvedStyle.materialRuntime);
+    expect(unboundPreview.renderer).toBe('fixed-camera-cinematic');
   });
 
   it('stores canonical sha256 content hashes on the three fixture material packs', () => {
@@ -359,5 +383,167 @@ describe('review blockers', () => {
         },
       },
     }, registry, { renderer: 'fixed-camera-cinematic', requireHashes: true })).toThrow(/does not support material class wood/i);
+  });
+
+  it('does not declare Reference 2D support on PBR fixture packs', () => {
+    for (const file of ['material.stainless-steel.json', 'material.oak-wood.json', 'material.aurora-shell.json']) {
+      const pack = JSON.parse(readFileSync(packPath(file), 'utf8')) as { runtime: { renderers: string[] } };
+      expect(pack.runtime.renderers).not.toContain('reference-2d');
+      expect(pack.runtime.renderers).toContain('fixed-camera-cinematic');
+    }
+  });
+
+  it('prefixes public PBR map URIs with the Vite/Pages BASE_URL', () => {
+    const pages = materialMapsPublicBase('/block-creative-studio/');
+    expect(rewriteMaterialMapUriForBrowser('examples/headless/materials/maps/steel-basecolor.png', pages))
+      .toBe('/block-creative-studio/materials/maps/steel-basecolor.png');
+    expect(rewriteMaterialMapUriForBrowser('/materials/maps/wood-basecolor.png', pages))
+      .toBe('/block-creative-studio/materials/maps/wood-basecolor.png');
+    expect(pages).not.toBe('/materials/maps');
+  });
+
+  it('resolves bcs-asset PBR maps from PreparedResources instead of fetching the custom scheme', () => {
+    const map = {
+      slot: 'baseColor' as const,
+      uri: `bcs-asset://sha256/${'a'.repeat(64)}`,
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      channels: 'rgb' as const,
+      colorSpace: 'srgb' as const,
+    };
+    expect(() => resolveMaterialMapFetchUrl(map)).toThrow(/PreparedResources/);
+    const url = resolveMaterialMapFetchUrl(map, {
+      revision: 'test',
+      background: null,
+      tileFace: null,
+      particleSprites: [],
+      binary: [],
+      missing: [],
+      textureMaps: [{
+        slotId: 'tile.material',
+        role: 'texture-map',
+        contentHash: map.contentHash,
+        sourceUri: map.uri,
+        objectUrl: 'blob:prepared-albedo',
+        fileName: 'albedo.png',
+        mimeType: 'image/png',
+        fit: 'contain',
+        opacity: 1,
+        blendMode: 'source-over',
+        inset: 0,
+      }],
+    });
+    expect(url).toBe('blob:prepared-albedo');
+  });
+
+  it('requires the committed descriptor key before formal 3D export', () => {
+    const readyA = {
+      state: 'ready' as const,
+      generation: 1,
+      resourceKey: 'a',
+      descriptorKey: 'steel',
+      error: null,
+      showingPrevious: false,
+    };
+    expect(materialRuntimeReadyFor(readyA, { descriptorKey: 'steel' })).toBe(true);
+    expect(materialRuntimeReadyFor(readyA, { descriptorKey: 'wood' })).toBe(false);
+    expect(materialRuntimeBlocksExport(readyA, { descriptorKey: 'wood' })).toBe(true);
+  });
+
+  it('copies emission R into RGB and does not keep a 2D fallback when overlaying Plan material', () => {
+    expect(remapChannelsForThreeJsSlot({ r: 40, g: 1, b: 2, a: 255 }, 'emission', 'r')).toEqual({
+      r: 40, g: 40, b: 40, a: 255,
+    });
+    const style = overlayPlanMaterialOnStyle(structuredClone(DEFAULT_STYLE), {
+      contract: 'bcs.material-runtime',
+      contractVersion: '1.0.0',
+      id: 'material.overlay',
+      version: '1.0.0',
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      materialClass: 'metal',
+      baseColor: '#ffffff',
+      roughness: 0.2,
+      metalness: 0.8,
+      maps: [],
+      uv: { repeat: [1, 1], offset: [0, 0], rotationRadians: 0 },
+      combine: 'replace',
+      capabilities: {
+        heightDisplacement: 'unsupported',
+        anisotropy: 'unsupported',
+        subsurface: 'unsupported',
+        complexTransmission: 'unsupported',
+        materialAwareFracture: 'pending',
+      },
+      unsupportedFields: [],
+      behaviorPending: true,
+    });
+    expect(DEFAULT_STYLE.renderer).toBe('reference-2d');
+    expect(style.renderer).toBe('fixed-camera-cinematic');
+  });
+
+  it('records validated Plan effect/camera separately from the rendered fx preset', () => {
+    const fixture = makeFixture();
+    const steel = JSON.parse(readFileSync(packPath('material.stainless-steel.json'), 'utf8')) as MaterialPackManifest;
+    const compiled = compileRegisteredMaterialPlan(steel, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+    });
+    const style = overlayPlanMaterialOnStyle(structuredClone(DEFAULT_STYLE), compiled.runtime);
+    const evidence = planRenderEvidence(compiled.plan, { ...style, fx: 'crystal-shatter' });
+    expect(evidence.validatedEffectId).toBe('effect.universal-clear');
+    expect(evidence.renderedFxPreset).toBe('crystal-shatter');
+    expect(evidence.effectDrivesPixels).toBe(true);
+    expect(evidence.validatedCameraId).toBeTruthy();
+    expect(evidence.cameraDrivesPixels).toBe(false);
+    expect(evidence.layoutDrivesPixels).toBe(false);
+  });
+
+  it('resolves MaterialPack bcs-asset texture refs through PreparedResources', () => {
+    const fixture = makeFixture();
+    const digest = '9'.repeat(64);
+    const uri = `bcs-asset://sha256/${digest}`;
+    const contentHash = `sha256:${digest}`;
+    fixture.material.appearance.textureRefs = {
+      baseColor: {
+        id: 'tex.review.base',
+        version: '1.0.0',
+        kind: 'bitmap',
+        uri,
+        contentHash,
+        channels: 'rgb',
+        colorSpace: 'srgb',
+      },
+    };
+    const compiled = compileRegisteredMaterialPlan(fixture.material, {
+      master: fixture.master,
+      recipe: fixture.recipe,
+      assets: fixture.assets,
+    });
+    const requests = collectRuntimeAssetRequests(compiled.plan);
+    expect(requests.some((request) => request.contentHash === contentHash && request.role === 'texture-map')).toBe(true);
+    const map = compiled.runtime.maps.find((item) => item.slot === 'baseColor');
+    expect(map?.uri).toBe(uri);
+    expect(() => resolveMaterialMapFetchUrl(map!)).toThrow(/PreparedResources/);
+    expect(resolveMaterialMapFetchUrl(map!, {
+      revision: 'test',
+      background: null,
+      tileFace: null,
+      particleSprites: [],
+      binary: [],
+      missing: [],
+      textureMaps: [{
+        slotId: 'tile.material.baseColor',
+        role: 'texture-map',
+        contentHash,
+        sourceUri: uri,
+        objectUrl: 'blob:review-pbr',
+        fileName: 'tex.review.base.png',
+        mimeType: 'image/png',
+        fit: 'contain',
+        opacity: 1,
+        blendMode: 'source-over',
+        inset: 0,
+      }],
+    })).toBe('blob:review-pbr');
   });
 });

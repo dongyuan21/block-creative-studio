@@ -308,7 +308,7 @@ export function useVariantWorkspace({
       setWorkspaceError(null);
     } else {
       setWorkspaceError(
-        '该 Look Pack 没有完整 studio.style 预览绑定。若 Render Plan 含 tile.material，网页三维预览仍会应用该 Plan 材质；其余 Look 样式不会切换。',
+        '该 Look Pack 没有完整 studio.style 预览绑定。若 Render Plan 含 tile.material，网页会切到固定机位三维预览并应用该 Plan 材质；Reference 2D 不消费 PBR MaterialRuntime。',
       );
     }
   }, [builtinCatalog, matrix, mode, project.style, setProject]);
@@ -329,7 +329,7 @@ export function useVariantWorkspace({
         row.error
           ? `${row.error.code}: ${row.error.message}`
           : row.resolvedStyle.materialRuntime
-            ? '该 Variant 的 Look 没有完整 studio.style 绑定，但 Plan 材质已交给当前三维预览。'
+            ? '该 Variant 的 Look 没有完整 studio.style 绑定。Plan 材质已交给固定机位三维预览；Reference 2D 不会绘制这些 PBR 贴图。'
             : '该 Variant 可以作为 Headless Artifact 使用，但当前网页预览没有对应的渲染绑定。',
       );
     }

@@ -306,6 +306,8 @@ describe('material runtime', () => {
     expect(needsThreeJsChannelSwizzle('metallic', 'r')).toBe(true);
     expect(needsThreeJsChannelSwizzle('ao', 'r')).toBe(false);
     expect(needsThreeJsChannelSwizzle('orm', 'rgb')).toBe(false);
+    expect(needsThreeJsChannelSwizzle('emission', 'r')).toBe(true);
+    expect(needsThreeJsChannelSwizzle('emission', 'rgb')).toBe(false);
     const splitAo = remapChannelsForThreeJsSlot({ r: 51, g: 0, b: 0 }, 'ao', 'r');
     const splitRough = remapChannelsForThreeJsSlot({ r: 102, g: 0, b: 0 }, 'roughness', 'r');
     const splitMetal = remapChannelsForThreeJsSlot({ r: 204, g: 0, b: 0 }, 'metallic', 'r');

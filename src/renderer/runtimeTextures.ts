@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import type { MaterialMapBinding, TextureChannel } from '../headless/contracts';
 import { needsThreeJsChannelSwizzle, remapChannelsForThreeJsSlot } from '../headless/materialRuntime';
+import { assetUriToContentHash } from '../assets/browserAssetStore';
+import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import type { RuntimeTextureSet } from './pbrMaterialFactory';
 
 export const MAX_RUNTIME_TEXTURE_BYTES = 16 * 1024 * 1024;
@@ -21,9 +23,15 @@ function slotTexture(set: RuntimeTextureSet, slot: MaterialMapBinding['slot'], t
 }
 
 /** Identity of GPU texture objects (reload when this changes). */
-export function runtimeTextureResourceKey(maps: readonly MaterialMapBinding[]): string {
+export function runtimeTextureResourceKey(
+  maps: readonly MaterialMapBinding[],
+  bindings?: RuntimeAssetBindings | null,
+): string {
   return maps
-    .map((map) => `${map.slot}:${map.contentHash}:${map.uri}:${map.channels}:${map.colorSpace}`)
+    .map((map) => {
+      const source = resolvePreparedTextureUrl(map, bindings) ?? map.uri;
+      return `${map.slot}:${map.contentHash}:${source}:${map.channels}:${map.colorSpace}`;
+    })
     .sort()
     .join('|');
 }
@@ -117,6 +125,39 @@ export function assertTextureBudget(byteLength: number, width = 0, height = 0): 
   }
 }
 
+export function isBrowserAssetMapUri(uri: string): boolean {
+  return Boolean(assetUriToContentHash(uri));
+}
+
+export function resolvePreparedTextureUrl(
+  map: MaterialMapBinding,
+  bindings?: RuntimeAssetBindings | null,
+): string | null {
+  if (!bindings) return null;
+  const prepared = bindings.textureMaps.find((item) => item.contentHash === map.contentHash)
+    ?? bindings.textureMaps.find((item) => item.sourceUri === map.uri);
+  return prepared?.objectUrl ?? null;
+}
+
+/**
+ * Fetch URL for a material map. `bcs-asset://` must be resolved from
+ * PreparedResources / `runtimeAssets.textureMaps` first; the custom scheme is
+ * not fetchable.
+ */
+export function resolveMaterialMapFetchUrl(
+  map: MaterialMapBinding,
+  bindings?: RuntimeAssetBindings | null,
+): string {
+  const prepared = resolvePreparedTextureUrl(map, bindings);
+  if (prepared) return prepared;
+  if (isBrowserAssetMapUri(map.uri)) {
+    throw new Error(
+      `PBR map ${map.contentHash} (${map.uri}) is not in PreparedResources/runtimeAssets.textureMaps`,
+    );
+  }
+  return map.uri;
+}
+
 async function fetchTextureBytes(uri: string): Promise<ArrayBuffer> {
   const response = await fetch(uri);
   if (!response.ok) {
@@ -125,12 +166,16 @@ async function fetchTextureBytes(uri: string): Promise<ArrayBuffer> {
   return response.arrayBuffer();
 }
 
-export async function loadRuntimeTextureSet(maps: readonly MaterialMapBinding[]): Promise<RuntimeTextureSet> {
+export async function loadRuntimeTextureSet(
+  maps: readonly MaterialMapBinding[],
+  bindings?: RuntimeAssetBindings | null,
+): Promise<RuntimeTextureSet> {
   if (maps.length === 0) return {};
   const ordered = [...maps].sort((left, right) => left.slot.localeCompare(right.slot));
   const loader = new THREE.TextureLoader();
   const jobs = ordered.map(async (map) => {
-    const bytes = await fetchTextureBytes(map.uri);
+    const sourceUrl = resolveMaterialMapFetchUrl(map, bindings);
+    const bytes = await fetchTextureBytes(sourceUrl);
     assertTextureBudget(bytes.byteLength);
     const digest = await sha256Hex(bytes);
     assertSha256ContentHash(map.contentHash, digest);

@@ -43,6 +43,7 @@ import { copyLookDevPreset } from '../renderer/lookDev';
 import { VariantWorkspacePanel, type VariantWorkspacePanelProps } from './VariantWorkspacePanel';
 import type { MaterialRuntimeStatus } from '../renderer/materialRuntimeStatus';
 import { IDLE_MATERIAL_RUNTIME_STATUS, materialRuntimeBlocksExport } from '../renderer/materialRuntimeStatus';
+import { materialDescriptorKey } from '../headless/materialRuntime';
 
 interface InspectorPanelProps {
   variantWorkspace: Omit<VariantWorkspacePanelProps, 'locked'>;
@@ -472,7 +473,10 @@ export function InspectorPanel({
         ) : (
           <button
             className="export-button"
-            disabled={!take || locked || (style.renderer !== 'reference-2d' && materialRuntimeBlocksExport(materialRuntimeStatus ?? IDLE_MATERIAL_RUNTIME_STATUS))}
+            disabled={!take || locked || (style.renderer !== 'reference-2d' && materialRuntimeBlocksExport(
+              materialRuntimeStatus ?? IDLE_MATERIAL_RUNTIME_STATUS,
+              { descriptorKey: style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '' },
+            ))}
             onClick={() => void onExportVideo()}
           >
             生成 1080P MP4

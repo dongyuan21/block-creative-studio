@@ -125,8 +125,9 @@ export function ThreeViewport({
       else stage.setLiveSnapshot(snapshot, style);
     };
     apply();
+    stage.setRuntimeAssets(runtimeAssets);
     const maps = style.materialRuntime?.maps ?? [];
-    const resourceKey = runtimeTextureResourceKey(maps);
+    const resourceKey = runtimeTextureResourceKey(maps, runtimeAssets);
     const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
     if (hadReadyRef.current && lastReadyDescriptorRef.current === descriptorKey) {
       void stage.prepareMaterialRuntime(style).then(() => {
@@ -184,7 +185,7 @@ export function ThreeViewport({
     return () => {
       cancelled = true;
     };
-  }, [frame, mode, snapshot, style]);
+  }, [frame, mode, snapshot, style, runtimeAssets]);
 
   useEffect(() => {
     if (!clearSignal) return;

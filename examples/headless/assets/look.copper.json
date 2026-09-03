@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "kind": "look-pack",
   "origin": "generated",
-  "contentHash": "sha256:8f806fbfbf69d34d47cc6aa03da5fdb1bbe9b30341ea52a2eede14cfe541ddb5",
+  "contentHash": "sha256:f0d08f1ad9be342531d3deefccbd41bd5fba0a0935b7cdcd84662ffa4a3de752",
   "runtime": {
     "renderers": [
       "fixed-camera-cinematic"
@@ -47,7 +47,7 @@
       "id": "effect.copper-clear",
       "version": "1.0.0",
       "kind": "effect-pack",
-      "contentHash": "sha256:813d915ea458e49461cace786a79cf461b25267260a197a62bd62899c1a3049f"
+      "contentHash": "sha256:7a513be94bf61c0c8cf5c7c154fe4322905e19cc0b79bbee39ef83bcbed0949c"
     },
     "clear.tile-exit": {
       "id": "clear.exit",

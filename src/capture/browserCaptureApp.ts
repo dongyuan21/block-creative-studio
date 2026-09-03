@@ -17,6 +17,15 @@ import {
 } from './capturePlan';
 import { compileVariantRuntime, VARIANT_PACK_PATHS, type VariantMaterialId } from './materialVariants';
 import type { MaterialPackManifest } from '../headless/contracts';
+import {
+  planRenderEvidence,
+  rendererConsumesMaterialRuntime,
+  resolveStyleFromRenderPlan,
+  type PlanRenderEvidence,
+} from '../integration/studioAssetCatalog';
+import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
+import { EMPTY_RUNTIME_ASSET_BINDINGS } from '../assets/runtimeAssetBindings';
+import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
 
 interface CaptureReport {
   status: 'PASS' | 'FAIL';
@@ -29,7 +38,20 @@ interface CaptureReport {
   tests: Array<{ name: string; status: 'PASS' | 'FAIL' | 'NOT_RUN'; detail?: string }>;
   frames: Array<{ id: string; path: string; sha256: string; width: number; height: number }>;
   videos: Array<{ id: string; path: string; sha256: string; bytes: number; frameCount: number; durationSeconds: number }>;
-  planHashes: Array<{ materialId: string; planHash: string; lockMode: string; effectId: string }>;
+  planHashes: Array<{
+    materialId: string;
+    planHash: string;
+    lockMode: string;
+    validatedEffectId: string;
+    renderedFxPreset: string;
+    effectDrivesPixels: boolean;
+    validatedCameraId: string;
+    renderedCameraProfile: string;
+    cameraDrivesPixels: boolean;
+    validatedLayoutId: string;
+    renderedLayoutProfile: string;
+    layoutDrivesPixels: boolean;
+  }>;
   errors: string[];
 }
 
@@ -111,7 +133,7 @@ function baseStyle(): StyleSpec {
   };
 }
 
-const capturedPlanHashes: Array<{ materialId: string; planHash: string; lockMode: string; effectId: string }> = [];
+const capturedPlanHashes: Array<PlanRenderEvidence & { lockMode: string }> = [];
 
 async function styleFor(
   renderer: StyleSpec['renderer'],
@@ -125,20 +147,21 @@ async function styleFor(
   if (extras.diagnosticView) style.diagnosticView = extras.diagnosticView;
   if (extras.enabledPasses) style.enabledPasses = extras.enabledPasses;
   if (extras.lookDevId) style.lookDev = copyLookDevPreset(extras.lookDevId);
-  if (materialId) {
-    const compiled = await compileVariantRuntime(await loadPack(materialId));
-    style.materialRuntime = compiled.runtime;
-    const existing = capturedPlanHashes.find((item) => item.materialId === materialId);
-    if (!existing) {
-      capturedPlanHashes.push({
-        materialId,
-        planHash: compiled.plan.planHash,
-        lockMode: compiled.plan.lockMode,
-        effectId: compiled.plan.slots['clear.primary']?.manifest.id ?? '',
-      });
-    }
+  if (!materialId) return style;
+  const compiled = await compileVariantRuntime(await loadPack(materialId));
+  const executed = resolveStyleFromRenderPlan(compiled.plan, style);
+  const next: StyleSpec = { ...executed.style };
+  if (extras.diagnosticView) next.diagnosticView = extras.diagnosticView;
+  if (extras.enabledPasses) next.enabledPasses = extras.enabledPasses;
+  if (extras.lookDevId) next.lookDev = copyLookDevPreset(extras.lookDevId);
+  if (rendererConsumesMaterialRuntime(renderer)) next.renderer = renderer;
+  if (!capturedPlanHashes.some((item) => item.materialId === materialId)) {
+    capturedPlanHashes.push({
+      ...planRenderEvidence(compiled.plan, next),
+      lockMode: compiled.plan.lockMode,
+    });
   }
-  return style;
+  return next;
 }
 
 async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
@@ -235,6 +258,91 @@ async function captureVideo(spec: (typeof VIDEO_SPECS)[number]): Promise<{
   };
 }
 
+async function runPreparedTextureTest(): Promise<{ name: string; status: 'PASS' | 'FAIL'; detail?: string }> {
+  const canvas = document.createElement('canvas');
+  canvas.width = 8;
+  canvas.height = 8;
+  const context = canvas.getContext('2d');
+  if (!context) return { name: 'prepared-pbr-maps', status: 'FAIL', detail: 'no 2d context' };
+  context.fillStyle = '#c08040';
+  context.fillRect(0, 0, 8, 8);
+  const blob = await blobPng(canvas);
+  const store = new BrowserAssetStore(new MemoryAssetBlobRepository());
+  const record = await store.putBlob(blob, { fileName: 'albedo.png', mimeType: 'image/png', inspectMedia: false });
+  const stored = await store.get(record.contentHash);
+  if (!stored) return { name: 'prepared-pbr-maps', status: 'FAIL', detail: 'store miss' };
+  const objectUrl = URL.createObjectURL(stored.blob);
+  const map = {
+    slot: 'baseColor' as const,
+    uri: record.uri,
+    contentHash: record.contentHash,
+    channels: 'rgb' as const,
+    colorSpace: 'srgb' as const,
+  };
+  const bindings = {
+    ...EMPTY_RUNTIME_ASSET_BINDINGS,
+    textureMaps: [{
+      slotId: 'tile.material',
+      role: 'texture-map' as const,
+      contentHash: record.contentHash,
+      sourceUri: record.uri,
+      objectUrl,
+      fileName: 'albedo.png',
+      mimeType: 'image/png',
+      fit: 'contain' as const,
+      opacity: 1,
+      blendMode: 'source-over' as const,
+      inset: 0,
+    }],
+  };
+  try {
+    try {
+      resolveMaterialMapFetchUrl(map, EMPTY_RUNTIME_ASSET_BINDINGS);
+      return { name: 'prepared-pbr-maps', status: 'FAIL', detail: 'unprepared bcs-asset:// was fetchable' };
+    } catch {
+      // expected
+    }
+    const loaded = await loadRuntimeTextureSet([map], bindings);
+    if (!loaded.baseColor) return { name: 'prepared-pbr-maps', status: 'FAIL', detail: 'texture missing' };
+    loaded.baseColor.dispose();
+    return { name: 'prepared-pbr-maps', status: 'PASS', detail: record.contentHash };
+  } catch (error) {
+    return { name: 'prepared-pbr-maps', status: 'FAIL', detail: error instanceof Error ? error.message : String(error) };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function runLetterboxPickTest(): Promise<{ name: string; status: 'PASS' | 'FAIL'; detail?: string }> {
+  const spec = STILL_SPECS.find((item) => item.id === '3d-steel-idle');
+  if (!spec) return { name: 'letterbox-pick', status: 'FAIL', detail: 'missing spec' };
+  const frame = presentationForSpec(spec);
+  const style = await styleFor(spec.renderer, spec.materialId);
+  const host = document.createElement('canvas');
+  host.style.position = 'fixed';
+  host.style.left = '0';
+  host.style.top = '0';
+  host.style.width = '1920px';
+  host.style.height = '1080px';
+  document.body.append(host);
+  const scene = new StudioScene(host, { quality: 'interactive' });
+  try {
+    scene.resize(1920, 1080, 1);
+    await scene.warmup(frame, style);
+    const rect = host.getBoundingClientRect();
+    const miss = scene.pick(rect.left + 10, rect.top + 540);
+    const hit = scene.pick(rect.left + 960, rect.top + 540);
+    if (miss !== null) return { name: 'letterbox-pick', status: 'FAIL', detail: 'letterbox reported a hit' };
+    if (hit?.kind !== 'cell') return { name: 'letterbox-pick', status: 'FAIL', detail: `center miss: ${JSON.stringify(hit)}` };
+    return { name: 'letterbox-pick', status: 'PASS', detail: `${hit.row},${hit.col}` };
+  } catch (error) {
+    return { name: 'letterbox-pick', status: 'FAIL', detail: error instanceof Error ? error.message : String(error) };
+  } finally {
+    scene.dispose();
+    host.remove();
+  }
+}
+
 async function runSeekTest(): Promise<{ name: string; status: 'PASS' | 'FAIL'; detail?: string }> {
   const spec = STILL_SPECS.find((item) => item.id === '2d-legal-preview');
   if (!spec) return { name: 'seek-repeat', status: 'FAIL', detail: 'missing spec' };
@@ -293,6 +401,8 @@ async function run(): Promise<CaptureReport> {
       report.frames.push(await captureStill(spec));
     }
 
+    report.tests.push(await runPreparedTextureTest());
+    report.tests.push(await runLetterboxPickTest());
     report.tests.push(await runSeekTest());
     report.tests.push(await runAbortTest());
     report.tests.push({

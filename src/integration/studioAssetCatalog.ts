@@ -11,7 +11,12 @@ import type {
 } from '../headless/contracts';
 import { AssetRegistry } from '../headless/assetRegistry';
 import { BcsHeadlessError } from '../headless/errors';
-import { materialRuntimeFromPlan, rewriteMaterialMapUriForBrowser } from '../headless/materialRuntime';
+import {
+  bitmapManifestFromTextureRef,
+  materialMapsPublicBase,
+  materialRuntimeFromPlan,
+  rewriteMaterialMapUriForBrowser,
+} from '../headless/materialRuntime';
 import { stableHash } from '../headless/stableHash';
 import { validateAssetManifest } from '../headless/validation';
 import type { ProjectSpec, StyleSpec } from '../domain/types';
@@ -534,26 +539,34 @@ export function isLookPreviewSupported(manifest: AssetManifest): boolean {
   return readStudioMetadata(manifest)?.previewSupported === true;
 }
 
+function browserMaterialMapsBase(): string {
+  return materialMapsPublicBase(import.meta.env.BASE_URL);
+}
+
+export function rendererConsumesMaterialRuntime(renderer: StyleSpec['renderer']): boolean {
+  return renderer === 'three-3d' || renderer === 'fixed-camera-cinematic';
+}
+
+export function overlayPlanMaterialOnStyle(
+  fallback: StyleSpec,
+  runtime: StyleSpec['materialRuntime'],
+): StyleSpec {
+  if (!runtime) return fallback;
+  if (rendererConsumesMaterialRuntime(fallback.renderer)) {
+    return { ...fallback, materialRuntime: runtime };
+  }
+  return { ...fallback, renderer: 'fixed-camera-cinematic', materialRuntime: runtime };
+}
+
 function attachMaterialRuntimeFromPlan(style: StyleSpec, plan: ResolvedRenderPlan): void {
   const slot = plan.slots['tile.material'];
   if (!slot || slot.manifest.kind !== 'material-pack') return;
   style.materialRuntime = materialRuntimeFromPlan(plan, {
-    rewriteUri: rewriteMaterialMapUriForBrowser,
+    rewriteUri: (uri) => rewriteMaterialMapUriForBrowser(uri, browserMaterialMapsBase()),
   });
 }
 
-export function resolveStyleFromRenderPlan(
-  plan: ResolvedRenderPlan,
-  fallback: StyleSpec,
-): { style: StyleSpec; previewSupported: boolean } {
-  const studio = readStudioMetadata(plan.lookPack.manifest);
-  if (!studio?.previewSupported || !studio.style) {
-    const style = clone(fallback);
-    attachMaterialRuntimeFromPlan(style, plan);
-    return { style, previewSupported: false };
-  }
-
-  const style = clone(studio.style);
+function applySlotStylePatches(style: StyleSpec, plan: ResolvedRenderPlan): void {
   for (const asset of Object.values(plan.slots)) {
     const patch = readStudioMetadata(asset.manifest)?.stylePatch;
     if (!patch) continue;
@@ -567,6 +580,65 @@ export function resolveStyleFromRenderPlan(
     style.reference2d = reference2d;
     style.geometry = geometry;
   }
+}
+
+export interface PlanRenderEvidence {
+  planHash: string;
+  renderer: ResolvedRenderPlan['renderer'];
+  materialId: string;
+  validatedEffectId: string;
+  renderedFxPreset: StyleSpec['fx'];
+  effectDrivesPixels: boolean;
+  validatedCameraId: string;
+  renderedCameraProfile: string;
+  cameraDrivesPixels: boolean;
+  validatedLayoutId: string;
+  renderedLayoutProfile: string;
+  layoutDrivesPixels: boolean;
+}
+
+export function planRenderEvidence(plan: ResolvedRenderPlan, style: StyleSpec): PlanRenderEvidence {
+  const effectManifest = plan.slots['clear.primary']?.manifest;
+  const effectId = effectManifest?.id ?? '';
+  const fxPatch = effectManifest ? readStudioMetadata(effectManifest)?.stylePatch?.fx : undefined;
+  const cameraId = plan.cameraProfile.manifest.id;
+  const layoutId = plan.layoutProfile.manifest.id;
+  const effectDrivesPixels = Boolean(fxPatch) && style.fx === fxPatch && rendererConsumesMaterialRuntime(style.renderer);
+  return {
+    planHash: plan.planHash,
+    renderer: plan.renderer,
+    materialId: plan.slots['tile.material']?.manifest.id ?? '',
+    validatedEffectId: effectId,
+    renderedFxPreset: style.fx,
+    effectDrivesPixels,
+    validatedCameraId: cameraId,
+    renderedCameraProfile: style.renderer === 'fixed-camera-cinematic'
+      ? 'block-garden-fixed-shot-v1'
+      : style.camera,
+    cameraDrivesPixels: false,
+    validatedLayoutId: layoutId,
+    renderedLayoutProfile: style.renderer === 'fixed-camera-cinematic' ? 'design-1080x1920' : 'unbound',
+    layoutDrivesPixels: false,
+  };
+}
+
+export function resolveStyleFromRenderPlan(
+  plan: ResolvedRenderPlan,
+  fallback: StyleSpec,
+): { style: StyleSpec; previewSupported: boolean } {
+  const studio = readStudioMetadata(plan.lookPack.manifest);
+  if (!studio?.previewSupported || !studio.style) {
+    let style = clone(fallback);
+    attachMaterialRuntimeFromPlan(style, plan);
+    if (style.materialRuntime && !rendererConsumesMaterialRuntime(style.renderer)) {
+      style = { ...style, renderer: 'fixed-camera-cinematic' };
+    }
+    applySlotStylePatches(style, plan);
+    return { style, previewSupported: false };
+  }
+
+  const style = clone(studio.style);
+  applySlotStylePatches(style, plan);
   attachMaterialRuntimeFromPlan(style, plan);
   return { style, previewSupported: true };
 }
@@ -664,6 +736,16 @@ export function createStudioAssetCatalog(
       );
     }
     assetMap.set(key, clone(asset));
+  }
+
+  for (const asset of [...assetMap.values()]) {
+    if (asset.kind !== 'material-pack') continue;
+    for (const ref of Object.values(asset.appearance.textureRefs ?? {})) {
+      if (!ref?.uri || !ref.contentHash) continue;
+      const bitmap = bitmapManifestFromTextureRef(ref);
+      const bitmapKey = keyOf(bitmap);
+      if (!assetMap.has(bitmapKey)) assetMap.set(bitmapKey, bitmap);
+    }
   }
 
   const current = definitions[0]!;

@@ -562,7 +562,7 @@ export class StudioScene {
 
   async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
     const maps = style.materialRuntime?.maps ?? [];
-    const resourceKey = runtimeTextureResourceKey(maps);
+    const resourceKey = runtimeTextureResourceKey(maps, this.runtimeAssets);
     const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
     if (this.materialLoadGate.shouldSkip(descriptorKey)) return;
 
@@ -591,7 +591,7 @@ export class StudioScene {
     }
 
     try {
-      const loaded = await loadRuntimeTextureSet(maps);
+      const loaded = await loadRuntimeTextureSet(maps, this.runtimeAssets);
       if (!this.materialLoadGate.isCurrent(loadId)) {
         disposeRuntimeTextureSet(loaded);
         return;

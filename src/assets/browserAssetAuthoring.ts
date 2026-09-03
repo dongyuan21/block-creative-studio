@@ -89,7 +89,7 @@ export const BROWSER_ASSET_IMPORT_OPTIONS: BrowserAssetImportOption[] = [
     description: '保存为独立纹理资产；通常由外部 Agent 再写 Material Pack 引用。',
     slotId: 'tile.material.texture',
     accept: 'image/png,image/jpeg,image/webp,image/avif,.png,.jpg,.jpeg,.webp,.avif',
-    previewRenderers: [],
+    previewRenderers: ['fixed-camera-cinematic', 'three-3d'],
   },
 ];
 
@@ -150,7 +150,7 @@ function rendererSupport(role: BrowserAssetImportRole): HeadlessRendererId[] {
     case 'particle-sprite':
     case 'flipbook':
     case 'texture-map':
-      return ['fixed-camera-cinematic', 'reference-2d', 'three-3d'];
+      return ['fixed-camera-cinematic', 'three-3d'];
     case 'audio':
       return ['reference-2d', 'three-3d', 'fixed-camera-cinematic'];
   }

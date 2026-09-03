@@ -139,6 +139,12 @@ export function collectMaterialMapContractIssues(
   return issues;
 }
 
+/** Join a Vite/Pages `BASE_URL` with the public materials/maps directory. */
+export function materialMapsPublicBase(publicBase = '/'): string {
+  const base = publicBase.endsWith('/') ? publicBase : `${publicBase}/`;
+  return `${base}materials/maps`;
+}
+
 /** Rewrite pack/source map URIs onto the Vite-served public materials directory. */
 export function rewriteMaterialMapUriForBrowser(
   uri: string,
@@ -168,6 +174,7 @@ export function needsThreeJsChannelSwizzle(
   if (slot === 'roughness') return channels !== 'g' && channels !== 'rgb' && channels !== 'rgba';
   if (slot === 'metallic') return channels !== 'b' && channels !== 'rgb' && channels !== 'rgba';
   if (slot === 'ao') return channels !== 'r' && channels !== 'rgb' && channels !== 'rgba';
+  if (slot === 'emission') return channels === 'r';
   return false;
 }
 
@@ -195,6 +202,7 @@ export function remapChannelsForThreeJsSlot(
   if (slot === 'roughness') return { r: 0, g: sample, b: 0, a: alpha };
   if (slot === 'metallic') return { r: 0, g: 0, b: sample, a: alpha };
   if (slot === 'ao') return { r: sample, g: 0, b: 0, a: alpha };
+  if (slot === 'emission') return { r: sample, g: sample, b: sample, a: alpha };
   return { r: packed.r, g: packed.g, b: packed.b, a: alpha };
 }
 
@@ -693,7 +701,7 @@ export function bitmapManifestFromTextureRef(ref: MaterialTextureRef): GenericAs
     contentHash: ref.contentHash,
     uri: ref.uri,
     runtime: {
-      renderers: ['reference-2d', 'three-3d', 'fixed-camera-cinematic'],
+      renderers: ['three-3d', 'fixed-camera-cinematic'],
       deterministic: true,
     },
   };

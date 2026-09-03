@@ -51,6 +51,23 @@ function factorForMappedProperty(
   return combineFactorAndSample(factor, mapped ? 1 : undefined, combine);
 }
 
+/**
+ * Frozen GPU semantics: visible emission = emissiveColor × emissiveMap.
+ * A missing factor with a map defaults to 1 so the map is visible. An explicit
+ * 0 stays 0 (the map is bound but contributes nothing). `replace` otherwise
+ * uses white so the map is not scaled twice.
+ */
+function emissionMultiplier(
+  emission: number | undefined,
+  mapped: boolean,
+  combine: MaterialRuntimeDescriptor['combine'],
+): number {
+  if (!mapped) return emission ?? 0;
+  const factor = emission ?? 1;
+  if (combine === 'replace') return factor === 0 ? 0 : 1;
+  return factor;
+}
+
 function beautyColor(
   descriptor: MaterialRuntimeDescriptor,
   tile: THREE.Color,
@@ -126,7 +143,12 @@ export function createPbrTileMaterial(options: {
     hasMap(options.textures, 'metallic'),
     options.descriptor.combine,
   );
-  const emission = options.descriptor.emission ?? 0;
+  const emissionMapped = hasMap(options.textures, 'emission');
+  const emission = emissionMultiplier(
+    options.descriptor.emission,
+    emissionMapped,
+    options.descriptor.combine,
+  );
   const diagnostic = options.diagnosticView ?? 'beauty';
 
   if (diagnostic === 'albedo') {

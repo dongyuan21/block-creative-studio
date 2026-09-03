@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0",
   "id": "material.stainless-steel",
   "version": "1.0.0",
-  "contentHash": "sha256:fd7c7735f7a84cfdade524043ef59b1569620e7e1db9b6d7cfe6d38523cc6e2b",
+  "contentHash": "sha256:98cb21f8697300ff94e94dc4e81bad0b9530581372f691734ef6b2b4f487c195",
   "materialClass": "metal",
   "baseColor": "#c9d0d8",
   "roughness": 0.22,

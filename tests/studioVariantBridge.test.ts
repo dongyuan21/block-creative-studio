@@ -129,7 +129,7 @@ describe('studioVariantBridge', () => {
     const unboundWithRuntime = { ...row, previewSupported: false };
     const preview = studioPreviewStyle(unboundWithRuntime, project.style);
     expect(variantRowPreviewKind(unboundWithRuntime)).toBe('plan-material');
-    expect(preview.renderer).toBe(project.style.renderer);
+    expect(preview.renderer).toBe('fixed-camera-cinematic');
     expect(preview.material).toBe(project.style.material);
     expect(preview.materialRuntime).toEqual(row.resolvedStyle.materialRuntime);
     expect(preview.materialRuntime).not.toBeUndefined();

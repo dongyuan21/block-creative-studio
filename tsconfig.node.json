@@ -19,6 +19,7 @@
   "include": [
     "vite.config.ts",
     "tests",
-    "scripts"
+    "scripts",
+    "src/vite-env.d.ts"
   ]
 }

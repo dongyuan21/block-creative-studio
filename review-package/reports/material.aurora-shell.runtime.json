@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0",
   "id": "material.aurora-shell",
   "version": "1.0.0",
-  "contentHash": "sha256:8d3a88b4b483da08c5c4c2457b60cb14a84772bdd56a9467fd122bd05b6401fe",
+  "contentHash": "sha256:e34c30ff7ac18998a22aea9582e9d1ccbc92e39075fadcc02aa95c48f51b577d",
   "materialClass": "custom",
   "baseColor": "#6ad0c8",
   "roughness": 0.28,

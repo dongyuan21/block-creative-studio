@@ -22,6 +22,8 @@ import type {
 import {
   PROJECT_CURRENT_LOOK_KEY,
   createStudioAssetCatalog,
+  overlayPlanMaterialOnStyle,
+  rendererConsumesMaterialRuntime,
   resolveStyleFromRenderPlan,
   type StudioAssetCatalog,
 } from './studioAssetCatalog';
@@ -71,13 +73,15 @@ export function studioPreviewStyle(row: StudioVariantRow | null | undefined, fal
   if (row.previewSupported) return row.resolvedStyle;
   const runtime = row.resolvedStyle.materialRuntime;
   if (!runtime) return fallback;
-  return { ...fallback, materialRuntime: runtime };
+  if (rendererConsumesMaterialRuntime(row.resolvedStyle.renderer)) return row.resolvedStyle;
+  return overlayPlanMaterialOnStyle(fallback, runtime);
 }
 
 export function variantRowPreviewKind(row: StudioVariantRow | null | undefined): VariantRowPreviewKind {
   if (!row) return 'artifact-only';
   if (row.previewSupported) return 'full-style';
-  return row.resolvedStyle.materialRuntime ? 'plan-material' : 'artifact-only';
+  if (!row.resolvedStyle.materialRuntime) return 'artifact-only';
+  return 'plan-material';
 }
 
 function semanticReplayIdentity(take: Take | null, project: ProjectSpec): unknown {
@@ -212,10 +216,26 @@ export function createStudioVariantMatrix({
       };
     }
     try {
-      const plan = compileVariant(master, recipe, catalog.registry, {
-        renderer: project.style.renderer,
-        requireHashes: true,
-      });
+      let plan: ResolvedRenderPlan;
+      try {
+        plan = compileVariant(master, recipe, catalog.registry, {
+          renderer: project.style.renderer,
+          requireHashes: true,
+        });
+      } catch (error) {
+        if (
+          error instanceof BcsHeadlessError
+          && error.code === 'ASSET_RENDERER_INCOMPATIBLE'
+          && project.style.renderer !== 'fixed-camera-cinematic'
+        ) {
+          plan = compileVariant(master, recipe, catalog.registry, {
+            renderer: 'fixed-camera-cinematic',
+            requireHashes: true,
+          });
+        } else {
+          throw error;
+        }
+      }
       const quality = runQualityGate(plan, {
         strict: true,
         requireHashes: true,

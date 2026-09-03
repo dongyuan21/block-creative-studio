@@ -11,6 +11,7 @@ import { AssetRegistry } from '../headless/assetRegistry';
 import { compileVariant } from '../headless/variantCompiler';
 import {
   bitmapManifestFromTextureRef,
+  materialMapsPublicBase,
   materialRuntimeFromPlan,
   rewriteMaterialMapUriForBrowser,
 } from '../headless/materialRuntime';
@@ -158,15 +159,16 @@ async function loadCaptureContext(): Promise<CapturePlanContext> {
 
 export async function compileVariantRuntime(
   pack: MaterialPackManifest,
-  mapBaseUrl = '/materials/maps',
+  mapBaseUrl?: string,
 ): Promise<CompiledRegisteredMaterialPlan> {
-  const cacheKey = `${pack.id}@${pack.version}:${pack.contentHash ?? ''}:${mapBaseUrl}`;
+  const mapsBase = mapBaseUrl ?? materialMapsPublicBase(import.meta.env.BASE_URL);
+  const cacheKey = `${pack.id}@${pack.version}:${pack.contentHash ?? ''}:${mapsBase}`;
   const cached = runtimeCache.get(cacheKey);
   if (cached) return cached;
   const context = await loadCaptureContext();
   const compiled = compileRegisteredMaterialPlan(pack, {
     ...context,
-    rewriteUri: (uri) => rewriteMaterialMapUriForBrowser(uri, mapBaseUrl),
+    rewriteUri: (uri) => rewriteMaterialMapUriForBrowser(uri, mapsBase),
   });
   runtimeCache.set(cacheKey, compiled);
   return compiled;

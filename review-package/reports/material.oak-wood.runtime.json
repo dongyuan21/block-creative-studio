@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0",
   "id": "material.oak-wood",
   "version": "1.0.0",
-  "contentHash": "sha256:772b040fec772e913e780ff104d39c75e4f432a5f1fa242b0399e6910440e209",
+  "contentHash": "sha256:a7b83270b3ed32056539a2904948ee0145550c9ba4983b29b37acea2fd05d876",
   "materialClass": "wood",
   "baseColor": "#8a5a32",
   "roughness": 0.62,

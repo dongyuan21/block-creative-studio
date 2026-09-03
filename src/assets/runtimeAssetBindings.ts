@@ -1,4 +1,4 @@
-import type { AssetManifest, ResolvedRenderPlan } from '../headless/contracts';
+import type { AssetManifest, MaterialPackManifest, ResolvedRenderPlan } from '../headless/contracts';
 import { assetUriToContentHash } from './browserAssetStore';
 
 export type BrowserAssetBindingRole =
@@ -206,21 +206,75 @@ export function collectRuntimeAssetReferenceIssues(
 export function collectRuntimeAssetRequests(plan: ResolvedRenderPlan | null): RuntimeAssetRequest[] {
   if (!plan) return [];
   const requests: RuntimeAssetRequest[] = [];
+  const seen = new Set<string>();
+  const push = (request: RuntimeAssetRequest): void => {
+    const key = request.role === 'texture-map'
+      ? `${request.role}:${request.contentHash}`
+      : `${request.role}:${request.contentHash}:${request.slotId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    requests.push(request);
+  };
   for (const { slotId, manifest } of runtimeAssetCandidates(plan)) {
     const metadata = readBrowserAssetMetadata(manifest);
-    if (!metadata) continue;
-    const uri = manifest.uri ?? metadata.uri;
+    if (metadata) {
+      const uri = manifest.uri ?? metadata.uri;
+      const contentHash = assetUriToContentHash(uri);
+      if (!contentHash) continue;
+      if (manifest.contentHash && manifest.contentHash !== contentHash) continue;
+      push({
+        slotId,
+        role: metadata.role,
+        contentHash,
+        uri,
+        manifest,
+        metadata,
+      });
+      continue;
+    }
+    const uri = manifest.uri ?? '';
     const contentHash = assetUriToContentHash(uri);
     if (!contentHash) continue;
-    if (manifest.contentHash && manifest.contentHash !== contentHash) continue;
-    requests.push({
+    if (manifest.kind !== 'bitmap' && manifest.kind !== 'texture-set') continue;
+    push({
       slotId,
-      role: metadata.role,
+      role: 'texture-map',
       contentHash,
       uri,
       manifest,
-      metadata,
+      metadata: {
+        role: 'texture-map',
+        uri,
+        fileName: `${manifest.id}.bin`,
+        mimeType: 'application/octet-stream',
+        byteLength: 0,
+      },
     });
+  }
+  for (const { slotId, manifest } of runtimeAssetCandidates(plan)) {
+    if (manifest.kind !== 'material-pack') continue;
+    const pack = manifest as MaterialPackManifest;
+    for (const [slot, ref] of Object.entries(pack.appearance.textureRefs ?? {})) {
+      if (!ref) continue;
+      const uri = ref.uri ?? '';
+      const contentHash = assetUriToContentHash(uri);
+      if (!contentHash) continue;
+      if (ref.contentHash && ref.contentHash !== contentHash) continue;
+      push({
+        slotId: `${slotId}.${slot}`,
+        role: 'texture-map',
+        contentHash,
+        uri,
+        manifest: pack,
+        metadata: {
+          role: 'texture-map',
+          uri,
+          fileName: `${ref.id}.png`,
+          mimeType: 'image/png',
+          byteLength: 0,
+        },
+      });
+    }
   }
   return requests.sort((left, right) => left.slotId.localeCompare(right.slotId));
 }
