@@ -26,6 +26,7 @@ import {
 import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
 import { EMPTY_RUNTIME_ASSET_BINDINGS } from '../assets/runtimeAssetBindings';
 import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
+import { viewportPolicyForRenderer } from '../renderer/shotProfile';
 
 interface CaptureReport {
   status: 'PASS' | 'FAIL';
@@ -329,9 +330,17 @@ async function runLetterboxPickTest(): Promise<{ name: string; status: 'PASS' | 
   try {
     scene.resize(1920, 1080, 1);
     await scene.warmup(frame, style);
+    void host.offsetWidth;
     const rect = host.getBoundingClientRect();
-    const miss = scene.pick(rect.left + 10, rect.top + 540);
-    const hit = scene.pick(rect.left + 960, rect.top + 540);
+    const viewport = viewportPolicyForRenderer('fixed-camera-cinematic', 1920, 1080).viewport;
+    const scaleX = rect.width / 1920;
+    const scaleY = rect.height / 1080;
+    const letterboxX = rect.left + Math.max(1, viewport.x * scaleX * 0.15);
+    const letterboxY = rect.top + (viewport.y + viewport.height / 2) * scaleY;
+    const centerX = rect.left + (viewport.x + viewport.width / 2) * scaleX;
+    const centerY = rect.top + (viewport.y + viewport.height / 2) * scaleY;
+    const miss = scene.pick(letterboxX, letterboxY);
+    const hit = scene.pick(centerX, centerY);
     if (miss !== null) return { name: 'letterbox-pick', status: 'FAIL', detail: 'letterbox reported a hit' };
     if (hit?.kind !== 'cell') return { name: 'letterbox-pick', status: 'FAIL', detail: `center miss: ${JSON.stringify(hit)}` };
     return { name: 'letterbox-pick', status: 'PASS', detail: `${hit.row},${hit.col}` };

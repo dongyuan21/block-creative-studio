@@ -511,6 +511,7 @@ export class StudioScene {
   pick(clientX: number, clientY: number): PickResult {
     const mapped = this.mapClientComposition(clientX, clientY);
     if (!mapped?.inside) return null;
+    this.camera.updateMatrixWorld();
     this.pointer.x = mapped.ndcX;
     this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -528,7 +529,8 @@ export class StudioScene {
         col: cellHit.userData.col as number,
       };
     }
-    return null;
+    const planeCell = this.pickCellFromBoardPlane();
+    return planeCell ? { kind: 'cell', ...planeCell } : null;
   }
 
   anchorForPiece(clientX: number, clientY: number, pieceId: string): GridCell | null {
@@ -688,8 +690,20 @@ export class StudioScene {
     this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const object = this.raycaster.intersectObjects(this.cellHitTargets, false)[0]?.object;
-    if (object?.userData.kind !== 'cell') return null;
-    return { row: object.userData.row as number, col: object.userData.col as number };
+    if (object?.userData.kind === 'cell') {
+      return { row: object.userData.row as number, col: object.userData.col as number };
+    }
+    return this.pickCellFromBoardPlane();
+  }
+
+  private pickCellFromBoardPlane(): GridCell | null {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.42);
+    const point = new THREE.Vector3();
+    if (!this.raycaster.ray.intersectPlane(plane, point)) return null;
+    const col = Math.round(point.x / CELL_PITCH + BOARD_CENTER_OFFSET);
+    const row = Math.round(BOARD_CENTER_OFFSET - (point.y - 0.25) / CELL_PITCH);
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return null;
+    return { row, col };
   }
 
   private buildBoardScaffold(): void {
