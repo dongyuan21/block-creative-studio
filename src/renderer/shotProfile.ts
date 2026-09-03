@@ -24,6 +24,21 @@ export const FIXED_SHOT_PROFILE = {
   boardScreenRect: BLOCK_GARDEN_FIXED_CAMERA_DRAFT.boardScreenRect,
 } as const;
 
+export type ShotProfileLike = {
+  compositionAspect: number;
+  verticalFovDegrees: number;
+  contentWidth: number;
+  contentHeight: number;
+  widthFill: number;
+  heightFill: number;
+  baseDistance: number;
+  lookAt: readonly [number, number, number];
+  cameraOffset: { x: number; y: number };
+  maximumScreenZoom: number;
+  boardScreenRect: { x: number; y: number; width: number; height: number };
+  designResolution: { width: number; height: number };
+};
+
 export interface ContainedViewport {
   x: number;
   y: number;
@@ -46,17 +61,17 @@ export function containedCompositionViewport(
   return { x: 0, y: (canvasHeight - height) / 2, width: canvasWidth, height };
 }
 
-export function lockedCameraDistance(punch = 0): number {
+export function lockedCameraDistance(punch = 0, shot: ShotProfileLike = FIXED_SHOT_PROFILE): number {
   const fitted = perspectiveDistanceToFitFrame({
-    verticalFovDegrees: FIXED_SHOT_PROFILE.verticalFovDegrees,
-    aspect: FIXED_SHOT_PROFILE.compositionAspect,
-    contentWidth: FIXED_SHOT_PROFILE.contentWidth,
-    contentHeight: FIXED_SHOT_PROFILE.contentHeight,
-    widthFill: FIXED_SHOT_PROFILE.widthFill,
-    heightFill: FIXED_SHOT_PROFILE.heightFill,
-    minimumDistance: FIXED_SHOT_PROFILE.baseDistance,
+    verticalFovDegrees: shot.verticalFovDegrees,
+    aspect: shot.compositionAspect,
+    contentWidth: shot.contentWidth,
+    contentHeight: shot.contentHeight,
+    widthFill: shot.widthFill,
+    heightFill: shot.heightFill,
+    minimumDistance: shot.baseDistance,
   });
-  const zoom = Math.min(FIXED_SHOT_PROFILE.maximumScreenZoom, 1 + punch * 0.02);
+  const zoom = Math.min(shot.maximumScreenZoom, 1 + punch * 0.02);
   return fitted / zoom;
 }
 
@@ -69,6 +84,7 @@ export function viewportPolicyForRenderer(
   renderer: 'reference-2d' | 'three-3d' | 'fixed-camera-cinematic',
   width: number,
   height: number,
+  shot: ShotProfileLike = FIXED_SHOT_PROFILE,
 ): {
   aspect: number;
   viewport: ContainedViewport;
@@ -76,8 +92,8 @@ export function viewportPolicyForRenderer(
 } {
   if (renderer === 'fixed-camera-cinematic') {
     return {
-      aspect: FIXED_SHOT_PROFILE.compositionAspect,
-      viewport: containedCompositionViewport(width, height),
+      aspect: shot.compositionAspect,
+      viewport: containedCompositionViewport(width, height, shot.compositionAspect),
       scissorTest: true,
     };
   }
@@ -117,12 +133,18 @@ export function mapClientPointToComposition(input: {
   renderer: 'reference-2d' | 'three-3d' | 'fixed-camera-cinematic';
   canvasWidth: number;
   canvasHeight: number;
+  shot?: ShotProfileLike;
 }): CompositionPointer {
   const scaleX = input.canvasWidth / Math.max(1e-6, input.rect.width);
   const scaleY = input.canvasHeight / Math.max(1e-6, input.rect.height);
   const canvasX = (input.clientX - input.rect.left) * scaleX;
   const canvasY = (input.clientY - input.rect.top) * scaleY;
-  const viewport = viewportPolicyForRenderer(input.renderer, input.canvasWidth, input.canvasHeight).viewport;
+  const viewport = viewportPolicyForRenderer(
+    input.renderer,
+    input.canvasWidth,
+    input.canvasHeight,
+    input.shot ?? FIXED_SHOT_PROFILE,
+  ).viewport;
   const inside =
     canvasX >= viewport.x
     && canvasX <= viewport.x + viewport.width

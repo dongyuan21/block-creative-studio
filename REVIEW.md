@@ -24,7 +24,7 @@
 1. **Browser Asset Store PBR 进入 GPU。** `loadRuntimeTextureSet` / `resolveMaterialMapFetchUrl` 按 `contentHash` 从 `runtimeAssets.textureMaps` 取 Object URL；`bcs-asset://` 在缺少 PreparedResources 时抛错，不再 `fetch` 自定义 scheme。`StudioScene.prepareMaterialRuntime` 与离线 Exporter 共用该 resolver。Catalog 会为导入的 MaterialPack `textureRefs` 注册 bitmap，Plan 闭包才能被 `collectRuntimeAssetRequests` 收进 IndexedDB 绑定。Capture smoke 增加 `prepared-pbr-maps`。
 2. **GitHub Pages base。** `rewriteMaterialMapUriForBrowser` 接受 `materialMapsPublicBase(import.meta.env.BASE_URL)`。CI 增加 `PAGES_BASE_PATH=/block-creative-studio/` 的 production-build smoke，检查 `index.html`、打包 JS 与 `public/materials/maps`。
 3. **plan-material 绑定到 MaterialRuntime Adapter。** PBR fixture pack 不再声明 `reference-2d`。叠加 Plan 材质时若 fallback 是 2D，切到 `fixed-camera-cinematic`。2D 工程编译 PBR Look 时对 `ASSET_RENDERER_INCOMPATIBLE` 用固定机位重试。导出门禁在三维路径上检查材质 readiness。
-4. **Plan 执行证据拆分。** Capture `styleFor` 走 `resolveStyleFromRenderPlan`（material + EffectPack `stylePatch.fx` 等槽位补丁）。报告字段为 `validatedEffectId` / `renderedFxPreset` / `effectDrivesPixels`，以及 `validatedCameraId` / `renderedCameraProfile`。**Camera/Layout 像素仍来自全局 `FIXED_SHOT_PROFILE`，`cameraDrivesPixels` 与 `layoutDrivesPixels` 为 false。** 不得把 Plan `effectId` 单独当成已渲染证据。
+4. **Plan 执行证据拆分。** Capture `styleFor` 走 `resolveStyleFromRenderPlan`（material + EffectPack `stylePatch.fx` + camera/layout → `shotExecution`）。报告字段为 `validatedEffectId` / `renderedFxPreset` / `effectDrivesPixels`，以及 `validatedCameraId` / `renderedCameraProfile`。**`resolveStyleFromRenderPlan` 路径上 `cameraDrivesPixels` / `layoutDrivesPixels` 可为 true**（消费了 Plan 的 designResolution / boardScreenRect / maximumScreenZoom / layout 宽高比）。Pose/FOV 仍回退 `FIXED_SHOT_PROFILE`。只做 material overlay 时两字段仍为 false。不得把 Plan `effectId` 单独当成已渲染证据。
 
 ### P1（本轮已收敛的部分）
 
@@ -58,7 +58,7 @@
 
 契约存在 ≠ 编译可用 ≠ 资源准备 ≠ 实际渲染 ≠ 人工视觉批准。
 
-Clear FX、碎片材质身份、木材可信度、真实 GPU、正式 9:16 生产构图、独立 Pass 模块、G-buffer/HDR 诊断、39 条商业 Golden、完整 Camera/Layout Plan 驱动 **均未完成**。实现者未视觉自批。
+Clear FX 观感、碎片材质身份的人工批准、木材可信度、真实 GPU、正式 9:16 生产构图、独立 Pass 模块、G-buffer/HDR 诊断、39 条商业 Golden、Plan camera pose **均未完成**。实现者未视觉自批。本机验证步骤见 `docs/verification/LOCAL_VERIFY_PROMPT.md`。
 
 ## 质量声明
 

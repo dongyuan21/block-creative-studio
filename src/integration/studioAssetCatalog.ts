@@ -21,6 +21,12 @@ import { stableHash } from '../headless/stableHash';
 import { validateAssetManifest } from '../headless/validation';
 import type { ProjectSpec, StyleSpec } from '../domain/types';
 import { BLOCK_MATERIAL_OPTICS } from '../renderer/materialProfiles';
+import { defaultMaterialBehavior } from '../renderer/materialFracture';
+import {
+  attachShotExecutionToStyle,
+  shotDrivesCameraPixels,
+  shotDrivesLayoutPixels,
+} from '../renderer/planShotAdapter';
 import {
   DEFAULT_REFERENCE_2D_STYLE,
   DEFAULT_STYLE,
@@ -135,56 +141,7 @@ function genericManifest(
 }
 
 function materialBehavior(materialClass: MaterialClass): MaterialBehaviorProfile {
-  switch (materialClass) {
-    case 'glass':
-      return {
-        materialClass,
-        density: 0.56,
-        brittleness: 0.92,
-        ductility: 0.04,
-        elasticity: 0.08,
-        hardness: 0.82,
-        fractureMode: 'radial-shards',
-        largeFragmentRatio: 0.36,
-        dustAmount: 0.02,
-        sparkAmount: 0.54,
-        dropletAmount: 0,
-        gravityScale: 0.82,
-        drag: 0.06,
-      };
-    case 'jelly':
-      return {
-        materialClass,
-        density: 0.34,
-        brittleness: 0.08,
-        ductility: 0.72,
-        elasticity: 0.88,
-        hardness: 0.12,
-        fractureMode: 'soft-tear',
-        largeFragmentRatio: 0.18,
-        dustAmount: 0,
-        sparkAmount: 0.08,
-        dropletAmount: 0.42,
-        gravityScale: 0.45,
-        drag: 0.36,
-      };
-    default:
-      return {
-        materialClass,
-        density: 0.42,
-        brittleness: 0.3,
-        ductility: 0.26,
-        elasticity: 0.42,
-        hardness: 0.46,
-        fractureMode: 'chips',
-        largeFragmentRatio: 0.44,
-        dustAmount: 0.08,
-        sparkAmount: 0.12,
-        dropletAmount: 0,
-        gravityScale: 0.86,
-        drag: 0.18,
-      };
-  }
+  return defaultMaterialBehavior(materialClass);
 }
 
 function materialManifest(prefix: string, style: StyleSpec): MaterialPackManifest {
@@ -552,18 +509,26 @@ export function overlayPlanMaterialOnStyle(
   runtime: StyleSpec['materialRuntime'],
 ): StyleSpec {
   if (!runtime) return fallback;
+  const materialBehavior = defaultMaterialBehavior(runtime.materialClass);
   if (rendererConsumesMaterialRuntime(fallback.renderer)) {
-    return { ...fallback, materialRuntime: runtime };
+    return { ...fallback, materialRuntime: runtime, materialBehavior };
   }
-  return { ...fallback, renderer: 'fixed-camera-cinematic', materialRuntime: runtime };
+  return { ...fallback, renderer: 'fixed-camera-cinematic', materialRuntime: runtime, materialBehavior };
 }
 
 function attachMaterialRuntimeFromPlan(style: StyleSpec, plan: ResolvedRenderPlan): void {
   const slot = plan.slots['tile.material'];
   if (!slot || slot.manifest.kind !== 'material-pack') return;
+  const pack = slot.manifest as MaterialPackManifest;
   style.materialRuntime = materialRuntimeFromPlan(plan, {
     rewriteUri: (uri) => rewriteMaterialMapUriForBrowser(uri, browserMaterialMapsBase()),
   });
+  style.materialBehavior = clone(pack.behavior);
+}
+
+function attachPlanExecution(style: StyleSpec, plan: ResolvedRenderPlan): void {
+  attachMaterialRuntimeFromPlan(style, plan);
+  attachShotExecutionToStyle(style, plan);
 }
 
 function applySlotStylePatches(style: StyleSpec, plan: ResolvedRenderPlan): void {
@@ -604,6 +569,9 @@ export function planRenderEvidence(plan: ResolvedRenderPlan, style: StyleSpec): 
   const cameraId = plan.cameraProfile.manifest.id;
   const layoutId = plan.layoutProfile.manifest.id;
   const effectDrivesPixels = Boolean(fxPatch) && style.fx === fxPatch && rendererConsumesMaterialRuntime(style.renderer);
+  const cameraDrivesPixels = shotDrivesCameraPixels(plan, style);
+  const layoutDrivesPixels = shotDrivesLayoutPixels(plan, style);
+  const shot = style.shotExecution;
   return {
     planHash: plan.planHash,
     renderer: plan.renderer,
@@ -612,13 +580,17 @@ export function planRenderEvidence(plan: ResolvedRenderPlan, style: StyleSpec): 
     renderedFxPreset: style.fx,
     effectDrivesPixels,
     validatedCameraId: cameraId,
-    renderedCameraProfile: style.renderer === 'fixed-camera-cinematic'
-      ? 'block-garden-fixed-shot-v1'
-      : style.camera,
-    cameraDrivesPixels: false,
+    renderedCameraProfile: cameraDrivesPixels
+      ? cameraId
+      : style.renderer === 'fixed-camera-cinematic'
+        ? 'block-garden-fixed-shot-v1'
+        : style.camera,
+    cameraDrivesPixels,
     validatedLayoutId: layoutId,
-    renderedLayoutProfile: style.renderer === 'fixed-camera-cinematic' ? 'design-1080x1920' : 'unbound',
-    layoutDrivesPixels: false,
+    renderedLayoutProfile: layoutDrivesPixels && shot?.layoutDesignResolution
+      ? `${shot.layoutDesignResolution.width}x${shot.layoutDesignResolution.height}`
+      : style.renderer === 'fixed-camera-cinematic' ? 'design-1080x1920' : 'unbound',
+    layoutDrivesPixels,
   };
 }
 
@@ -629,17 +601,18 @@ export function resolveStyleFromRenderPlan(
   const studio = readStudioMetadata(plan.lookPack.manifest);
   if (!studio?.previewSupported || !studio.style) {
     let style = clone(fallback);
-    attachMaterialRuntimeFromPlan(style, plan);
+    attachPlanExecution(style, plan);
     if (style.materialRuntime && !rendererConsumesMaterialRuntime(style.renderer)) {
       style = { ...style, renderer: 'fixed-camera-cinematic' };
     }
     applySlotStylePatches(style, plan);
+    attachShotExecutionToStyle(style, plan);
     return { style, previewSupported: false };
   }
 
   const style = clone(studio.style);
   applySlotStylePatches(style, plan);
-  attachMaterialRuntimeFromPlan(style, plan);
+  attachPlanExecution(style, plan);
   return { style, previewSupported: true };
 }
 

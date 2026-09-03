@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- Plan camera/layout metadata compile into `StyleSpec.shotExecution` and drive cinematic letterbox, pick mapping and punch zoom. Pose/FOV remain fallback.
+- Per-cell PBR UV jitter via `Texture.clone()` (shared image, independent offset/rotation).
+- Clear-shard kinematics read `MaterialBehaviorProfile` instead of a wood-only scale hack. Not a G-buffer fracture claim.
+- Local verification prompt: `docs/verification/LOCAL_VERIFY_PROMPT.md`.
+
+### Current boundary
+
+- Implementer does not visually approve wood grain, shard identity, or production framing.
+- T0–T5 remain incomplete. 39 commercial Golden cases remain BLOCKED.
+
 ## 0.3.0-alpha.4 — 2026-09-03
 
 ### Added
