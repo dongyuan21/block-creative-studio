@@ -6,11 +6,12 @@
 任务 ID：T0 T1 T2 T3 T4 T5（单 Agent 顺序）  
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
-实现分支：`cursor/next-phase-t0-t5-5d9d`  
+实现分支：`cursor/plan-shot-uv-fracture-5d9d`  
 先前 Full Capture SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`  
 先前 CI 全绿 HEAD：`526aee6c6a1ab01c005f868f555cafa81b6bbdd9`（20 帧 + 4 条 MP4；Review `5102027159`）  
 本轮 P0 修复 SHA：`dda27c210f6c998784377884d711ff8526e347bb`  
 拾取补丁：构图中心射线落在格子缝时回退到棋盘平面（见随后 commit）  
+Plan shot / 每格 UV / 破碎参数接线 SHA：`05611ecba6976c8f3da0ddb18c030102c9f06521`（不宣称视觉通过）  
 依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
 执行环境：Linux, Node 22, Three.js 0.185.1  
 实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
