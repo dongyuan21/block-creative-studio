@@ -87,14 +87,14 @@
   "artifacts": [
     {
       "path": "REVIEW.md",
-      "sha256": "f56f21eaf97da1df220637c3a8697828efb3dfe6e3057630eca50d9eb1bb860b",
-      "bytes": 6348,
+      "sha256": "8bdebce5a0820816e845420a19acaaedc3e549badb515cdf63ba8039b541bc9c",
+      "bytes": 6308,
       "role": "review"
     },
     {
       "path": "review-package/REVIEW.md",
-      "sha256": "f56f21eaf97da1df220637c3a8697828efb3dfe6e3057630eca50d9eb1bb860b",
-      "bytes": 6348,
+      "sha256": "8bdebce5a0820816e845420a19acaaedc3e549badb515cdf63ba8039b541bc9c",
+      "bytes": 6308,
       "role": "review"
     },
     {

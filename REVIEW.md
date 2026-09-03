@@ -7,7 +7,7 @@
 业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
 计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
 实现分支：`cursor/next-phase-t0-t5-5d9d`  
-实现 Head SHA：见本 PR 最新 commit（提交后写入 `review-package/review-manifest.json`）  
+实现 Head SHA：`d785ae83feb573eddb7fcce7d7e16a94b2e45a76`  
 依赖 PR/commit：无  
 执行环境：Linux 6.12, Node 22.14.0, npm 10.9.7, Three.js 0.185.1, HeadlessChrome 148  
 实际 Renderer：SwiftShader Device (Subzero) — **software WebGL**
