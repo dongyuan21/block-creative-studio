@@ -43,14 +43,17 @@ function renderFixture() {
   return { project, level, take, compiled };
 }
 
-function fakeCanvas(gradientColors: string[] = []): HTMLCanvasElement {
+function fakeCanvas(gradientColors: string[] = [], strokeColors: string[] = []): HTMLCanvasElement {
   const gradient = { addColorStop: (_offset: number, color: string) => { gradientColors.push(color); } };
-  const context = new Proxy({
+  const contextState = {
     globalAlpha: 1,
+    strokeStyle: '',
     createLinearGradient: () => gradient,
     getImageData: () => ({ data: new Uint8ClampedArray(1080 * 4) }),
     measureText: () => ({ width: 0 }),
-  } as unknown as CanvasRenderingContext2D, {
+    stroke: () => { strokeColors.push(String(contextState.strokeStyle)); },
+  } as unknown as CanvasRenderingContext2D;
+  const context = new Proxy(contextState, {
     get(target, property) {
       const value = Reflect.get(target as unknown as object, property);
       return value ?? (() => undefined);
@@ -196,6 +199,29 @@ describe('TapTile Canvas render pipeline', () => {
     const presentation = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) }).evaluate(0);
     renderTapTilePresentationFrame(fakeCanvas(gradientColors), presentation, { project, level, assets: cache });
     expect(gradientColors).toEqual(expect.arrayContaining(['#ffffff', '#eef5ff', '#d3e4ff']));
+  });
+
+  it('renders one compact tray tile without a second inset material ring', () => {
+    const { project, level, compiled } = renderFixture();
+    project.authoring.material = 'ice';
+    const cache = new TapTileAssetCache(project, { image: async () => ({} as CanvasImageSource) });
+    const original = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) }).evaluate(0);
+    const tileId = original.gameState.boardIds[0]!;
+    const presentation = {
+      ...original,
+      gameState: {
+        ...original.gameState,
+        boardIds: original.gameState.boardIds.filter((id) => id !== tileId),
+        trayIds: [tileId],
+      },
+      movingTiles: [],
+      effects: [],
+      pointer: { ...original.pointer, visible: false },
+    };
+    const strokeColors: string[] = [];
+    renderTapTilePresentationFrame(fakeCanvas([], strokeColors), presentation, { project, level, assets: cache });
+    const innerRingColor = tapTileMaterialAppearance('ice').highlightColor;
+    expect(strokeColors.filter((color) => color === innerRingColor)).toHaveLength(presentation.gameState.boardIds.length);
   });
 
   it('selects deterministic visual regression checkpoints from the compiled timeline', () => {

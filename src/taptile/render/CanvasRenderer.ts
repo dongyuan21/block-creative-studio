@@ -136,18 +136,20 @@ function drawTileMaterial(
   context.strokeStyle = material.borderColor;
   roundedRect(context, left, surfaceTop, width, surfaceHeight, radius);
   context.stroke();
-  const highlightInset = shortestSide * material.highlightInsetRatio;
-  context.lineWidth = Math.max(1, shortestSide * material.highlightWidthRatio);
-  context.strokeStyle = material.highlightColor;
-  roundedRect(
-    context,
-    left + highlightInset,
-    surfaceTop + highlightInset,
-    width - highlightInset * 2,
-    surfaceHeight - highlightInset * 2,
-    Math.max(0, radius - highlightInset * 0.45),
-  );
-  context.stroke();
+  if (role !== 'tray') {
+    const highlightInset = shortestSide * material.highlightInsetRatio;
+    context.lineWidth = Math.max(1, shortestSide * material.highlightWidthRatio);
+    context.strokeStyle = material.highlightColor;
+    roundedRect(
+      context,
+      left + highlightInset,
+      surfaceTop + highlightInset,
+      width - highlightInset * 2,
+      surfaceHeight - highlightInset * 2,
+      Math.max(0, radius - highlightInset * 0.45),
+    );
+    context.stroke();
+  }
   context.restore();
   return surfaceOffsetY - edgeDepth / 2;
 }

@@ -360,8 +360,9 @@
 .tpt-tray i { position: absolute; min-width: 0; min-height: 0; overflow: hidden; border-radius: 7px; background: rgba(5, 18, 45, 0.62); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.08); }
 .tpt-gameplay-tray i { display: grid; place-items: center; isolation: isolate; transition: 160ms ease; }
 .tpt-gameplay-tray i.is-occupied {
-  background: linear-gradient(145deg, #fffdf7, #ddd8cd);
-  box-shadow: 0 2px 0 #9aa5ad, 0 4px 7px rgba(0, 0, 0, 0.34), inset 0 1px white;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
 }
 .tpt-gameplay-tray i > span { font-style: normal; font-size: clamp(9px, 1.7vw, 20px); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.24)); }
 .tpt-gameplay-tray[data-occupied="6"] { border-color: #ffd357; box-shadow: 0 0 20px rgba(255, 188, 36, 0.35); }
@@ -729,7 +730,20 @@
 .tpt-face-part img { width: 100%; height: 100%; object-fit: contain; }
 .mode-full-front .tpt-face-part img { object-fit: cover; }
 .tpt-face-glyph { font-size: clamp(14px, 3.7vw, 42px); line-height: 1; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72)) drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28)); }
-.tpt-gameplay-tray .tpt-tile-visual { inset: 3%; }
+.tpt-gameplay-tray .tpt-tile-visual { inset: 0; border-width: 1px; }
+.tpt-gameplay-tray .tpt-tile-visual::after { display: none; }
+.tpt-gameplay-tray .tpt-tile-visual.material-porcelain {
+  box-shadow: inset 0 -1px 0 #a7aaae, 0 2px 3px rgba(4, 13, 28, 0.34);
+}
+.tpt-gameplay-tray .tpt-tile-visual.material-ice {
+  box-shadow: inset 0 -2px 0 #779cdd, 0 2px 3px rgba(6, 26, 70, 0.36);
+}
+.tpt-gameplay-tray .tpt-tile-visual.material-jelly {
+  box-shadow: inset 0 -2px 0 rgba(87, 159, 221, 0.78), 0 2px 3px rgba(6, 29, 70, 0.34);
+}
+.tpt-gameplay-tray .tpt-tile-visual.material-paper {
+  box-shadow: inset 0 -1px 0 #b9aa92, 0 2px 3px rgba(24, 27, 38, 0.3);
+}
 .tpt-gameplay-tray .tpt-face-glyph { font-size: clamp(9px, 1.7vw, 20px); }
 .tpt-face-missing { display: grid; place-items: center; width: 100%; height: 100%; color: #ff5f68; font-weight: 900; }
 .tpt-skin-compat { margin-top: 5px; font-size: 8px; }
