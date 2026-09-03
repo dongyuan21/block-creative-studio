@@ -5,6 +5,9 @@ import { createGame, createPieceSet, makeAgentTake } from '../src/domain/gameEng
 import { parseStudioBundle, type StudioBundle } from '../src/domain/projectValidation';
 import type { ProjectSpec } from '../src/domain/types';
 import { DEFAULT_STYLE } from '../src/renderer/stylePresets';
+import { compileMaterialRuntime } from '../src/headless/materialRuntime';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 function bundle(): StudioBundle {
   const seed = 41782;
@@ -106,5 +109,20 @@ describe('project validation', () => {
     const payload = structuredClone(bundle());
     payload.takes.push(structuredClone(payload.takes[0]!));
     expect(() => parseStudioBundle(payload)).toThrow(/take id/);
+  });
+
+  it('accepts a compiled material runtime and rejects a forged one on import', () => {
+    const pack = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
+    const runtime = compileMaterialRuntime({ pack });
+    const accepted = structuredClone(bundle());
+    accepted.project.style.materialRuntime = runtime;
+    expect(parseStudioBundle(accepted).project.style.materialRuntime?.maps).toHaveLength(5);
+
+    const forged = structuredClone(bundle());
+    forged.project.style.materialRuntime = {
+      ...runtime,
+      maps: [{ ...runtime.maps[0]!, uri: 'javascript:alert(1)' }],
+    };
+    expect(() => parseStudioBundle(forged)).toThrow(/材质运行时无效/);
   });
 });

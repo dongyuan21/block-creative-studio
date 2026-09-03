@@ -1,0 +1,73 @@
+{
+  "contract": "bcs.material-runtime",
+  "contractVersion": "1.0.0",
+  "id": "material.stainless-steel",
+  "version": "1.0.0",
+  "contentHash": "sha256:98cb21f8697300ff94e94dc4e81bad0b9530581372f691734ef6b2b4f487c195",
+  "materialClass": "metal",
+  "baseColor": "#c9d0d8",
+  "roughness": 0.22,
+  "metalness": 0.96,
+  "maps": [
+    {
+      "slot": "baseColor",
+      "uri": "examples/headless/materials/maps/steel-basecolor.png",
+      "contentHash": "sha256:ca50477917e22e0f3579872d8e18e3d26ab8b47d08ec94d88104e200a04dd7a9",
+      "colorSpace": "srgb",
+      "channels": "rgb"
+    },
+    {
+      "slot": "roughness",
+      "uri": "examples/headless/materials/maps/steel-roughness.png",
+      "contentHash": "sha256:cdf0ad08bc6752bfc2675b8f02319397cb316a90d5adcf39591ffeae3ff0042d",
+      "colorSpace": "linear",
+      "channels": "r"
+    },
+    {
+      "slot": "metallic",
+      "uri": "examples/headless/materials/maps/steel-metallic.png",
+      "contentHash": "sha256:d1d6abfc535c0fdf768ca6f70d3491939ac0a9993d24169789b8466f4b18888d",
+      "colorSpace": "linear",
+      "channels": "r"
+    },
+    {
+      "slot": "normal",
+      "uri": "examples/headless/materials/maps/steel-normal.png",
+      "contentHash": "sha256:d2c424e1367839e845ca1ffcb1442a8a1f10169fa534832381e56e575502f929",
+      "colorSpace": "linear",
+      "channels": "rgb",
+      "normalY": "opengl"
+    },
+    {
+      "slot": "ao",
+      "uri": "examples/headless/materials/maps/steel-ao.png",
+      "contentHash": "sha256:f5d5e3910ae025b0ea78d4b540a68ee7780d9d1d9c11ce599ee9b3bd0f5ecacc",
+      "colorSpace": "linear",
+      "channels": "r"
+    }
+  ],
+  "uv": {
+    "repeat": [
+      1,
+      1
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "rotationRadians": 0
+  },
+  "combine": "replace",
+  "capabilities": {
+    "heightDisplacement": "unsupported",
+    "anisotropy": "unsupported",
+    "subsurface": "unsupported",
+    "complexTransmission": "unsupported",
+    "materialAwareFracture": "pending"
+  },
+  "unsupportedFields": [],
+  "behaviorPending": true,
+  "clearcoat": 0.08,
+  "normalStrength": 0.35,
+  "emission": 0
+}

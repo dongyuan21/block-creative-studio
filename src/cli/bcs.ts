@@ -7,12 +7,19 @@ import {
   AssetRegistry,
   BCS_CAPABILITIES,
   BcsHeadlessError,
+  compileMaterialRuntime,
   compileVariant,
+  expandGoldenSceneCases,
+  renderGoldenReportHtml,
   runQualityGate,
+  summarizeCalibrationCases,
   validateAssetManifest,
   type AssetManifest,
+  type CalibrationCase,
   type CreativeMaster,
+  type GoldenBatchReport,
   type HeadlessRendererId,
+  type MaterialPackManifest,
   type ResolvedRenderPlan,
   type VariantRecipe,
 } from '../headless/index.js';
@@ -201,6 +208,68 @@ async function commandQuality(args: ParsedArgs): Promise<unknown> {
   return { ok: report.passed, out: out ? resolve(out) : null, report };
 }
 
+async function commandMaterial(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'compile') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `material compile --pack …`.', { path: 'material' });
+  }
+  const packPath = flagString(args, 'pack', true)!;
+  const pack = await readJson<MaterialPackManifest>(packPath);
+  const descriptor = compileMaterialRuntime({ pack });
+  const out = flagString(args, 'out');
+  if (out) await writeFile(out, `${JSON.stringify(descriptor, null, 2)}\n`, 'utf8');
+  return {
+    ok: true,
+    rendered: false,
+    resourcesReady: descriptor.maps.length === 0,
+    out: out ? resolve(out) : null,
+    descriptor,
+  };
+}
+
+async function commandGolden(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'batch') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `golden batch --index …`.', { path: 'golden' });
+  }
+  const indexPath = flagString(args, 'index', true)!;
+  const index = await readJson<{
+    sourceVideoSha256?: string;
+    scenes: Array<{ id: string; startFrame: number; peakFrame: number; endFrame: number; purpose: string }>;
+  }>(indexPath);
+  const targetTakeHash = flagString(args, 'target-take-hash');
+  const correspondence = targetTakeHash ? 'exact-replay' as const : 'isolated-presentation' as const;
+  const unresolvedReasons = [
+    'Reference source video is not in the public repository.',
+    ...(targetTakeHash
+      ? []
+      : ['No target Take hash; correspondence is isolated-presentation, not exact-replay.']),
+  ];
+  const cases = expandGoldenSceneCases(index.scenes, {
+    correspondence,
+    reviewStatus: 'BLOCKED',
+    unresolvedReasons,
+    ...(index.sourceVideoSha256 ? { referenceMediaHash: `sha256:${index.sourceVideoSha256}` } : {}),
+    sourceFps: 60,
+    targetFps: 30,
+    ...(targetTakeHash !== undefined ? { targetTakeHash } : {}),
+  });
+  const report: GoldenBatchReport = {
+    contract: 'bcs.golden-batch-report',
+    contractVersion: '1.0.0',
+    generatedAt: 'not-a-wall-clock-render',
+    designResolution: { width: 1064, height: 1788 },
+    cases: cases.map((item: CalibrationCase) => ({
+      case: item,
+      identity: `${item.id}:${item.correspondence}:${item.targetFrame}`,
+    })),
+    summary: summarizeCalibrationCases(cases),
+  };
+  const out = flagString(args, 'out');
+  const htmlOut = flagString(args, 'html');
+  if (out) await writeFile(out, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  if (htmlOut) await writeFile(htmlOut, renderGoldenReportHtml(report), 'utf8');
+  return { ok: true, rendered: false, out: out ? resolve(out) : null, html: htmlOut ? resolve(htmlOut) : null, report };
+}
+
 async function execute(argv: string[]): Promise<unknown> {
   const [command, ...rest] = argv;
   const args = parseArgs(rest);
@@ -209,9 +278,11 @@ async function execute(argv: string[]): Promise<unknown> {
   if (command === 'asset') return commandAsset(args);
   if (command === 'variant') return commandVariant(args);
   if (command === 'quality') return commandQuality(args);
+  if (command === 'material') return commandMaterial(args);
+  if (command === 'golden') return commandGolden(args);
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check.',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch.',
     { path: command ?? '(missing command)' },
   );
 }

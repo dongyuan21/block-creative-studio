@@ -53,3 +53,25 @@ node dist-cli/cli/bcs.js quality check \
 ```
 
 A failed command returns a stable error code such as `ASSET_NOT_FOUND`, `EFFECT_MATERIAL_INCOMPATIBLE`, `FRAME_EXACT_DIRECTOR_OVERRIDE`, or `PLUGIN_PERMISSION_FORBIDDEN`.
+
+## Compile a material runtime (no render)
+
+```bash
+node dist-cli/cli/bcs.js material compile \
+  --pack examples/headless/materials/material.aurora-shell.json \
+  --out /tmp/aurora-runtime.json
+```
+
+The command never sets `rendered: true`. Packs with on-disk maps under `examples/headless/materials/maps/` compile those URIs into the descriptor; Node still reports `resourcesReady: false` because it does not decode GPU textures. Parameter-only packs (no maps) report `resourcesReady: true`.
+
+## Golden batch report
+
+```bash
+node dist-cli/cli/bcs.js golden batch \
+  --index docs/reference/v2/GOLDEN_SCENE_INDEX_V1.json \
+  --out /tmp/golden-report.json \
+  --html /tmp/golden-report.html
+```
+
+Without local reference frames the 13 scenes / 39 anchors stay `BLOCKED`. This is not a visual PASS.
+

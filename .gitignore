@@ -20,3 +20,9 @@ __pycache__/
 *.py[cod]
 
 dist-cli/
+
+# Production Pages-base smoke output (CI: PAGES_BASE_PATH=/block-creative-studio/).
+dist-pages-smoke/
+
+# Capture writes this-run evidence here. Git-tracked frames/videos are stale.
+review-package/run/

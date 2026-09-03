@@ -3,17 +3,74 @@ name: validate
 on:
   push:
   pull_request:
+  workflow_dispatch:
+    inputs:
+      full_capture:
+        description: Run Full Capture (20 frames + 4 MP4s)
+        type: boolean
+        default: true
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
       - run: npm install --no-audit --no-fund
       - run: npm run check
       - run: npm test
       - run: npm run typecheck
       - run: npm run build
+      - name: Pages base production smoke
+        env:
+          PAGES_BASE_PATH: /block-creative-studio/
+        run: |
+          npx vite build --outDir dist-pages-smoke
+          node scripts/check-pages-base.mjs dist-pages-smoke
+      - name: Browser capture smoke
+        env:
+          CI: true
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npm run test:browser-e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capture-run-smoke
+          path: review-package/run/
+          if-no-files-found: ignore
+
+  capture-full:
+    needs: build-and-test
+    if: >
+      github.event_name == 'schedule'
+      || (github.event_name == 'workflow_dispatch' && github.event.inputs.full_capture != 'false')
+      || (github.event_name == 'pull_request' && contains(join(github.event.pull_request.labels.*.name, ','), 'full-capture'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - uses: browser-actions/setup-chrome@v2
+        id: setup-chrome
+      - run: npm install --no-audit --no-fund
+      - name: Browser capture full
+        timeout-minutes: 40
+        env:
+          CI: true
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npm run capture:review
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capture-run
+          path: review-package/run/
+          if-no-files-found: ignore

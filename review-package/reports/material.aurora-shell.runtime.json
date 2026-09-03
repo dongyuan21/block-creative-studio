@@ -1,0 +1,36 @@
+{
+  "contract": "bcs.material-runtime",
+  "contractVersion": "1.0.0",
+  "id": "material.aurora-shell",
+  "version": "1.0.0",
+  "contentHash": "sha256:e34c30ff7ac18998a22aea9582e9d1ccbc92e39075fadcc02aa95c48f51b577d",
+  "materialClass": "custom",
+  "baseColor": "#6ad0c8",
+  "roughness": 0.28,
+  "metalness": 0.18,
+  "maps": [],
+  "uv": {
+    "repeat": [
+      1,
+      1
+    ],
+    "offset": [
+      0,
+      0
+    ],
+    "rotationRadians": 0
+  },
+  "combine": "multiply-factor",
+  "capabilities": {
+    "heightDisplacement": "unsupported",
+    "anisotropy": "unsupported",
+    "subsurface": "unsupported",
+    "complexTransmission": "pending",
+    "materialAwareFracture": "pending"
+  },
+  "unsupportedFields": [],
+  "behaviorPending": true,
+  "clearcoat": 0.42,
+  "normalStrength": 0.2,
+  "emission": 0.04
+}

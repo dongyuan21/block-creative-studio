@@ -1,0 +1,30 @@
+{
+  "contract": "bcs.resource-report",
+  "materials": [
+    {
+      "id": "material.stainless-steel",
+      "maps": 5,
+      "independentTextures": true,
+      "pattern": "horizontal scratches",
+      "gpuSampledInCapture": true
+    },
+    {
+      "id": "material.oak-wood",
+      "maps": 5,
+      "independentTextures": true,
+      "pattern": "vertical grain",
+      "gpuSampledInCapture": true
+    },
+    {
+      "id": "material.aurora-shell",
+      "maps": 0,
+      "independentTextures": false,
+      "pattern": "parameter-only custom id (not a steel/wood name branch)",
+      "gpuSampledInCapture": false
+    }
+  ],
+  "mapLicense": "CC0-1.0 synthetic fixtures in examples/headless/materials/maps",
+  "cliRendered": false,
+  "browserResourcesReady": true,
+  "status": "PASS"
+}

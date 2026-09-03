@@ -23,6 +23,9 @@ import {
   type RuntimeAssetBindings,
   type RuntimeImageAssetBinding,
 } from '../assets/runtimeAssetBindings';
+import type { ReferencePassId } from '../headless/contracts';
+import { REFERENCE_PASS_ORDER } from '../headless/contracts';
+import { isPassEnabled, PRAISE_PASS } from './passes';
 import {
   REFERENCE_BACKGROUND,
   REFERENCE_BOARD_COLORS,
@@ -171,6 +174,7 @@ export class Reference2DScene {
   readonly rendererLabel = 'Canvas 2D · Reference-first';
 
   private readonly context: CanvasRenderingContext2D;
+  private paintContext: CanvasRenderingContext2D | null = null;
   private readonly quality: 'interactive' | 'cinematic';
   private frame: PresentationFrame | null = null;
   private style: StyleSpec | null = null;
@@ -179,11 +183,22 @@ export class Reference2DScene {
   private transform: SceneTransform = { scale: 1, offsetX: 0, offsetY: 0 };
   private runtimeAssets: RuntimeAssetBindings = EMPTY_RUNTIME_ASSET_BINDINGS;
   private runtimeImages: RuntimeImages = { background: null, tileFace: null };
+  private runtimeAssetFailures: string[] = [];
   private runtimeAssetsReady: Promise<void> = Promise.resolve();
+  private enabledPasses: ReferencePassId[] = [...REFERENCE_PASS_ORDER];
+  private useLiveClock = true;
   private started = false;
   private disposed = false;
   private raf = 0;
   private clockMs = 0;
+
+  private get ctx(): CanvasRenderingContext2D {
+    return this.paintContext ?? this.context;
+  }
+
+  private pass(id: ReferencePassId): boolean {
+    return isPassEnabled(this.enabledPasses, id);
+  }
 
   constructor(canvas: HTMLCanvasElement, options: Reference2DSceneOptions = {}) {
     this.canvas = canvas;
@@ -248,53 +263,103 @@ export class Reference2DScene {
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
     this.setFrame(frame, style);
     await this.runtimeAssetsReady;
+    if (this.runtimeAssetFailures.length > 0 || this.runtimeAssets.missing.length > 0) {
+      this.assertRuntimeAssetsReady();
+    }
     if (document.fonts?.ready) await document.fonts.ready;
     this.renderAt(frame, style);
   }
 
+  /**
+   * Authoritative native-resolution capture. Requires decoded runtime assets
+   * (background / tile face). Missing resources throw instead of comparing
+   * builtin fallback pixels.
+   */
   captureReferenceFrame(): HTMLCanvasElement {
+    return this.captureNativeFrame({ requireAssets: true });
+  }
+
+  /**
+   * Non-authoritative overlay/preview capture. May paint builtin fallbacks when
+   * uploaded images are missing. Do not use for Golden Diff or formal stills.
+   */
+  capturePreviewFrame(): HTMLCanvasElement {
+    return this.captureNativeFrame({ requireAssets: false });
+  }
+
+  captureNativeFrame(options: {
+    requireAssets?: boolean;
+    enabledPasses?: ReferencePassId[];
+  } = {}): HTMLCanvasElement {
+    if (!this.frame || !this.style) throw new Error('没有可捕获的冻结帧。');
+    if (options.requireAssets !== false) this.assertRuntimeAssetsReady();
     const output = document.createElement('canvas');
     output.width = REFERENCE_CANVAS.width;
     output.height = REFERENCE_CANVAS.height;
     const context = output.getContext('2d', { alpha: false });
-    if (!context) throw new Error('无法创建参考帧校准 Canvas。');
-    const sourceWidth = REFERENCE_CANVAS.width * this.transform.scale;
-    const sourceHeight = REFERENCE_CANVAS.height * this.transform.scale;
-    context.drawImage(
-      this.canvas,
-      this.transform.offsetX,
-      this.transform.offsetY,
-      sourceWidth,
-      sourceHeight,
-      0,
-      0,
-      REFERENCE_CANVAS.width,
-      REFERENCE_CANVAS.height,
-    );
+    if (!context) throw new Error('无法创建原生设计分辨率 Canvas。');
+    const previousContext = this.paintContext;
+    const previousTransform = this.transform;
+    const previousPasses = this.enabledPasses;
+    this.paintContext = context;
+    this.transform = { scale: 1, offsetX: 0, offsetY: 0 };
+    if (options.enabledPasses) this.enabledPasses = [...options.enabledPasses];
+    try {
+      this.draw(this.frame.frame / Math.max(1, this.frame.fps), this.frame.clearing ?? null);
+    } finally {
+      this.paintContext = previousContext;
+      this.transform = previousTransform;
+      this.enabledPasses = previousPasses;
+    }
     return output;
+  }
+
+  setEnabledPasses(passes: readonly ReferencePassId[] | undefined): void {
+    this.enabledPasses = passes && passes.length > 0 ? [...passes] : [...REFERENCE_PASS_ORDER];
+    this.render(this.clockMs);
+  }
+
+  private assertRuntimeAssetsReady(): void {
+    if (this.runtimeAssets.missing.length > 0) {
+      throw new Error(`运行资源缺失：${this.runtimeAssets.missing.map((item) => item.uri).join(', ')}`);
+    }
+    if (this.runtimeAssetFailures.length > 0) {
+      throw new Error(`运行资源解码失败：${this.runtimeAssetFailures.join(', ')}`);
+    }
+    if (this.runtimeAssets.background && !this.runtimeImages.background) {
+      throw new Error('背景资源尚未就绪，正式捕获已拒绝静默回退。');
+    }
+    if (this.runtimeAssets.tileFace && !this.runtimeImages.tileFace) {
+      throw new Error('牌面资源尚未就绪，正式捕获已拒绝静默回退。');
+    }
   }
 
   setRuntimeAssets(bindings: RuntimeAssetBindings): void {
     if (bindings.revision === this.runtimeAssets.revision) return;
     this.runtimeAssets = bindings;
     const revision = bindings.revision;
+    const failures: string[] = [];
     const load = async (
       binding: RuntimeImageAssetBinding | null,
     ): Promise<HTMLImageElement | null> => {
       if (!binding) return null;
-      return new Promise<HTMLImageElement | null>((resolve) => {
+      return new Promise<HTMLImageElement | null>((resolve, reject) => {
         const image = new Image();
         image.decoding = 'async';
         image.onload = () => resolve(image);
-        image.onerror = () => resolve(null);
+        image.onerror = () => {
+          failures.push(binding.contentHash);
+          reject(new Error(`资源解码失败：${binding.fileName}`));
+        };
         image.src = binding.objectUrl;
-      });
+      }).catch(() => null);
     };
     this.runtimeAssetsReady = Promise.all([
       load(bindings.background),
       load(bindings.tileFace),
     ]).then(([background, tileFace]) => {
       if (this.runtimeAssets.revision !== revision) return;
+      this.runtimeAssetFailures = failures;
       this.runtimeImages = { background, tileFace };
       this.render(this.clockMs);
     });
@@ -304,12 +369,16 @@ export class Reference2DScene {
     this.frame = frame;
     this.style = style;
     this.dragPreview = null;
+    this.useLiveClock = false;
+    if (style.enabledPasses) this.enabledPasses = [...style.enabledPasses];
     this.render(this.clockMs);
   }
 
   setLiveSnapshot(snapshot: GameSnapshot, style: StyleSpec): void {
     this.frame = makeLiveFrame(snapshot);
     this.style = style;
+    this.useLiveClock = true;
+    if (style.enabledPasses) this.enabledPasses = [...style.enabledPasses];
     this.render(this.clockMs);
   }
 
@@ -317,6 +386,8 @@ export class Reference2DScene {
     this.frame = frame;
     this.style = style;
     this.dragPreview = null;
+    this.useLiveClock = false;
+    if (style.enabledPasses) this.enabledPasses = [...style.enabledPasses];
     this.draw(frame.frame / Math.max(1, frame.fps), frame.clearing ?? null);
   }
 
@@ -410,20 +481,20 @@ export class Reference2DScene {
       clearing = { ...live.clearing, progress };
       if (progress >= 1) this.liveClear = null;
     }
-    const seconds = this.frame.frame > 0
-      ? this.frame.frame / Math.max(1, this.frame.fps)
-      : timeMs / 1_000;
+    const seconds = this.useLiveClock
+      ? timeMs / 1_000
+      : this.frame.frame / Math.max(1, this.frame.fps);
     this.draw(seconds, clearing);
   }
 
   private draw(seconds: number, clearing: ClearingFrame | null): void {
     if (!this.frame || !this.style) return;
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.setTransform(1, 0, 0, 1, 0, 0);
-    context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    context.clearRect(0, 0, context.canvas.width, context.canvas.height);
     context.fillStyle = '#0b7d67';
-    context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    context.fillRect(0, 0, context.canvas.width, context.canvas.height);
     context.setTransform(
       this.transform.scale,
       0,
@@ -433,21 +504,62 @@ export class Reference2DScene {
       this.transform.offsetY,
     );
 
-    this.drawBackground(seconds);
-    this.drawHud(clearing);
-    this.drawBoard(clearing);
-    this.drawPlacementFeedback();
-    this.drawRack();
-    this.drawDragAndPreview();
-    if (clearing) this.drawClearFx(clearing, seconds);
-    this.drawPointer();
-    if (this.frame.snapshot.status === 'game-over') this.drawContinueModal();
+    if (this.pass('background')) {
+      context.save();
+      this.drawBackground(seconds);
+      context.restore();
+    }
+    if (this.pass('feedback')) {
+      context.save();
+      this.drawHud(clearing);
+      context.restore();
+    }
+    if (this.pass('board') || this.pass('tile')) {
+      context.save();
+      this.drawBoard(clearing);
+      context.restore();
+    }
+    if (this.pass('placement')) {
+      context.save();
+      this.drawPlacementFeedback();
+      context.restore();
+    }
+    if (this.pass('tray')) {
+      context.save();
+      this.drawRack();
+      context.restore();
+    }
+    if (this.pass('interaction')) {
+      context.save();
+      this.drawDragAndPreview();
+      context.restore();
+    }
+    if (clearing && this.pass('clear')) {
+      context.save();
+      this.drawClearFx(clearing, seconds);
+      context.restore();
+    }
+    if (clearing && this.pass(PRAISE_PASS) && this.style?.reference2d.feedbackFx === 'praise-combo') {
+      context.save();
+      this.drawPraise(clearing);
+      context.restore();
+    }
+    if (this.pass('interaction')) {
+      context.save();
+      this.drawPointer();
+      context.restore();
+    }
+    if (this.frame.snapshot.status === 'game-over' && this.pass('endgame')) {
+      context.save();
+      this.drawContinueModal();
+      context.restore();
+    }
     context.restore();
   }
 
   private drawBackground(seconds: number): void {
     if (!this.style) return;
-    const context = this.context;
+    const context = this.ctx;
     const backgroundBinding = this.runtimeAssets.background;
     const backgroundImage = this.runtimeImages.background;
     if (backgroundBinding && backgroundImage) {
@@ -511,7 +623,7 @@ export class Reference2DScene {
   }
 
   private drawAmbientFlower(x: number, y: number, seconds: number): void {
-    const context = this.context;
+    const context = this.ctx;
     const pulse = 0.82 + Math.sin(seconds * 1.35) * 0.12;
     context.save();
     context.translate(x, y);
@@ -537,7 +649,7 @@ export class Reference2DScene {
 
   private drawHud(clearing: ClearingFrame | null): void {
     if (!this.frame || !this.style) return;
-    const context = this.context;
+    const context = this.ctx;
     const best = Math.max(this.style.reference2d.bestScore, this.frame.snapshot.score);
     this.drawCrown(118, 86, 1);
     context.save();
@@ -577,7 +689,7 @@ export class Reference2DScene {
   }
 
   private drawCrown(x: number, y: number, scale: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.translate(x, y);
     context.scale(scale, scale);
@@ -614,7 +726,7 @@ export class Reference2DScene {
   }
 
   private drawGalleryIcon(x: number, y: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.shadowColor = 'rgba(32,72,69,0.35)';
     context.shadowBlur = 5;
@@ -641,7 +753,7 @@ export class Reference2DScene {
   }
 
   private drawBetaRibbon(x: number, y: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.translate(x, y);
     context.rotate(-0.04);
@@ -663,7 +775,7 @@ export class Reference2DScene {
   }
 
   private drawGear(x: number, y: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.translate(x, y);
     context.fillStyle = '#edffdc';
@@ -692,11 +804,13 @@ export class Reference2DScene {
 
   private drawBoard(clearing: ClearingFrame | null): void {
     if (!this.frame) return;
-    const context = this.context;
+    const context = this.ctx;
     const outer = REFERENCE_LAYOUT.board.outer;
     const combo = this.frame.snapshot.combo;
     const clearGlow = clearing ? Math.sin(clamp01(clearing.progress) * Math.PI) : 0;
     const comboGlow = combo >= 2 ? Math.min(1, 0.3 + combo * 0.06) : 0;
+
+    if (this.pass('board')) {
 
     context.save();
     context.shadowColor = REFERENCE_BOARD_COLORS.shadow;
@@ -735,8 +849,10 @@ export class Reference2DScene {
         context.stroke();
       }
     }
+    }
 
     const clearSet = new Set(clearing?.clear.cells.map((cell) => cellKey(cell.row, cell.col)) ?? []);
+    if (!this.pass('tile')) return;
     for (let row = 0; row < this.frame.board.rows; row += 1) {
       for (let col = 0; col < this.frame.board.cols; col += 1) {
         const color = this.frame.board.cells[row]?.[col];
@@ -778,7 +894,7 @@ export class Reference2DScene {
     motif: boolean,
   ): void {
     if (!this.style || alpha <= 0) return;
-    const context = this.context;
+    const context = this.ctx;
     const palette = REFERENCE_TILE_PALETTE[color];
     const drawSize = size * scale;
     const x = centerX - drawSize / 2;
@@ -866,7 +982,7 @@ export class Reference2DScene {
   }
 
   private drawLeafMotif(size: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.rotate(-0.72);
     context.beginPath();
@@ -884,7 +1000,7 @@ export class Reference2DScene {
   }
 
   private drawFlowerMotif(size: number, petals: number): void {
-    const context = this.context;
+    const context = this.ctx;
     for (let index = 0; index < petals; index += 1) {
       context.save();
       context.rotate((index / petals) * TWO_PI);
@@ -900,7 +1016,7 @@ export class Reference2DScene {
   }
 
   private drawMonsteraMotif(size: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.rotate(-0.42);
     context.beginPath();
@@ -928,7 +1044,7 @@ export class Reference2DScene {
   }
 
   private drawRoseMotif(size: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.lineCap = 'round';
     context.lineJoin = 'round';
@@ -954,7 +1070,7 @@ export class Reference2DScene {
   private drawPlacementFeedback(): void {
     const feedback = this.frame?.placementFeedback;
     if (!feedback || feedback.cells.length === 0 || feedback.progress <= 0) return;
-    const context = this.context;
+    const context = this.ctx;
     const grid = REFERENCE_LAYOUT.board.grid;
     const overallFade = 1 - clamp01((feedback.progress - 0.72) / 0.28);
 
@@ -1086,7 +1202,7 @@ export class Reference2DScene {
     const x = grid.x + col * grid.pitch;
     const y = grid.y + row * grid.pitch;
     const palette = REFERENCE_TILE_PALETTE[color];
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     roundedRect(context, x + 2, y + 2, grid.cell - 4, grid.cell - 4, 8);
     context.fillStyle = colorWithAlpha(palette.base, alpha);
@@ -1099,7 +1215,7 @@ export class Reference2DScene {
 
   private drawClearFx(clearing: ClearingFrame, seconds: number): void {
     if (!this.frame || !this.style) return;
-    const context = this.context;
+    const context = this.ctx;
     const progress = clamp01(clearing.progress);
     const grid = REFERENCE_LAYOUT.board.grid;
     const boardSpan = grid.pitch * 8 - grid.gap;
@@ -1168,14 +1284,10 @@ export class Reference2DScene {
       }
       this.drawSparkCloud(clearing, seconds);
     }
-
-    if (this.style.reference2d.feedbackFx === 'praise-combo') {
-      this.drawPraise(clearing);
-    }
   }
 
   private drawThumb(x: number, y: number, scale: number): void {
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.translate(x, y);
     context.scale(scale, scale);
@@ -1203,7 +1315,7 @@ export class Reference2DScene {
   }
 
   private drawSparkCloud(clearing: ClearingFrame, seconds: number): void {
-    const context = this.context;
+    const context = this.ctx;
     const progress = clamp01(clearing.progress);
     const seed = clearing.seed;
     const center = clearing.clear.cells.reduce(
@@ -1246,7 +1358,7 @@ export class Reference2DScene {
 
   private drawPraise(clearing: ClearingFrame): void {
     if (!this.frame) return;
-    const context = this.context;
+    const context = this.ctx;
     const progress = clamp01(clearing.progress);
     const lineCount = clearing.clear.rows.length + clearing.clear.cols.length;
     const combo = this.frame.snapshot.combo;
@@ -1371,7 +1483,7 @@ export class Reference2DScene {
     if (!this.frame?.pointer || !this.style?.showPointer) return;
     const x = this.frame.pointer.x * REFERENCE_CANVAS.width;
     const y = this.frame.pointer.y * REFERENCE_CANVAS.height;
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.globalAlpha = this.frame.pointer.pressed ? 0.9 : 0.55;
     context.strokeStyle = '#ffffff';
@@ -1386,7 +1498,7 @@ export class Reference2DScene {
 
   private drawContinueModal(): void {
     if (!this.frame) return;
-    const context = this.context;
+    const context = this.ctx;
     context.save();
     context.fillStyle = 'rgba(4,31,26,0.72)';
     context.fillRect(0, 0, REFERENCE_CANVAS.width, REFERENCE_CANVAS.height);
@@ -1395,9 +1507,12 @@ export class Reference2DScene {
     context.font = 'italic 900 76px "Arial Rounded MT Bold", sans-serif';
     context.lineWidth = 12;
     context.strokeStyle = '#263d8b';
-    context.strokeText(`Combo ${Math.max(1, this.frame.snapshot.combo)}`, 532, 522);
+    const title = this.frame.snapshot.combo > 0
+      ? `Combo ${this.frame.snapshot.combo}`
+      : 'Game Over';
+    context.strokeText(title, 532, 522);
     context.fillStyle = '#ffffff';
-    context.fillText(`Combo ${Math.max(1, this.frame.snapshot.combo)}`, 532, 522);
+    context.fillText(title, 532, 522);
 
     const cardX = 212;
     const cardY = 603;

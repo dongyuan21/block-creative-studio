@@ -7,9 +7,10 @@ import type {
   VariantRecipe,
 } from '../headless/contracts';
 import type { StudioLookOption } from '../integration/studioAssetCatalog';
-import type { StudioVariantRow } from '../integration/studioVariantBridge';
+import { variantRowPreviewKind, type StudioVariantRow } from '../integration/studioVariantBridge';
 import type { BrowserAssetImportRole } from '../assets/browserAssetAuthoring';
 import type { BrowserAssetStoreStatus } from '../state/useBrowserAssetStore';
+import type { MaterialRuntimeStatus } from '../renderer/materialRuntimeStatus';
 
 type VariantExportKind = 'master' | 'recipe' | 'plan' | 'quality' | 'asset-bundle';
 
@@ -45,6 +46,7 @@ export interface VariantWorkspacePanelProps {
     accept: string;
   }>;
   workspaceError: string | null;
+  materialRuntimeStatus?: MaterialRuntimeStatus;
   locked: boolean;
   onLockMode(lockMode: VariantLockMode): void;
   onSelectLook(key: string): void;
@@ -59,6 +61,7 @@ export interface VariantWorkspacePanelProps {
 function activeStatus(
   row: StudioVariantRow | undefined,
   runtimeAssetMissingCount = 0,
+  materialRuntimeStatus?: MaterialRuntimeStatus,
 ): {
   label: string;
   tone: 'success' | 'warning' | 'error';
@@ -82,11 +85,11 @@ function activeStatus(
       detail: first ? `${first.code} · ${first.message}` : '质量门禁返回失败。',
     };
   }
-  if (!row.previewSupported) {
+  if (variantRowPreviewKind(row) === 'artifact-only') {
     return {
       label: '可编译',
       tone: 'warning',
-      detail: '资产契约有效，但当前网页渲染器没有该 Look 的预览绑定。',
+      detail: '资产契约有效，但当前网页渲染器没有该 Look 的预览绑定，也没有可应用的 Plan 材质。',
     };
   }
   if (runtimeAssetMissingCount > 0) {
@@ -96,10 +99,37 @@ function activeStatus(
       detail: `Render Plan 中有 ${runtimeAssetMissingCount} 个二进制资产尚未在本机 Asset Store 中解析。`,
     };
   }
+  if (materialRuntimeStatus) {
+    if (materialRuntimeStatus.state === 'idle') {
+      return {
+        label: '材质未就绪',
+        tone: 'warning',
+        detail: '三维材质尚未完成首次提交，不能作为可渲染/可导出状态。',
+      };
+    }
+    if (materialRuntimeStatus.state === 'error') {
+      return {
+        label: '材质加载失败',
+        tone: 'error',
+        detail: `新材质加载失败。${materialRuntimeStatus.showingPrevious ? '当前仍显示上一套完整材质。' : ''}不能作为可渲染/可导出状态。${materialRuntimeStatus.error ?? ''}`,
+      };
+    }
+    if (materialRuntimeStatus.state === 'stale' || materialRuntimeStatus.state === 'loading') {
+      return {
+        label: materialRuntimeStatus.showingPrevious ? '材质陈旧' : '材质加载中',
+        tone: 'warning',
+        detail: materialRuntimeStatus.showingPrevious
+          ? '新材质尚未提交，当前仍显示上一套完整材质，正式导出已阻止。'
+          : 'PBR 贴图仍在加载，正式导出已阻止。',
+      };
+    }
+  }
   return {
     label: '可渲染',
     tone: 'success',
-    detail: '网页预览、CLI 编译和质量门禁使用同一份 Render Plan。',
+    detail: variantRowPreviewKind(row) === 'plan-material'
+      ? 'Plan 材质已交给当前三维预览；该 Look 没有完整 studio.style 绑定。'
+      : '网页预览、CLI 编译和质量门禁使用同一份 Render Plan。',
   };
 }
 
@@ -148,6 +178,7 @@ export function VariantWorkspacePanel({
   runtimeAssetMissingCount,
   binaryImportOptions,
   workspaceError,
+  materialRuntimeStatus,
   locked,
   onLockMode,
   onSelectLook,
@@ -160,7 +191,7 @@ export function VariantWorkspacePanel({
 }: VariantWorkspacePanelProps) {
   const [binaryRole, setBinaryRole] = useState<BrowserAssetImportRole>('background-image');
   const active = rows.find((row) => row.recipe.id === activeRecipeId) ?? rows[0];
-  const status = activeStatus(active, runtimeAssetMissingCount);
+  const status = activeStatus(active, runtimeAssetMissingCount, materialRuntimeStatus);
   const selectedBinaryOption = binaryImportOptions.find((option) => option.id === binaryRole)
     ?? binaryImportOptions[0];
   const plan = active?.plan;

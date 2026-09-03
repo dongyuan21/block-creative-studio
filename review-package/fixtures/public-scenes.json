@@ -1,0 +1,60 @@
+{
+  "scenes": [
+    {
+      "id": "idle",
+      "snapshotHash": "fnv1a32:83b6e026",
+      "takeHash": null,
+      "status": "playing",
+      "actions": 0
+    },
+    {
+      "id": "pickup",
+      "snapshotHash": "fnv1a32:83b6e026",
+      "takeHash": null,
+      "status": "playing",
+      "actions": 0
+    },
+    {
+      "id": "legal-preview",
+      "snapshotHash": "fnv1a32:d861a139",
+      "takeHash": null,
+      "status": "playing",
+      "actions": 0
+    },
+    {
+      "id": "illegal-preview",
+      "snapshotHash": "fnv1a32:e9b8edaf",
+      "takeHash": null,
+      "status": "game-over",
+      "actions": 0
+    },
+    {
+      "id": "single-clear",
+      "snapshotHash": "fnv1a32:d861a139",
+      "takeHash": "fnv1a32:b4869325",
+      "status": "playing",
+      "actions": 1
+    },
+    {
+      "id": "cross-clear",
+      "snapshotHash": "fnv1a32:817a4d77",
+      "takeHash": "fnv1a32:b8417e60",
+      "status": "playing",
+      "actions": 1
+    },
+    {
+      "id": "consecutive",
+      "snapshotHash": "fnv1a32:0df10cd8",
+      "takeHash": "fnv1a32:f1ff5d0e",
+      "status": "playing",
+      "actions": 2
+    },
+    {
+      "id": "endgame",
+      "snapshotHash": "fnv1a32:1c709ba0",
+      "takeHash": null,
+      "status": "game-over",
+      "actions": 0
+    }
+  ]
+}

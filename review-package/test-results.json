@@ -1,0 +1,32 @@
+{
+  "npm test": {
+    "status": "PASS",
+    "count": 108
+  },
+  "npm run check": {
+    "status": "PASS"
+  },
+  "npm run typecheck": {
+    "status": "PASS"
+  },
+  "npm run build": {
+    "status": "PASS"
+  },
+  "test:render-regression": {
+    "status": "PASS"
+  },
+  "test:golden-batch": {
+    "status": "PASS"
+  },
+  "test:pbr-runtime": {
+    "status": "PASS"
+  },
+  "test:browser-e2e": {
+    "status": "PASS",
+    "mode": "full",
+    "frames": 20,
+    "videos": 4,
+    "output": "review-package/run/",
+    "commit": "5c95db168a02faab496d67eb1bdb9eaa6722fb43"
+  }
+}

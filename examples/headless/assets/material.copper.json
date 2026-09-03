@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "kind": "material-pack",
   "origin": "generated",
-  "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "contentHash": "sha256:4cb42bfbc3881ce23d6072d8764a967172227879f007aed61221e62442939612",
   "runtime": {
     "renderers": [
       "fixed-camera-cinematic"

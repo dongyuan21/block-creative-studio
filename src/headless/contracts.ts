@@ -45,6 +45,14 @@ export interface AssetRef {
   contentHash?: string;
 }
 
+/** Texture binding on a Material Pack: AssetRef plus optional runtime URI/channel metadata. */
+export interface MaterialTextureRef extends AssetRef {
+  uri?: string;
+  channels?: TextureChannel;
+  colorSpace?: ColorSpaceTag;
+  normalY?: NormalYConvention;
+}
+
 export interface RuntimeBudget {
   textureMemoryMiB?: number;
   triangleCount?: number;
@@ -116,7 +124,10 @@ export interface MaterialAppearanceProfile {
   thickness?: number;
   normalStrength?: number;
   emission?: number;
-  textureRefs?: Partial<Record<'baseColor' | 'normal' | 'roughness' | 'metallic' | 'height' | 'ao' | 'emission' | 'opacity', AssetRef>>;
+  textureRefs?: Partial<Record<
+    'baseColor' | 'normal' | 'roughness' | 'metallic' | 'height' | 'ao' | 'emission' | 'opacity' | 'orm',
+    MaterialTextureRef
+  >>;
 }
 
 export type FractureMode =
@@ -337,4 +348,179 @@ export interface QualityReport {
     triangleCount: number;
     pluginMemoryMiB: number;
   };
+}
+
+export type ResourceReadiness = 'pending' | 'ready' | 'failed' | 'released';
+
+export type ReferencePassId =
+  | 'background'
+  | 'board'
+  | 'tile'
+  | 'tray'
+  | 'interaction'
+  | 'placement'
+  | 'clear'
+  | 'feedback'
+  | 'endgame';
+
+export const REFERENCE_PASS_ORDER: readonly ReferencePassId[] = [
+  'background',
+  'board',
+  'tile',
+  'tray',
+  'interaction',
+  'placement',
+  'clear',
+  'feedback',
+  'endgame',
+] as const;
+
+export type DiagnosticViewId =
+  | 'beauty'
+  | 'albedo'
+  | 'world-normal'
+  | 'roughness'
+  | 'metalness'
+  | 'emission'
+  | 'bloom-contribution'
+  | 'highlight-clip';
+
+export type FrameTimeBase = 'presentation-frame' | 'source-pts' | 'wall-clock-forbidden';
+
+export interface FrameRenderRequest {
+  contract: 'bcs.frame-render-request';
+  contractVersion: typeof BCS_CONTRACT_VERSION;
+  planId: string;
+  planHash: string;
+  takeId: string;
+  takeHash: string;
+  frameIndex: number;
+  fps: number;
+  renderer: HeadlessRendererId;
+  targetPixels: { width: number; height: number };
+  coordinateSpace: 'design' | 'video';
+  timeBase: FrameTimeBase;
+  diagnosticView: DiagnosticViewId;
+  enabledPasses: ReferencePassId[];
+  requireResources: boolean;
+}
+
+export interface PreparedResourceSlot {
+  slotId: string;
+  uri: string;
+  contentHash: string;
+  readiness: ResourceReadiness;
+  byteLength?: number;
+}
+
+export interface PreparedResources {
+  contract: 'bcs.prepared-resources';
+  contractVersion: typeof BCS_CONTRACT_VERSION;
+  planHash: string;
+  readiness: ResourceReadiness;
+  slots: PreparedResourceSlot[];
+  missing: Array<{ slotId: string; uri: string; reason: string }>;
+}
+
+export interface FrameRenderResult {
+  contract: 'bcs.frame-render-result';
+  contractVersion: typeof BCS_CONTRACT_VERSION;
+  request: FrameRenderRequest;
+  status: 'rendered' | 'failed' | 'blocked';
+  width: number;
+  height: number;
+  warnings: string[];
+  error?: ContractIssue;
+}
+
+export type CalibrationCorrespondence =
+  | 'exact-replay'
+  | 'state-matched'
+  | 'isolated-presentation';
+
+export type CalibrationReviewStatus =
+  | 'PASS'
+  | 'FAIL'
+  | 'BLOCKED'
+  | 'NOT_COMPARABLE'
+  | 'NOT_RUN';
+
+export interface CalibrationRoi {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CalibrationCase {
+  contract: 'bcs.calibration-case';
+  contractVersion: typeof BCS_CONTRACT_VERSION;
+  id: string;
+  referenceMediaHash?: string;
+  sourceFrameIndex?: number;
+  sourcePtsSeconds?: number;
+  sourceTimeBase?: string;
+  targetTakeHash?: string;
+  isolatedFixtureHash?: string;
+  targetFrame: number;
+  targetFps: number;
+  eventId: string;
+  eventType: string;
+  correspondence: CalibrationCorrespondence;
+  roi: CalibrationRoi[];
+  excludedRegions: CalibrationRoi[];
+  reviewStatus: CalibrationReviewStatus;
+  unresolvedReasons: string[];
+}
+
+export type ColorSpaceTag = 'srgb' | 'linear';
+export type NormalYConvention = 'opengl' | 'directx' | 'unspecified';
+export type TextureChannel = 'r' | 'g' | 'b' | 'a' | 'rgb' | 'rgba';
+export type MaterialCapabilityState = 'supported' | 'pending' | 'unsupported';
+
+export interface MaterialMapBinding {
+  slot: 'baseColor' | 'normal' | 'roughness' | 'metallic' | 'ao' | 'emission' | 'orm';
+  uri: string;
+  contentHash: string;
+  colorSpace: ColorSpaceTag;
+  channels: TextureChannel;
+  normalY?: NormalYConvention;
+}
+
+export interface MaterialUvTransform {
+  repeat: [number, number];
+  offset: [number, number];
+  rotationRadians: number;
+}
+
+export interface MaterialRuntimeDescriptor {
+  contract: 'bcs.material-runtime';
+  contractVersion: typeof BCS_CONTRACT_VERSION;
+  id: string;
+  version: string;
+  contentHash: string;
+  materialClass: MaterialClass;
+  baseColor: string;
+  roughness: number;
+  metalness: number;
+  specular?: number;
+  clearcoat?: number;
+  transmission?: number;
+  ior?: number;
+  thickness?: number;
+  normalStrength?: number;
+  emission?: number;
+  maps: MaterialMapBinding[];
+  uv: MaterialUvTransform;
+  combine: 'multiply-factor' | 'replace';
+  capabilities: {
+    heightDisplacement: MaterialCapabilityState;
+    anisotropy: MaterialCapabilityState;
+    subsurface: MaterialCapabilityState;
+    complexTransmission: MaterialCapabilityState;
+    materialAwareFracture: MaterialCapabilityState;
+  };
+  unsupportedFields: string[];
+  behaviorPending: true;
 }

@@ -26,6 +26,11 @@ import {
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
+import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
+import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureResourceKey } from './runtimeTextures';
+import { MaterialRuntimeLoadGate } from './materialRuntimeLoadGate';
+import { FIXED_SHOT_PROFILE, lockedCameraDistance, mapClientPointToComposition, viewportPolicyForRenderer, webglViewportFromCss } from './shotProfile';
+import { materialCacheKey, materialDescriptorKey } from '../headless/materialRuntime';
 
 export interface StudioSceneOptions {
   quality?: 'interactive' | 'cinematic';
@@ -202,7 +207,6 @@ export class StudioScene {
   private readonly pieceHitTargets: THREE.Object3D[] = [];
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
-  private readonly whiteColor = new THREE.Color(0xffffff);
   private readonly materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
   private readonly slotMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x17213a,
@@ -233,8 +237,8 @@ export class StudioScene {
   private readonly shardGeometry = new THREE.TetrahedronGeometry(0.2, 0);
   private readonly shardMaterial = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.2,
-    metalness: 0.05,
+    roughness: 0.55,
+    metalness: 0.04,
     transparent: true,
     opacity: 1,
   });
@@ -257,7 +261,7 @@ export class StudioScene {
   });
   private readonly particles: THREE.Points;
   private readonly shockwaveMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color().setRGB(2.1, 2.1, 2.1),
+    color: new THREE.Color(0.42, 0.62, 0.78),
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -303,6 +307,11 @@ export class StudioScene {
   private runtimeAssets: RuntimeAssetBindings = EMPTY_RUNTIME_ASSET_BINDINGS;
   private runtimeBackgroundImage: HTMLImageElement | null = null;
   private runtimeAssetsReady: Promise<void> = Promise.resolve();
+  private runtimeTextures: RuntimeTextureSet = {};
+  private runtimeTextureKey = '';
+  private runtimeTextureFailure: string | null = null;
+  private readonly materialLoadGate = new MaterialRuntimeLoadGate();
+  private committedMaterialRuntime: StyleSpec['materialRuntime'];
 
   constructor(canvas: HTMLCanvasElement, options: StudioSceneOptions = {}) {
     this.canvas = canvas;
@@ -370,6 +379,16 @@ export class StudioScene {
       : 'Three.js · WebGL · GPU';
   }
 
+  private applyViewportPolicy(): void {
+    const policy = viewportPolicyForRenderer(this.style?.renderer ?? 'three-3d', this.width, this.height);
+    const glViewport = webglViewportFromCss(policy.viewport, this.height);
+    this.camera.aspect = policy.aspect;
+    this.renderer.setViewport(glViewport.x, glViewport.y, glViewport.width, glViewport.height);
+    this.renderer.setScissor(glViewport.x, glViewport.y, glViewport.width, glViewport.height);
+    this.renderer.setScissorTest(policy.scissorTest);
+    this.camera.updateProjectionMatrix();
+  }
+
   resize(width: number, height: number, pixelRatio = 1): void {
     this.width = Math.max(1, Math.round(width));
     this.height = Math.max(1, Math.round(height));
@@ -377,8 +396,7 @@ export class StudioScene {
     this.renderer.setSize(this.width, this.height, false);
     this.composer.setPixelRatio(Math.max(0.5, Math.min(2, pixelRatio)));
     this.composer.setSize(this.width, this.height);
-    this.camera.aspect = this.width / this.height;
-    this.camera.updateProjectionMatrix();
+    this.applyViewportPolicy();
     if (this.style) this.syncCamera(this.frame?.cameraPunch ?? 0);
   }
 
@@ -401,6 +419,7 @@ export class StudioScene {
     if (this.disposed) return;
     this.frame = frame;
     this.style = style;
+    this.applyViewportPolicy();
     this.syncCamera(frame.cameraPunch);
     this.syncScene();
   }
@@ -483,11 +502,18 @@ export class StudioScene {
     this.liveBurst = { clearing, startedAt: performance.now(), durationMs };
   }
 
+  mapClientPointer(clientX: number, clientY: number): { x: number; y: number } | null {
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    return { x: mapped.compositionX, y: mapped.compositionY };
+  }
+
   pick(clientX: number, clientY: number): PickResult {
-    const rect = this.canvas.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return null;
-    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    this.camera.updateMatrixWorld();
+    this.pointer.x = mapped.ndcX;
+    this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
 
     const pieceHit = this.raycaster.intersectObjects(this.pieceHitTargets, false)[0]?.object;
@@ -503,7 +529,8 @@ export class StudioScene {
         col: cellHit.userData.col as number,
       };
     }
-    return null;
+    const planeCell = this.pickCellFromBoardPlane();
+    return planeCell ? { kind: 'cell', ...planeCell } : null;
   }
 
   anchorForPiece(clientX: number, clientY: number, pieceId: string): GridCell | null {
@@ -535,7 +562,72 @@ export class StudioScene {
     this.render(frame.frame * (1000 / Math.max(1, frame.fps)));
   }
 
+  async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
+    const maps = style.materialRuntime?.maps ?? [];
+    const resourceKey = runtimeTextureResourceKey(maps, this.runtimeAssets);
+    const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
+    if (this.materialLoadGate.shouldSkip(descriptorKey)) return;
+
+    const loadId = this.materialLoadGate.begin();
+    const commitDescriptor = (): boolean => {
+      if (!this.materialLoadGate.commit(loadId, descriptorKey)) return false;
+      this.runtimeTextureFailure = null;
+      this.committedMaterialRuntime = style.materialRuntime;
+      this.style = style;
+      this.invalidateRuntimeMaterials();
+      return true;
+    };
+
+    if (maps.length === 0) {
+      if (!this.materialLoadGate.isCurrent(loadId)) return;
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = {};
+      this.runtimeTextureKey = resourceKey;
+      commitDescriptor();
+      return;
+    }
+
+    if (resourceKey === this.runtimeTextureKey) {
+      commitDescriptor();
+      return;
+    }
+
+    try {
+      const loaded = await loadRuntimeTextureSet(maps, this.runtimeAssets);
+      if (!this.materialLoadGate.isCurrent(loadId)) {
+        disposeRuntimeTextureSet(loaded);
+        return;
+      }
+      disposeRuntimeTextureSet(this.runtimeTextures);
+      this.runtimeTextures = loaded;
+      this.runtimeTextureKey = resourceKey;
+      if (!commitDescriptor()) {
+        disposeRuntimeTextureSet(loaded);
+        this.runtimeTextures = {};
+        this.runtimeTextureKey = '';
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!this.materialLoadGate.fail(loadId, message)) return;
+      this.runtimeTextureFailure = message;
+      throw error;
+    }
+  }
+
+  private invalidateRuntimeMaterials(): void {
+    for (const material of this.materialCache.values()) material.dispose();
+    this.materialCache.clear();
+    this.currentBoardKey = '';
+    this.currentRackKey = '';
+    this.currentDragKey = '';
+    if (this.frame && this.style) {
+      this.syncScene();
+      this.render();
+    }
+  }
+
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
+    await this.prepareMaterialRuntime(style);
     this.renderAt(frame, style);
     await this.runtimeAssetsReady;
     await this.renderer.compileAsync(this.scene, this.camera);
@@ -564,6 +656,12 @@ export class StudioScene {
     this.runtimeAssets = EMPTY_RUNTIME_ASSET_BINDINGS;
     this.runtimeBackgroundImage = null;
     this.runtimeAssetsReady = Promise.resolve();
+    disposeRuntimeTextureSet(this.runtimeTextures);
+    this.runtimeTextures = {};
+    this.runtimeTextureKey = '';
+    this.runtimeTextureFailure = null;
+    this.committedMaterialRuntime = undefined;
+    this.materialLoadGate.dispose();
     this.environmentTarget.dispose();
     for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();
@@ -572,15 +670,40 @@ export class StudioScene {
     this.renderer.dispose();
   }
 
-  private pickCellOnly(clientX: number, clientY: number): GridCell | null {
+  private mapClientComposition(clientX: number, clientY: number) {
     const rect = this.canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return null;
-    this.pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-    this.pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    return mapClientPointToComposition({
+      clientX,
+      clientY,
+      rect,
+      renderer: this.style?.renderer ?? 'three-3d',
+      canvasWidth: this.width,
+      canvasHeight: this.height,
+    });
+  }
+
+  private pickCellOnly(clientX: number, clientY: number): GridCell | null {
+    const mapped = this.mapClientComposition(clientX, clientY);
+    if (!mapped?.inside) return null;
+    this.pointer.x = mapped.ndcX;
+    this.pointer.y = mapped.ndcY;
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const object = this.raycaster.intersectObjects(this.cellHitTargets, false)[0]?.object;
-    if (object?.userData.kind !== 'cell') return null;
-    return { row: object.userData.row as number, col: object.userData.col as number };
+    if (object?.userData.kind === 'cell') {
+      return { row: object.userData.row as number, col: object.userData.col as number };
+    }
+    return this.pickCellFromBoardPlane();
+  }
+
+  private pickCellFromBoardPlane(): GridCell | null {
+    const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -0.42);
+    const point = new THREE.Vector3();
+    if (!this.raycaster.ray.intersectPlane(plane, point)) return null;
+    const col = Math.round(point.x / CELL_PITCH + BOARD_CENTER_OFFSET);
+    const row = Math.round(BOARD_CENTER_OFFSET - (point.y - 0.25) / CELL_PITCH);
+    if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return null;
+    return { row, col };
   }
 
   private buildBoardScaffold(): void {
@@ -612,7 +735,8 @@ export class StudioScene {
     const clearingKey = this.frame.clearing
       ? `${this.frame.clearing.seed}:${Math.round(this.frame.clearing.progress * 90)}`
       : 'none';
-    const boardKey = `${boardFingerprint(this.frame.board)}:${this.currentGeometryKey}:${this.style.material}:${clearingKey}`;
+    const lookKey = `${this.style.material}:${this.committedMaterialRuntime?.contentHash ?? this.style.materialRuntime?.contentHash ?? 'preset'}:${this.runtimeTextureKey}:${this.style.diagnosticView ?? 'beauty'}`;
+    const boardKey = `${boardFingerprint(this.frame.board)}:${this.currentGeometryKey}:${lookKey}:${clearingKey}`;
     if (boardKey !== this.currentBoardKey) {
       this.rebuildBoardTiles();
       this.currentBoardKey = boardKey;
@@ -620,14 +744,14 @@ export class StudioScene {
 
     const rackKey = `${this.frame.snapshot.pieces
       .map((piece) => `${piece.id}:${piece.shapeId}:${piece.color}:${piece.cellColors?.join('.') ?? ''}:${piece.used ? 1 : 0}`)
-      .join(',')}:${this.frame.hiddenPieceId ?? ''}:${this.currentGeometryKey}:${this.style.material}`;
+      .join(',')}:${this.frame.hiddenPieceId ?? ''}:${this.currentGeometryKey}:${lookKey}`;
     if (rackKey !== this.currentRackKey) {
       this.rebuildRack();
       this.currentRackKey = rackKey;
     }
 
     const dragKey = this.frame.draggedPiece
-      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.piece.cellColors?.join('.') ?? ''}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${this.style.material}`
+      ? `${this.frame.draggedPiece.piece.id}:${this.frame.draggedPiece.piece.shapeId}:${this.frame.draggedPiece.piece.color}:${this.frame.draggedPiece.piece.cellColors?.join('.') ?? ''}:${this.frame.draggedPiece.anchor.row}:${this.frame.draggedPiece.anchor.col}:${this.frame.draggedPiece.progress.toFixed(3)}:${this.frame.draggedPiece.pointerDriven ? 1 : 0}:${this.frame.pointer?.x.toFixed(4) ?? ''}:${this.frame.pointer?.y.toFixed(4) ?? ''}:${this.currentGeometryKey}:${lookKey}`
       : 'none';
     if (dragKey !== this.currentDragKey) {
       this.rebuildDraggedPiece();
@@ -666,6 +790,7 @@ export class StudioScene {
   private ensureLookDev(): void {
     if (!this.style) return;
     const { lookDev } = this.style;
+    const diagnostic = this.style.diagnosticView ?? 'beauty';
     const key = [
       lookDev.id,
       lookDev.exposure.toFixed(3),
@@ -674,11 +799,13 @@ export class StudioScene {
       lookDev.bloomThreshold.toFixed(3),
       lookDev.bloomRadius.toFixed(3),
       lookDev.clearBloomBoost.toFixed(3),
+      diagnostic,
     ].join(':');
     if (key === this.currentLookDev) return;
 
     const bloom = resolveLookDevBloom(lookDev, this.quality, 0, this.style.fx);
-    this.bloomPass.strength = bloom.strength;
+    const disableBloom = diagnostic !== 'beauty' && diagnostic !== 'bloom-contribution';
+    this.bloomPass.strength = disableBloom ? 0 : bloom.strength;
     this.bloomPass.threshold = bloom.threshold;
     this.bloomPass.radius = bloom.radius;
     this.slotMaterial.envMapIntensity = 0.45 * lookDev.environmentIntensity;
@@ -790,15 +917,28 @@ export class StudioScene {
   private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
     if (!this.style) throw new Error('Style not initialized.');
     const environmentIntensity = this.style.lookDev.environmentIntensity;
-    const key = `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}`;
+    const runtime = this.committedMaterialRuntime ?? this.style.materialRuntime;
+    const diagnostic = this.style.diagnosticView ?? 'beauty';
+    const key = runtime
+      ? `${materialCacheKey(runtime, { color, opacity, lookDevId: this.style.lookDev.id })}:${diagnostic}`
+      : `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}:${diagnostic}`;
     let material = this.materialCache.get(key);
     if (!material) {
-      material = createBlockMaterial(
-        color,
-        this.style.material,
-        opacity,
-        environmentIntensity,
-      );
+      material = runtime
+        ? createPbrTileMaterial({
+          descriptor: runtime,
+          color,
+          opacity,
+          environmentIntensity,
+          diagnosticView: diagnostic,
+          textures: this.runtimeTextures,
+        })
+        : createBlockMaterial(
+          color,
+          this.style.material,
+          opacity,
+          environmentIntensity,
+        );
       this.materialCache.set(key, material);
     }
     return material;
@@ -963,11 +1103,34 @@ export class StudioScene {
 
   private syncCamera(punch: number): void {
     if (!this.style) return;
-    const dynamicFactor = this.style.camera === 'dynamic-clear' ? 1 : 0.56;
+    const locked = this.style.renderer === 'fixed-camera-cinematic';
+    const maxZoom = FIXED_SHOT_PROFILE.maximumScreenZoom;
+    const dynamicFactor = locked ? 0.4 : this.style.camera === 'dynamic-clear' ? 1 : 0.56;
     const effectivePunch = punch * dynamicFactor;
     const frame = this.frame?.frame ?? 0;
-    const shakeX = Math.sin(frame * 2.13) * effectivePunch * 0.08;
-    const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055;
+    const shakeScale = locked ? 0.45 : 1;
+    const shakeX = Math.sin(frame * 2.13) * effectivePunch * 0.08 * shakeScale;
+    const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055 * shakeScale;
+
+    if (locked) {
+      this.camera.fov = FIXED_SHOT_PROFILE.verticalFovDegrees;
+      this.camera.aspect = FIXED_SHOT_PROFILE.compositionAspect;
+      const distance = lockedCameraDistance(effectivePunch);
+      const zoom = Math.min(maxZoom, 1 + effectivePunch * 0.015);
+      this.camera.position.set(
+        FIXED_SHOT_PROFILE.cameraOffset.x + shakeX,
+        FIXED_SHOT_PROFILE.cameraOffset.y + shakeY,
+        distance,
+      );
+      this.camera.lookAt(
+        FIXED_SHOT_PROFILE.lookAt[0],
+        FIXED_SHOT_PROFILE.lookAt[1],
+        FIXED_SHOT_PROFILE.lookAt[2],
+      );
+      this.camera.updateProjectionMatrix();
+      void zoom;
+      return;
+    }
 
     let preferredDistance: number;
     let cameraX: number;
@@ -1076,10 +1239,14 @@ export class StudioScene {
         const scale =
           (0.7 + seededFloat(clearing.seed, baseIndex + 6) * 0.68) *
           Math.pow(1 - progress, 0.36);
-        dummy.scale.setScalar(scale);
+        const splinter = this.committedMaterialRuntime?.materialClass === 'wood';
+        dummy.scale.set(splinter ? scale * 0.32 : scale, splinter ? scale * 1.85 : scale, splinter ? scale * 0.28 : scale);
         dummy.updateMatrix();
         this.shardMesh.setMatrixAt(shardIndex, dummy.matrix);
-        color.setHex(TILE_COLOR_HEX[cell.color]).lerp(this.whiteColor, 0.16);
+        color.setHex(TILE_COLOR_HEX[cell.color]);
+        if (this.committedMaterialRuntime?.baseColor) {
+          color.lerp(new THREE.Color(this.committedMaterialRuntime.baseColor), 0.62);
+        }
         this.shardMesh.setColorAt(shardIndex, color);
         shardIndex += 1;
       }
@@ -1097,8 +1264,11 @@ export class StudioScene {
         this.particlePositions[offset + 1] = origin.y + Math.sin(angle) * speed * t;
         this.particlePositions[offset + 2] =
           origin.z + 0.45 + (1.2 + seededFloat(clearing.seed, baseIndex + 2) * 3) * t;
-        color.setHex(TILE_COLOR_HEX[cell.color]).lerp(this.whiteColor, 0.5);
-        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.75;
+        color.setHex(TILE_COLOR_HEX[cell.color]);
+        if (this.committedMaterialRuntime?.baseColor) {
+          color.lerp(new THREE.Color(this.committedMaterialRuntime.baseColor), 0.45);
+        }
+        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.12;
         this.particleColors[offset] = color.r * particleLuminanceBoost;
         this.particleColors[offset + 1] = color.g * particleLuminanceBoost;
         this.particleColors[offset + 2] = color.b * particleLuminanceBoost;
@@ -1109,6 +1279,9 @@ export class StudioScene {
     this.shardMesh.count = shardIndex;
     this.shardMesh.instanceMatrix.needsUpdate = true;
     if (this.shardMesh.instanceColor) this.shardMesh.instanceColor.needsUpdate = true;
+    const runtime = this.committedMaterialRuntime;
+    this.shardMaterial.roughness = runtime ? Math.min(0.95, Math.max(0.18, runtime.roughness)) : 0.55;
+    this.shardMaterial.metalness = runtime ? runtime.metalness : 0.04;
     this.shardMaterial.opacity = Math.pow(1 - progress, 0.44);
     this.particleMaterial.opacity = Math.pow(1 - progress, 0.7);
     const position = this.particleGeometry.getAttribute('position');
@@ -1120,9 +1293,9 @@ export class StudioScene {
     center.divideScalar(Math.max(1, clearing.clear.cells.length));
     this.shockwave.visible = true;
     this.shockwave.position.set(center.x, center.y, 1.15);
-    const ringScale = 0.7 + easeOutCubic(progress) * 5.4;
+    const ringScale = 0.48 + easeOutCubic(progress) * 2.15;
     this.shockwave.scale.setScalar(ringScale);
-    this.shockwaveMaterial.opacity = Math.sin(progress * Math.PI) * 0.5;
+    this.shockwaveMaterial.opacity = Math.sin(progress * Math.PI) * 0.2;
 
     if (this.style) {
       const bloom = resolveLookDevBloom(

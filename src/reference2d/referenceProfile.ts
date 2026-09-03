@@ -1,6 +1,7 @@
 import type { TileColor } from '../domain/types';
+import { DESIGN_RESOLUTION } from '../headless/coordinateMapping';
 
-export const REFERENCE_CANVAS = { width: 1064, height: 1788 } as const;
+export const REFERENCE_CANVAS = DESIGN_RESOLUTION;
 
 export const REFERENCE_LAYOUT = {
   hud: {

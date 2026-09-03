@@ -96,6 +96,7 @@ export default function App() {
                   onEditCell={studio.editBoardCell}
                   onPlace={studio.commitHumanPlacement}
                   isPlacementValid={placementValid}
+                  onMaterialRuntimeStatus={studio.setMaterialRuntimeStatus}
                 />
               )}
             </div>
@@ -125,7 +126,12 @@ export default function App() {
         </section>
 
         <InspectorPanel
-          variantWorkspace={studio.variantWorkspace}
+          variantWorkspace={{
+            ...studio.variantWorkspace,
+            ...(displayStyle.renderer === 'reference-2d'
+              ? {}
+              : { materialRuntimeStatus: studio.materialRuntimeStatus }),
+          }}
           style={displayStyle}
           rhythm={studio.project.rhythm}
           render={studio.project.render}
@@ -143,6 +149,9 @@ export default function App() {
           onRenderQuality={studio.updateRenderQuality}
           onExportVideo={studio.exportVideo}
           onCancelExport={studio.cancelExport}
+          {...(displayStyle.renderer === 'reference-2d'
+            ? {}
+            : { materialRuntimeStatus: studio.materialRuntimeStatus })}
         />
       </main>
 

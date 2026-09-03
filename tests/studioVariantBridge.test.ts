@@ -14,6 +14,8 @@ import {
 import {
   PROJECT_CURRENT_VARIANT_ID,
   createStudioVariantMatrix,
+  studioPreviewStyle,
+  variantRowPreviewKind,
 } from '../src/integration/studioVariantBridge';
 import { DEFAULT_STYLE } from '../src/renderer/stylePresets';
 
@@ -54,7 +56,10 @@ describe('studioVariantBridge', () => {
     expect(row.plan?.planHash).toMatch(/^fnv1a32:/);
     expect(row.quality?.passed).toBe(true);
     expect(row.previewSupported).toBe(true);
-    expect(row.resolvedStyle).toEqual(project.style);
+    expect(row.resolvedStyle.renderer).toBe(project.style.renderer);
+    expect(row.resolvedStyle.material).toBe(project.style.material);
+    expect(row.resolvedStyle.materialRuntime).toBeDefined();
+    expect(row.resolvedStyle.materialRuntime?.id).toContain('material');
   });
 
   it('switches a complete Look Pack without reimplementing style inheritance in UI', () => {
@@ -102,5 +107,40 @@ describe('studioVariantBridge', () => {
 
     expect(parsed.length).toBe(catalog.assets.length);
     expect(parsed.every((asset) => asset.contract === 'bcs.asset-manifest')).toBe(true);
+  });
+
+  it('keeps Plan material on the webpage when Look has no studio.style binding', () => {
+    const project = projectFixture();
+    const matrix = createStudioVariantMatrix({
+      project,
+      selectedTake: null,
+      compiledTake: null,
+      requestedLockMode: 'frame-exact',
+      selectedLookKey: PROJECT_CURRENT_LOOK_KEY,
+      importedAssets: [],
+      importedRecipes: [],
+    });
+    const row = matrix.rows[0]!;
+    expect(row.previewSupported).toBe(true);
+    expect(row.resolvedStyle.materialRuntime).toBeDefined();
+    expect(studioPreviewStyle(row, project.style)).toBe(row.resolvedStyle);
+    expect(variantRowPreviewKind(row)).toBe('full-style');
+
+    const unboundWithRuntime = { ...row, previewSupported: false };
+    const preview = studioPreviewStyle(unboundWithRuntime, project.style);
+    expect(variantRowPreviewKind(unboundWithRuntime)).toBe('plan-material');
+    expect(preview.renderer).toBe('fixed-camera-cinematic');
+    expect(preview.material).toBe(project.style.material);
+    expect(preview.materialRuntime).toEqual(row.resolvedStyle.materialRuntime);
+    expect(preview.materialRuntime).not.toBeUndefined();
+
+    const unboundWithoutRuntime = {
+      ...row,
+      previewSupported: false,
+      resolvedStyle: structuredClone(project.style),
+    };
+    expect(variantRowPreviewKind(unboundWithoutRuntime)).toBe('artifact-only');
+    expect(studioPreviewStyle(unboundWithoutRuntime, project.style)).toBe(project.style);
+    expect(studioPreviewStyle(null, project.style)).toBe(project.style);
   });
 });

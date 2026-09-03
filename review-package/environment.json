@@ -1,0 +1,18 @@
+{
+  "os": "linux 6.12.94+ x86_64",
+  "arch": "x64",
+  "node": "22.14.0",
+  "npm": "10.9.7",
+  "browser": "HeadlessChrome/148.0.0.0",
+  "browserBinary": "/usr/local/bin/google-chrome",
+  "threeVersion": "0.185.1",
+  "gpuRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "softwareRendering": true,
+  "designResolution": { "width": 1064, "height": 1788 },
+  "videoResolution": { "width": 1080, "height": 1920 },
+  "fps": 30,
+  "audio": false,
+  "dpr": 1,
+  "exportQuality": "preview",
+  "notes": "Software WebGL/SwiftShader. Not a discrete-GPU performance result."
+}
