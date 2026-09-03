@@ -72,8 +72,11 @@ if (missing.length > 0) {
 }
 
 const jsonFiles = walk(root).filter((path) => {
-  const normalized = relative(root, path);
-  return extname(path) === '.json' && !normalized.startsWith('.git/') && !normalized.startsWith('.core-dist/');
+  const normalized = relative(root, path).replaceAll('\\', '/');
+  return extname(path) === '.json'
+    && !normalized.startsWith('.git/')
+    && !normalized.startsWith('.core-dist/')
+    && !normalized.startsWith('artifacts/');
 });
 for (const file of jsonFiles) JSON.parse(readFileSync(file, 'utf8'));
 

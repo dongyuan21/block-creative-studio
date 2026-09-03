@@ -6,7 +6,10 @@ import {
   replayTapTileTake,
 } from '../src/taptile/gameplay';
 import {
+  CHAIN_COMBO_FACE_ASSETS,
+  CHAIN_COMBO_UI_THEME_ID,
   createDefaultTapTileProject,
+  randomizeChainComboFaceTheme,
   type FaceAssembly,
   type TapTilePresentationRole,
   type TapTileTakeAction,
@@ -31,10 +34,10 @@ const GATE_ACTIONS = [
 ];
 
 describe('TapTile SkinPack and presentation roles', () => {
-  it('requires complete animals-v1 and food-v1 coverage without fallback', () => {
+  it('requires complete built-in theme coverage without fallback', () => {
     const project = createDefaultTapTileProject('hourglass');
     const archetypeCount = Object.keys(project.visuals.archetypes).length;
-    for (const themeId of ['animals-v1', 'food-v1']) {
+    for (const themeId of ['animals-v1', 'food-v1', CHAIN_COMBO_UI_THEME_ID]) {
       const report = validateSkinPack(project, themeId);
       expect(report.valid, report.issues.map((issue) => issue.code).join(',')).toBe(true);
       expect(report.coveredArchetypeIds).toHaveLength(archetypeCount);
@@ -47,6 +50,42 @@ describe('TapTile SkinPack and presentation roles', () => {
     expect(report.valid).toBe(false);
     expect(report.issues).toContainEqual(expect.objectContaining({ code: 'THEME_BINDING_MISSING', archetypeId: firstArchetypeId }));
     expect(() => resolveTileVisual(incomplete, firstArchetypeId, 'food-v1', 'board')).toThrow('THEME_BINDING_NOT_FOUND');
+  });
+
+  it('installs all 14 chain-combo PNGs and safely randomizes 16 visually unique match faces', () => {
+    const baseline = createDefaultTapTileProject('hourglass');
+    expect(CHAIN_COMBO_FACE_ASSETS).toHaveLength(14);
+    for (const spec of CHAIN_COMBO_FACE_ASSETS) {
+      expect(baseline.assets.entries[spec.id]).toMatchObject({
+        kind: 'image',
+        width: 256,
+        height: 256,
+        hasAlpha: true,
+        contentHash: spec.contentHash,
+      });
+    }
+
+    const first = structuredClone(baseline);
+    const repeated = structuredClone(baseline);
+    const changed = structuredClone(baseline);
+    randomizeChainComboFaceTheme(first, 'fixture-seed-a');
+    randomizeChainComboFaceTheme(repeated, 'fixture-seed-a');
+    randomizeChainComboFaceTheme(changed, 'fixture-seed-b');
+    const signatures = (project: typeof baseline) => Object.values(project.visuals.archetypes)
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((archetype) => {
+        const binding = project.visuals.themes[CHAIN_COMBO_UI_THEME_ID]!.bindings[archetype.id]!;
+        return JSON.stringify(project.visuals.faceAssemblies[binding.faceAssemblyId]!.parts);
+      });
+    expect(signatures(repeated)).toEqual(signatures(first));
+    expect(signatures(changed)).not.toEqual(signatures(first));
+    expect(new Set(signatures(first))).toHaveLength(Object.keys(first.visuals.archetypes).length);
+    const assemblies = Object.values(first.visuals.themes[CHAIN_COMBO_UI_THEME_ID]!.bindings)
+      .map((binding) => first.visuals.faceAssemblies[binding.faceAssemblyId]!);
+    expect(assemblies.every((assembly) => assembly.mode === 'overlay-on-body')).toBe(true);
+    expect(assemblies.every((assembly) => assembly.parts.length === 1)).toBe(true);
+    expect(validateSkinPack(first, CHAIN_COMBO_UI_THEME_ID).valid).toBe(true);
+    expect(compileTapTileLevel(first).levelHash).toBe(compileTapTileLevel(baseline).levelHash);
   });
 
   it('keeps every built-in match key visually unique and upgrades the legacy duplicate frog', () => {

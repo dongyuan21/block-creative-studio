@@ -778,6 +778,30 @@
 .tpt-skin-compat { margin-top: 5px; font-size: 8px; }
 .tpt-skin-compat.is-valid { color: #61d9a4; }
 .tpt-skin-compat.is-invalid { color: #ff7a85; }
+.tpt-face-group-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: -4px 0 11px;
+  padding: 7px 8px;
+  border: 1px solid rgba(106, 222, 190, 0.28);
+  border-radius: 8px;
+  color: #8fdac9;
+  background: rgba(62, 175, 147, 0.08);
+  font-size: 8px;
+}
+.tpt-face-group-actions button {
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid rgba(111, 121, 255, 0.72);
+  border-radius: 7px;
+  color: #eef1ff;
+  background: #525ed1;
+  font: inherit;
+  cursor: pointer;
+}
+.tpt-face-group-actions button:disabled { cursor: not-allowed; opacity: 0.45; }
 .stack-tile.is-selected::before {
   content: "";
   position: absolute;

@@ -1,7 +1,9 @@
 param(
   [string]$Endpoint = 'http://127.0.0.1:9223/json',
   [string]$PageUrl = 'http://127.0.0.1:4173/',
-  [string]$ArtifactDirectory = 'artifacts/design-qa/taptile'
+  [string]$ArtifactDirectory = 'artifacts/design-qa/taptile',
+  [string]$ThemeId = '',
+  [switch]$SkipCancelProbe
 )
 
 $ErrorActionPreference = 'Stop'
@@ -51,7 +53,14 @@ function Wait-RenderExpression {
     if (Invoke-RenderExpression -Expression $Expression) { return }
     Start-Sleep -Milliseconds 100
   }
-  throw "Timed out waiting for: $Expression"
+  $renderDebug = Invoke-RenderExpression -Expression @'
+JSON.stringify({
+  preview: document.querySelector('.tpt-canvas-preview')?.dataset || null,
+  exportPanel: document.querySelector('.tpt-export-panel')?.dataset || null,
+  errors: window.__tptRenderErrors || [],
+})
+'@
+  throw "Timed out waiting for: $Expression`nRender state: $renderDebug"
 }
 
 function Set-ExportPreviewFrame {
@@ -93,11 +102,37 @@ Invoke-RenderExpression -Expression @'
     window.__tptRenderErrors.push(args.map((value) => String(value)).join(' '));
     originalError(...args);
   };
-  document.querySelector('[data-mode-id="validate"]').click();
   return true;
 })()
 '@ | Out-Null
-Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-blocker-graph line'))"
+Wait-RenderExpression -Expression "(() => { if (document.querySelector('.tpt-blocker-graph line')) return true; document.querySelector('[data-mode-id=validate]')?.click(); return false; })()"
+
+$renderThemeResult = $null
+if (-not [string]::IsNullOrWhiteSpace($ThemeId)) {
+  $renderLevelHashBeforeTheme = [string](Invoke-RenderExpression -Expression "document.querySelector('.tpt-studio')?.dataset.levelHash || ''")
+  $renderSetTheme = (@'
+(() => {
+  const select = document.querySelector('[data-face-group-select]');
+  const setter = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set;
+  setter.call(select, '__THEME_ID__');
+  select.dispatchEvent(new Event('change', { bubbles: true }));
+  return true;
+})()
+'@).Replace('__THEME_ID__', $ThemeId)
+  Invoke-RenderExpression -Expression $renderSetTheme | Out-Null
+  Wait-RenderExpression -Expression "document.querySelector('[data-face-group-select]')?.value === '$ThemeId' && document.querySelectorAll('[data-face-assembly^=face-chain-combo] img').length > 0 && [...document.querySelectorAll('[data-face-assembly^=face-chain-combo] img')].every((image) => image.complete && image.naturalWidth === 256)"
+  $renderIdentityBeforeReroll = [string](Invoke-RenderExpression -Expression "document.querySelector('[data-face-assembly^=face-chain-combo]')?.dataset.visualIdentity || ''")
+  Invoke-RenderExpression -Expression "document.querySelector('[data-action=reroll-face-group]')?.click(); true" | Out-Null
+  Wait-RenderExpression -Expression "document.querySelector('[data-face-assembly^=face-chain-combo]')?.dataset.visualIdentity !== '$renderIdentityBeforeReroll'"
+  $renderLevelHashAfterTheme = [string](Invoke-RenderExpression -Expression "document.querySelector('.tpt-studio')?.dataset.levelHash || ''")
+  if ($renderLevelHashAfterTheme -ne $renderLevelHashBeforeTheme) { throw "Face group changed gameplay levelHash: $renderLevelHashBeforeTheme -> $renderLevelHashAfterTheme" }
+  $renderThemeResult = [ordered]@{
+    id = $ThemeId
+    levelHashInvariant = $true
+    loadedImageCount = [int](Invoke-RenderExpression -Expression "new Set([...document.querySelectorAll('[data-face-assembly^=face-chain-combo] img')].map((image) => image.src)).size")
+    rerolled = $true
+  }
+}
 
 $renderPair = Invoke-RenderExpression -Expression @'
 (() => {
@@ -114,6 +149,7 @@ $renderSelectPair = (@'
 '@).Replace('__BLOCKER__', [string]$renderPair.blockerId).Replace('__BLOCKED__', [string]$renderPair.blockedId)
 Invoke-RenderExpression -Expression $renderSelectPair | Out-Null
 Invoke-RenderExpression -Expression "document.querySelector('.tpt-override-actions button').click(); true" | Out-Null
+Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-validation-play:not(:disabled)'))"
 Invoke-RenderExpression -Expression "document.querySelector('.tpt-validation-play').click(); true" | Out-Null
 Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=play]'))"
 
@@ -128,10 +164,10 @@ foreach ($renderTileId in $renderSequence) {
   Invoke-RenderExpression -Expression $renderTap | Out-Null
   Start-Sleep -Milliseconds 40
 }
+Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=play] .tpt-action-primary:not(:disabled)'))"
 Invoke-RenderExpression -Expression "document.querySelector('.tpt-session-bar[data-mode=play] .tpt-action-primary').click(); true" | Out-Null
 Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-session-bar[data-mode=replay][data-valid=true]'))"
-Invoke-RenderExpression -Expression "document.querySelector('[data-mode-id=direct]').click(); true" | Out-Null
-Wait-RenderExpression -Expression "Boolean(document.querySelector('select[data-director-profile]'))"
+Wait-RenderExpression -Expression "(() => { if (document.querySelector('select[data-director-profile]')) return true; document.querySelector('[data-mode-id=direct]')?.click(); return false; })()"
 Invoke-RenderExpression -Expression @'
 (() => {
   const select = document.querySelector('select[data-director-profile]');
@@ -142,8 +178,7 @@ Invoke-RenderExpression -Expression @'
 })()
 '@ | Out-Null
 Wait-RenderExpression -Expression "document.querySelector('.tpt-director-timeline')?.dataset.profileId === 'combo-rush'"
-Invoke-RenderExpression -Expression "document.querySelector('[data-mode-id=export]').click(); true" | Out-Null
-Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-export-panel'))"
+Wait-RenderExpression -Expression "(() => { if (document.querySelector('.tpt-export-panel')) return true; document.querySelector('[data-mode-id=export]')?.click(); return false; })()"
 Wait-RenderExpression -Expression "document.querySelector('.tpt-canvas-preview')?.dataset.previewRenderedFrame === '0' && document.querySelector('.tpt-canvas-preview')?.dataset.previewPixelHash !== 'pending'"
 Wait-RenderExpression -Expression "document.querySelector('.tpt-export-panel')?.dataset.previewParity === 'ready' && !document.querySelector('[data-action=start-taptile-export]')?.disabled"
 $renderAuthority = Invoke-RenderExpression -Expression @'
@@ -175,16 +210,20 @@ foreach ($renderCheckpoint in $renderCheckpoints) {
   Save-CanvasPng -Path (Join-Path $renderArtifactRoot "m8-$($renderCheckpoint.label)-frame-$renderFrame.png")
 }
 
-$renderTakeCountBefore = [int](Invoke-RenderExpression -Expression "JSON.parse(localStorage.getItem('taptile-director-project/autosave/v2')).takes.length")
-Invoke-RenderExpression -Expression "document.querySelector('[data-action=start-taptile-export]').click(); true" | Out-Null
-Wait-RenderExpression -Expression "Boolean(document.querySelector('[data-action=cancel-taptile-export]'))"
-Invoke-RenderExpression -Expression "document.querySelector('[data-action=cancel-taptile-export]').click(); true" | Out-Null
-Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-export-error')) && Boolean(document.querySelector('[data-action=start-taptile-export]'))"
-$renderTakeCountAfterCancel = [int](Invoke-RenderExpression -Expression "JSON.parse(localStorage.getItem('taptile-director-project/autosave/v2')).takes.length")
-if ($renderTakeCountAfterCancel -ne $renderTakeCountBefore) { throw 'Canceling export changed the project Takes.' }
+$renderCanceledWithoutMutation = $null
+if (-not $SkipCancelProbe) {
+  $renderTakeCountBefore = [int](Invoke-RenderExpression -Expression "JSON.parse(localStorage.getItem('taptile-director-project/autosave/v2')).takes.length")
+  Invoke-RenderExpression -Expression "document.querySelector('[data-action=start-taptile-export]').click(); true" | Out-Null
+  Wait-RenderExpression -Expression "Boolean(document.querySelector('[data-action=cancel-taptile-export]'))"
+  Invoke-RenderExpression -Expression "document.querySelector('[data-action=cancel-taptile-export]').click(); true" | Out-Null
+  Wait-RenderExpression -Expression "Boolean(document.querySelector('.tpt-export-error')) && Boolean(document.querySelector('[data-action=start-taptile-export]'))"
+  $renderTakeCountAfterCancel = [int](Invoke-RenderExpression -Expression "JSON.parse(localStorage.getItem('taptile-director-project/autosave/v2')).takes.length")
+  if ($renderTakeCountAfterCancel -ne $renderTakeCountBefore) { throw 'Canceling export changed the project Takes.' }
+  $renderCanceledWithoutMutation = $true
+}
 
 Invoke-RenderExpression -Expression "document.querySelector('[data-action=start-taptile-export]').click(); true" | Out-Null
-Wait-RenderExpression -Expression "document.querySelector('.tpt-export-panel')?.dataset.exportPhase === 'done' && Number(document.querySelector('.tpt-export-panel').dataset.exportBytes) > 1000" -Attempts 1200
+Wait-RenderExpression -Expression "document.querySelector('.tpt-export-panel')?.dataset.exportPhase === 'done' && Number(document.querySelector('.tpt-export-panel').dataset.exportBytes) > 1000" -Attempts 7200
 $renderExport = Invoke-RenderExpression -Expression @'
 (async () => {
   const panel = document.querySelector('.tpt-export-panel');
@@ -227,12 +266,13 @@ if (@($renderErrors).Count -gt 0) { throw "Browser errors: $($renderErrors | Con
   durationSeconds = $renderExport.duration
   bytes = $renderExport.bytes
   mime = $renderExport.type
-  canceledWithoutMutation = ($renderTakeCountBefore -eq $renderTakeCountAfterCancel)
+  canceledWithoutMutation = $renderCanceledWithoutMutation
   authoritativeRenderSource = $renderAuthority.source
   previewIdentity = $renderAuthority.identity
   verifiedFrame = $renderExport.verifiedFrame
   verifiedPixelHash = $renderExport.verifiedPixelHash
   duplicateDirectorOverlay = $renderAuthority.duplicateDirectorOverlay
+  theme = $renderThemeResult
   checkpointHashes = $renderHashes
   consoleErrors = @($renderErrors).Count
   mp4 = $renderMp4Path

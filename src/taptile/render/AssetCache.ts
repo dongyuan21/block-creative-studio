@@ -12,11 +12,10 @@ async function defaultImageLoader(_entry: AssetManifestEntry, uri: string): Prom
   if (typeof Image === 'undefined') throw new Error('ASSET_IMAGE_ENVIRONMENT_UNAVAILABLE');
   const image = new Image();
   image.decoding = 'async';
-  image.src = uri;
-  if (typeof image.decode === 'function') await image.decode();
-  else await new Promise<void>((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();
     image.onerror = () => reject(new Error(`ASSET_IMAGE_LOAD_FAILED: ${uri}`));
+    image.src = uri;
   });
   return image;
 }

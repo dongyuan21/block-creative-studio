@@ -23,12 +23,15 @@ import {
   type TileMaterialId,
 } from './stackModel';
 import {
+  CHAIN_COMBO_UI_THEME_ID,
   createDefaultTapTileProject,
+  ensureChainComboFaceTheme,
   isTapTileProjectV2,
   migrateTapTileStackProjectV1,
   parseTapTileProjectV2,
   projectAsLegacyView,
   projectStackTiles,
+  randomizeChainComboFaceTheme,
   replaceProjectStackTiles,
   upgradeLegacyBuiltInThemeGlyphs,
   type TapTileDirectorTiming,
@@ -207,7 +210,7 @@ function upgradeLegacyTemplateFaceRuns(project: TapTileProjectV2): TapTileProjec
 }
 
 function fitProjectBelowTopTray(project: TapTileProjectV2): TapTileProjectV2 {
-  const upgraded = upgradeLegacyBuiltInThemeGlyphs(upgradeLegacyTemplateFaceRuns(project));
+  const upgraded = ensureChainComboFaceTheme(upgradeLegacyBuiltInThemeGlyphs(upgradeLegacyTemplateFaceRuns(project)));
   const shiftPx = tapTileBoardDownwardShiftPx(
     upgraded.level.tileInstances.map((tile) => tile.geometry),
     upgraded.stage.exportHeight,
@@ -851,8 +854,21 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     if (!project.visuals.themes[themeId]) return;
     commit((draft) => {
       draft.visuals.selectedThemeId = themeId;
+      if (themeId === CHAIN_COMBO_UI_THEME_ID) {
+        randomizeChainComboFaceTheme(draft, `${draft.id}:${draft.revision + 1}`);
+      }
     });
-    setNotice('只更换视觉主题；匹配分组、阻挡图和 Take 不变');
+    setNotice(themeId === CHAIN_COMBO_UI_THEME_ID
+      ? '已随机换成连消彩绘牌面；相同牌仍共用同一图案，匹配分组、阻挡图和 Take 不变'
+      : '只更换牌面分组；匹配分组、阻挡图和 Take 不变');
+  };
+
+  const rerollChainComboFaces = (): void => {
+    commit((draft) => {
+      draft.visuals.selectedThemeId = CHAIN_COMBO_UI_THEME_ID;
+      randomizeChainComboFaceTheme(draft, `${draft.id}:${draft.revision + 1}:reroll`);
+    });
+    setNotice('已重新随机连消彩绘牌面；三消关系未改变');
   };
 
   const setDirectorProfile = (profileId: string): void => {
@@ -1223,7 +1239,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
           <section className="tpt-face-section">
             <div className="tpt-section-title"><span>匹配分组</span><small>{FACE_LIBRARY.length} MATCH KEYS</small></div>
-            <p className="tpt-helper">模板默认按固定种子安全打散；每种牌仍为 3 的倍数且通过可解校验。这里会改变玩法与 Take 有效性；纯换皮请使用右侧“视觉主题”。</p>
+            <p className="tpt-helper">模板默认按固定种子安全打散；每种牌仍为 3 的倍数且通过可解校验。这里会改变玩法与 Take 有效性；纯换皮请使用右侧“牌面分组”。</p>
             <div className="tpt-face-grid">
               {FACE_LIBRARY.map((face) => (
                 <button
@@ -1647,7 +1663,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               level={compiledLevel}
               onChange={commit}
               onImport={(next) => {
-                dispatch({ type: 'reset', value: ensureTapTileProductionDefaults(next) });
+                dispatch({ type: 'reset', value: fitProjectBelowTopTray(ensureTapTileProductionDefaults(next)) });
                 setSelectedIds([]);
                 setLayerFocus('all');
               }}
@@ -1715,8 +1731,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               </select>
             </label>
             <label className="tpt-field">
-              <span>视觉主题（不改玩法）</span>
-              <select disabled={workspaceMode === 'play'} value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
+              <span>牌面分组（不改玩法）</span>
+              <select data-face-group-select disabled={workspaceMode === 'play'} value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
                 {Object.values(project.visuals.themes).map((theme) => (
                   <option key={theme.id} value={theme.id}>{theme.name}</option>
                 ))}
@@ -1727,6 +1743,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 data-skin-theme={selectedSkinCompatibility.themeId}
               >{selectedSkinCompatibility.valid ? `${selectedSkinCompatibility.coveredArchetypeIds.length} 个匹配组全部覆盖` : `${selectedSkinCompatibility.issues.filter((issue) => issue.severity === 'error').length} 个兼容错误`}</small>
             </label>
+            {project.visuals.selectedThemeId === CHAIN_COMBO_UI_THEME_ID && (
+              <div className="tpt-face-group-actions" data-face-group={CHAIN_COMBO_UI_THEME_ID}>
+                <span>14 张原图 · 2 个完整方向变体 · 无双拼</span>
+                <button type="button" data-action="reroll-face-group" disabled={workspaceMode === 'play' || workspaceMode === 'replay'} onClick={rerollChainComboFaces}>重新随机</button>
+              </div>
+            )}
             <label className="tpt-field">
               <span>牌体材质</span>
               <select disabled={workspaceMode === 'play' || workspaceMode === 'replay'} value={project.authoring.material} onChange={(event) => setAuthoringOption('material', event.target.value as TileMaterialId)}>

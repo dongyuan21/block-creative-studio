@@ -27,4 +27,9 @@ for (const cssFile of cssFiles) {
 
 await access(new URL('assets/taptile/classic-tile-surface-v1.png', distDirectory));
 await access(new URL('assets/taptile/reference-hand-pointer-v1.svg', distDirectory));
-console.log(`✓ Pages artifact uses ${normalizedBase} and contains the TapTile texture and pointer assets`);
+const chainComboFaceDirectory = new URL('assets/taptile/faces/chain-combo-ui/', distDirectory);
+const chainComboFaceFiles = (await readdir(chainComboFaceDirectory)).filter((name) => name.endsWith('.png'));
+if (chainComboFaceFiles.length !== 14) {
+  throw new Error(`Pages artifact must contain all 14 chain-combo face PNGs; found ${chainComboFaceFiles.length}.`);
+}
+console.log(`✓ Pages artifact uses ${normalizedBase} and contains the TapTile texture, pointer, and 14 chain-combo face assets`);

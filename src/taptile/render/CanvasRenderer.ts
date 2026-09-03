@@ -201,6 +201,16 @@ function drawTile(
   context.rotate(rotationDeg * Math.PI / 180);
   const surfaceOffsetY = drawTileMaterial(context, bundle, visual, role, drawWidth, drawHeight, castShadow, elevationRank);
 
+  context.save();
+  roundedRect(
+    context,
+    -drawWidth / 2,
+    -drawHeight / 2,
+    drawWidth,
+    drawHeight,
+    Math.min(drawWidth, drawHeight) * tapTileMaterialAppearance(visual.material).radiusRatio,
+  );
+  context.clip();
   for (const part of visual.renderedFace.parts) {
     const partWidth = Math.abs(part.transform.scaleX) * drawWidth;
     const partHeight = Math.abs(part.transform.scaleY) * drawHeight;
@@ -222,6 +232,7 @@ function drawTile(
     }
     context.restore();
   }
+  context.restore();
   context.restore();
   return visual;
 }

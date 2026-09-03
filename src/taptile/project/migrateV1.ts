@@ -21,6 +21,7 @@ import {
 } from '../trayLayout';
 import { createDefaultTapTileAudioAssets, createDefaultTapTileProductionSpec } from '../production/defaults';
 import { createDefaultTapTilePresentationAssets } from '../presentation/assets';
+import { ensureChainComboFaceTheme } from './builtInFaceThemes';
 
 const LEGACY_ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
 const LEGACY_FOOD_GLYPHS = ['🍓', '🍉', '🍋', '🥝', '🍒', '🍇', '🥕', '🍩', '🍪', '🧁', '🍄', '🥑'];
@@ -272,7 +273,7 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
     tileIds: source.tiles.map((tile) => tile.id),
   };
 
-  return {
+  const migrated: TapTileProjectV2 = {
     format: TAPTILE_PROJECT_FORMAT,
     schemaVersion: TAPTILE_SCHEMA_VERSION,
     id: stableHash(projectIdentity, 'taptile-project'),
@@ -381,4 +382,5 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
     },
     production: createDefaultTapTileProductionSpec(),
   };
+  return ensureChainComboFaceTheme(migrated);
 }

@@ -138,6 +138,7 @@ describe('TapTile production timeline and semantic audio', () => {
 describe('TapTile batch matrix and manifests', () => {
   it('expands and hash-deduplicates the full matrix while exposing invalid Cut dependencies', () => {
     const { project, level } = productionFixture();
+    const skinPackCount = Object.keys(project.visuals.themes).length;
     const tasks = expandTapTileBatchMatrix(project, level, {
       takeIds: project.takes.map((take) => take.id),
       skinPackIds: Object.keys(project.visuals.themes),
@@ -147,10 +148,10 @@ describe('TapTile batch matrix and manifests', () => {
       outroPackIds: Object.keys(project.production.outros),
       renderSpecs: [project.render, structuredClone(project.render)],
     });
-    expect(tasks).toHaveLength(48);
+    expect(tasks).toHaveLength(skinPackCount * 24);
     expect(new Set(tasks.map((task) => task.combinationHash)).size).toBe(tasks.length);
     const invalid = tasks.filter((task) => !validateTapTileVariantDependencies(project, level, task.spec).valid);
-    expect(invalid).toHaveLength(24);
+    expect(invalid).toHaveLength(skinPackCount * 12);
     expect(validateTapTileVariantDependencies(project, level, invalid[0]!.spec).reasons[0]).toContain('CUT_ACTION_MISSING');
   });
 
