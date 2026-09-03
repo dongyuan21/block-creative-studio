@@ -207,7 +207,6 @@ export class StudioScene {
   private readonly pieceHitTargets: THREE.Object3D[] = [];
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointer = new THREE.Vector2();
-  private readonly whiteColor = new THREE.Color(0xffffff);
   private readonly materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
   private readonly slotMaterial = new THREE.MeshPhysicalMaterial({
     color: 0x17213a,
@@ -238,8 +237,8 @@ export class StudioScene {
   private readonly shardGeometry = new THREE.TetrahedronGeometry(0.2, 0);
   private readonly shardMaterial = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    roughness: 0.2,
-    metalness: 0.05,
+    roughness: 0.55,
+    metalness: 0.04,
     transparent: true,
     opacity: 1,
   });
@@ -262,7 +261,7 @@ export class StudioScene {
   });
   private readonly particles: THREE.Points;
   private readonly shockwaveMaterial = new THREE.MeshBasicMaterial({
-    color: new THREE.Color().setRGB(2.1, 2.1, 2.1),
+    color: new THREE.Color(0.42, 0.62, 0.78),
     transparent: true,
     opacity: 0,
     blending: THREE.AdditiveBlending,
@@ -417,10 +416,9 @@ export class StudioScene {
 
   setFrame(frame: PresentationFrame, style: StyleSpec): void {
     if (this.disposed) return;
-    const previousRenderer = this.style?.renderer;
     this.frame = frame;
     this.style = style;
-    if (previousRenderer !== style.renderer) this.applyViewportPolicy();
+    this.applyViewportPolicy();
     this.syncCamera(frame.cameraPunch);
     this.syncScene();
   }
@@ -1207,10 +1205,14 @@ export class StudioScene {
         const scale =
           (0.7 + seededFloat(clearing.seed, baseIndex + 6) * 0.68) *
           Math.pow(1 - progress, 0.36);
-        dummy.scale.setScalar(scale);
+        const splinter = this.committedMaterialRuntime?.materialClass === 'wood';
+        dummy.scale.set(splinter ? scale * 0.32 : scale, splinter ? scale * 1.85 : scale, splinter ? scale * 0.28 : scale);
         dummy.updateMatrix();
         this.shardMesh.setMatrixAt(shardIndex, dummy.matrix);
-        color.setHex(TILE_COLOR_HEX[cell.color]).lerp(this.whiteColor, 0.16);
+        color.setHex(TILE_COLOR_HEX[cell.color]);
+        if (this.committedMaterialRuntime?.baseColor) {
+          color.lerp(new THREE.Color(this.committedMaterialRuntime.baseColor), 0.62);
+        }
         this.shardMesh.setColorAt(shardIndex, color);
         shardIndex += 1;
       }
@@ -1228,8 +1230,11 @@ export class StudioScene {
         this.particlePositions[offset + 1] = origin.y + Math.sin(angle) * speed * t;
         this.particlePositions[offset + 2] =
           origin.z + 0.45 + (1.2 + seededFloat(clearing.seed, baseIndex + 2) * 3) * t;
-        color.setHex(TILE_COLOR_HEX[cell.color]).lerp(this.whiteColor, 0.5);
-        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.75;
+        color.setHex(TILE_COLOR_HEX[cell.color]);
+        if (this.committedMaterialRuntime?.baseColor) {
+          color.lerp(new THREE.Color(this.committedMaterialRuntime.baseColor), 0.45);
+        }
+        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.12;
         this.particleColors[offset] = color.r * particleLuminanceBoost;
         this.particleColors[offset + 1] = color.g * particleLuminanceBoost;
         this.particleColors[offset + 2] = color.b * particleLuminanceBoost;
@@ -1240,6 +1245,9 @@ export class StudioScene {
     this.shardMesh.count = shardIndex;
     this.shardMesh.instanceMatrix.needsUpdate = true;
     if (this.shardMesh.instanceColor) this.shardMesh.instanceColor.needsUpdate = true;
+    const runtime = this.committedMaterialRuntime;
+    this.shardMaterial.roughness = runtime ? Math.min(0.95, Math.max(0.18, runtime.roughness)) : 0.55;
+    this.shardMaterial.metalness = runtime ? runtime.metalness : 0.04;
     this.shardMaterial.opacity = Math.pow(1 - progress, 0.44);
     this.particleMaterial.opacity = Math.pow(1 - progress, 0.7);
     const position = this.particleGeometry.getAttribute('position');
@@ -1251,9 +1259,9 @@ export class StudioScene {
     center.divideScalar(Math.max(1, clearing.clear.cells.length));
     this.shockwave.visible = true;
     this.shockwave.position.set(center.x, center.y, 1.15);
-    const ringScale = 0.7 + easeOutCubic(progress) * 5.4;
+    const ringScale = 0.48 + easeOutCubic(progress) * 2.15;
     this.shockwave.scale.setScalar(ringScale);
-    this.shockwaveMaterial.opacity = Math.sin(progress * Math.PI) * 0.5;
+    this.shockwaveMaterial.opacity = Math.sin(progress * Math.PI) * 0.2;
 
     if (this.style) {
       const bloom = resolveLookDevBloom(

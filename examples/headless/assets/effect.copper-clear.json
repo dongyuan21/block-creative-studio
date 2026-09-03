@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "kind": "effect-pack",
   "origin": "generated",
-  "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "contentHash": "sha256:813d915ea458e49461cace786a79cf461b25267260a197a62bd62899c1a3049f",
   "runtime": {
     "renderers": [
       "fixed-camera-cinematic"

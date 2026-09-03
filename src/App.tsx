@@ -149,6 +149,9 @@ export default function App() {
           onRenderQuality={studio.updateRenderQuality}
           onExportVideo={studio.exportVideo}
           onCancelExport={studio.cancelExport}
+          {...(displayStyle.renderer === 'reference-2d'
+            ? {}
+            : { materialRuntimeStatus: studio.materialRuntimeStatus })}
         />
       </main>
 

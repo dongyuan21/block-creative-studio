@@ -105,6 +105,7 @@ describe('public fixtures', () => {
     ]);
     expect(idleSnapshot().status).toBe('playing');
     expect(endgameSnapshot().status).toBe('game-over');
+    expect(endgameSnapshot().combo).toBe(0);
     const illegal = illegalPreviewSnapshot();
     expect(illegal.status).toBe('playing');
     expect(hasAnyLegalMove(illegal)).toBe(true);
@@ -202,21 +203,28 @@ describe('material runtime', () => {
     expect(woodRuntime.maps).toHaveLength(5);
     expect(auroraRuntime.maps).toHaveLength(0);
     expect(steelRuntime.maps[0]?.contentHash).not.toBe(woodRuntime.maps[0]?.contentHash);
+    expect(steelRuntime.combine).toBe('replace');
+    expect(woodRuntime.combine).toBe('replace');
+    expect(auroraRuntime.combine).toBe('multiply-factor');
+    expect(steelRuntime.metalness).toBeGreaterThan(woodRuntime.metalness);
     const steelColor = new THREE.Texture();
     const woodColor = new THREE.Texture();
     const steelMat = createPbrTileMaterial({
       descriptor: steelRuntime,
       color: 'coral',
-      textures: { baseColor: steelColor },
+      textures: { baseColor: steelColor, metallic: steelColor, roughness: steelColor },
     });
     const woodMat = createPbrTileMaterial({
       descriptor: woodRuntime,
       color: 'coral',
-      textures: { baseColor: woodColor },
+      textures: { baseColor: woodColor, metallic: woodColor, roughness: woodColor },
     });
     expect(steelMat.map).toBe(steelColor);
     expect(woodMat.map).toBe(woodColor);
-    expect(steelMat.metalness).toBeGreaterThan(woodMat.metalness);
+    expect(steelMat.metalness).toBe(1);
+    expect(woodMat.metalness).toBe(1);
+    expect(steelMat.color.getHex()).toBe(0xffffff);
+    expect(woodMat.color.getHex()).toBe(0xffffff);
     steelMat.dispose();
     woodMat.dispose();
   });

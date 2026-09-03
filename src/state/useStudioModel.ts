@@ -520,19 +520,16 @@ export function useStudioModel() {
       });
       return;
     }
-    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state === 'loading') {
+    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state !== 'ready') {
+      const reason = materialRuntimeStatus.state === 'error'
+        ? `新材质加载失败，当前仍显示上一套材质：${materialRuntimeStatus.error ?? '加载失败'}`
+        : materialRuntimeStatus.state === 'stale'
+          ? '新材质尚未提交，当前仍显示上一套材质，不能进入正式导出。'
+          : '三维材质尚未就绪，不能进入正式导出。';
       setExportState({
         running: false,
         progress: null,
-        error: '材质贴图仍在加载，不能进入正式导出。',
-      });
-      return;
-    }
-    if (resolvedStyle.renderer !== 'reference-2d' && materialRuntimeStatus.state === 'error') {
-      setExportState({
-        running: false,
-        progress: null,
-        error: `新材质未就绪，当前仍显示上一套材质：${materialRuntimeStatus.error ?? '加载失败'}`,
+        error: reason,
       });
       return;
     }

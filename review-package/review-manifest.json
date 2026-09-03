@@ -11,7 +11,7 @@
   "repository": "dongyuan21/block-creative-studio",
   "baselineCommit": "74a2fba002fe62643884759b6611af9181330964",
   "planCommit": "fec24de6764bb50ef082730321b167cf8a29259f",
-  "implementationCommit": "d6a214bf0e3a1c8c0e0c0e0c0e0c0e0c0e0c0e0c",
+  "implementationCommit": "d6a214b38bc8cf570730409959cd96b54b27867f",
   "pullRequests": [
     "https://github.com/dongyuan21/block-creative-studio/pull/1"
   ],
@@ -65,7 +65,7 @@
     {
       "name": "npm test",
       "status": "PASS",
-      "count": 105
+      "count": 108
     },
     {
       "name": "npm run check",
@@ -81,8 +81,8 @@
     },
     {
       "name": "test:browser-e2e",
-      "status": "PASS",
-      "mode": "smoke-or-full-in-run-dir"
+      "status": "PENDING",
+      "mode": "full-in-ci-and-review-package/run"
     }
   ],
   "artifacts": [
@@ -319,5 +319,5 @@
     "Material-aware fracture pending",
     "Git-tracked frames/videos are stale; current HEAD evidence is review-package/run and CI artifact capture-run"
   ],
-  "notes": "Do not treat compile/CI success as visually-approved. Golden content is BLOCKED. Git MP4s are stale. Current-HEAD capture writes review-package/run/ only."
+  "notes": "Do not treat compile/CI success as visually-approved. Golden content is BLOCKED. Git MP4s/PNGs in frames/ and videos/ are stale. Current-HEAD capture writes review-package/run/ only and is uploaded as CI artifact capture-run after full capture."
 }

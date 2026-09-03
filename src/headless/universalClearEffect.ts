@@ -13,7 +13,7 @@ export function createUniversalClearEffect(): EffectPackManifest {
     kind: 'effect-pack',
     origin: 'generated',
     label: 'Universal clear (test fixture)',
-    contentHash: `sha256:${'9'.repeat(64)}`,
+    contentHash: 'sha256:e4ecce818ff21a53002717fccb26c5b95d934629105118f4fb348580b81b1b50',
     runtime: {
       renderers: ['fixed-camera-cinematic'],
       deterministic: true,

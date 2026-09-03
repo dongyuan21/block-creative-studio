@@ -1,7 +1,7 @@
 {
   "npm test": {
     "status": "PASS",
-    "count": 82
+    "count": 108
   },
   "npm run check": {
     "status": "PASS"
@@ -22,9 +22,8 @@
     "status": "PASS"
   },
   "test:browser-e2e": {
-    "status": "PASS",
-    "mode": "full",
-    "frames": 17,
-    "videos": 4
+    "status": "PENDING",
+    "mode": "full-in-ci-and-local-run-dir",
+    "note": "Git-tracked frames/videos are stale. Current HEAD evidence is review-package/run/ and CI artifact capture-run."
   }
 }

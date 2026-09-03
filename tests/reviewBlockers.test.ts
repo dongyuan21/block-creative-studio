@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { makeFixture } from './headlessFixtures';
 import {
   compileMaterialRuntime,
+  defaultCombineForMaps,
   materialDescriptorKey,
   parseMaterialRuntimeDescriptor,
 } from '../src/headless/materialRuntime';
@@ -19,6 +20,8 @@ import {
 } from '../src/renderer/runtimeTextures';
 import { viewportPolicyForRenderer } from '../src/renderer/shotProfile';
 import { MaterialRuntimeLoadGate } from '../src/renderer/materialRuntimeLoadGate';
+import { materialRuntimeBlocksExport } from '../src/renderer/materialRuntimeStatus';
+import { createUniversalClearEffect } from '../src/headless/universalClearEffect';
 import { createStudioVariantMatrix } from '../src/integration/studioVariantBridge';
 import { DEFAULT_STYLE } from '../src/renderer/stylePresets';
 import { createCrossClearBoard } from '../src/domain/boardPresets';
@@ -221,8 +224,69 @@ describe('review blockers', () => {
       const pack = JSON.parse(readFileSync(packPath(file), 'utf8')) as Record<string, unknown>;
       expect(String(pack.contentHash)).toBe(canonicalSha256(omitContentHash(pack)));
       expect(String(pack.contentHash)).toMatch(/^sha256:[0-9a-f]{64}$/);
-      expect(String(pack.contentHash)).not.toMatch(/^sha256:(a+|b+|c+)$/);
+      expect(String(pack.contentHash)).not.toMatch(/^sha256:(.)\1+$/);
     }
+  });
+
+  it('stores canonical sha256 hashes on capture Effect/Look fixtures, not repeating placeholders', () => {
+    const files = [
+      'examples/headless/assets/effect.universal-clear.json',
+      'examples/headless/assets/effect.copper-clear.json',
+      'examples/headless/assets/material.copper.json',
+      'examples/headless/assets/look.copper.json',
+    ];
+    for (const rel of files) {
+      const pack = JSON.parse(readFileSync(resolve(process.cwd(), rel), 'utf8')) as Record<string, unknown>;
+      expect(String(pack.contentHash)).toBe(canonicalSha256(omitContentHash(pack)));
+      expect(String(pack.contentHash)).not.toMatch(/^sha256:(.)\1+$/);
+    }
+    const look = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/look.copper.json'), 'utf8')) as {
+      slots: Record<string, { id: string; contentHash: string }>;
+    };
+    const copper = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/material.copper.json'), 'utf8')) as { contentHash: string };
+    expect(look.slots['tile.material']?.contentHash).toBe(copper.contentHash);
+    const recipe = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/variant.copper.demo.json'), 'utf8')) as {
+      lookPackRef: { contentHash: string };
+    };
+    const lookPack = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/look.copper.json'), 'utf8')) as { contentHash: string };
+    expect(recipe.lookPackRef.contentHash).toBe(lookPack.contentHash);
+    expect(createUniversalClearEffect().contentHash).toBe(
+      (JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/assets/effect.universal-clear.json'), 'utf8')) as { contentHash: string }).contentHash,
+    );
+  });
+
+  it('defaults mapped packs to replace combine so albedo is not multiplied by tile color', () => {
+    expect(defaultCombineForMaps([{
+      slot: 'baseColor',
+      uri: 'maps/a.png',
+      contentHash: `sha256:${'a'.repeat(64)}`,
+      channels: 'rgb',
+      colorSpace: 'srgb',
+    }])).toBe('replace');
+    expect(defaultCombineForMaps([])).toBe('multiply-factor');
+    const steel = JSON.parse(readFileSync(packPath('material.stainless-steel.json'), 'utf8')) as MaterialPackManifest;
+    expect(compileMaterialRuntime({ pack: steel }).combine).toBe('replace');
+    const aurora = JSON.parse(readFileSync(packPath('material.aurora-shell.json'), 'utf8')) as MaterialPackManifest;
+    expect(compileMaterialRuntime({ pack: aurora }).combine).toBe('multiply-factor');
+  });
+
+  it('blocks formal export unless the committed material is ready', () => {
+    expect(materialRuntimeBlocksExport({
+      state: 'stale',
+      generation: 1,
+      resourceKey: 'a',
+      descriptorKey: 'b',
+      error: null,
+      showingPrevious: true,
+    })).toBe(true);
+    expect(materialRuntimeBlocksExport({
+      state: 'ready',
+      generation: 1,
+      resourceKey: 'a',
+      descriptorKey: 'b',
+      error: null,
+      showingPrevious: false,
+    })).toBe(false);
   });
 
   it('captures material diagnostics on idle with Neutral LookDev, not clear peak', () => {

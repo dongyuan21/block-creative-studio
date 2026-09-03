@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "kind": "camera-profile",
   "origin": "builtin",
-  "contentHash": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "contentHash": "sha256:742c4944ae662e8e60e6137dedf032b03c43bd1c82c979e5a99cd5ad831a3259",
   "runtime": {
     "renderers": [
       "fixed-camera-cinematic"

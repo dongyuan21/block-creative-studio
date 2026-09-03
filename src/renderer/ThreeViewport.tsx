@@ -75,8 +75,14 @@ export function ThreeViewport({
   const statusCallbackRef = useRef(onMaterialRuntimeStatus);
   statusCallbackRef.current = onMaterialRuntimeStatus;
   const [runtimeStatus, setRuntimeStatus] = useState<MaterialRuntimeStatus>(IDLE_MATERIAL_RUNTIME_STATUS);
+  const hadReadyRef = useRef(false);
+  const lastReadyDescriptorRef = useRef<string | null>(null);
 
   const reportStatus = (status: MaterialRuntimeStatus): void => {
+    if (status.state === 'ready') {
+      hadReadyRef.current = true;
+      lastReadyDescriptorRef.current = status.descriptorKey;
+    }
     setRuntimeStatus(status);
     statusCallbackRef.current?.(status);
   };
@@ -123,12 +129,33 @@ export function ThreeViewport({
     const maps = style.materialRuntime?.maps ?? [];
     const resourceKey = runtimeTextureResourceKey(maps);
     const descriptorKey = style.materialRuntime ? materialDescriptorKey(style.materialRuntime) : '';
+    if (hadReadyRef.current && lastReadyDescriptorRef.current === descriptorKey) {
+      void stage.prepareMaterialRuntime(style).then(() => {
+        if (cancelled || stageRef.current !== stage) return;
+        apply();
+      }).catch((error: unknown) => {
+        if (cancelled || stageRef.current !== stage) return;
+        reportStatus({
+          state: 'error',
+          generation: Date.now(),
+          resourceKey,
+          descriptorKey,
+          error: error instanceof Error ? error.message : String(error),
+          showingPrevious: true,
+        });
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    const showingPrevious = hadReadyRef.current;
     reportStatus({
-      state: 'loading',
+      state: showingPrevious ? 'stale' : 'loading',
       generation: Date.now(),
       resourceKey,
       descriptorKey,
       error: null,
+      showingPrevious,
     });
     void stage.prepareMaterialRuntime(style)
       .then(() => {
@@ -139,6 +166,7 @@ export function ThreeViewport({
           resourceKey,
           descriptorKey,
           error: null,
+          showingPrevious: false,
         });
         apply();
       })
@@ -150,6 +178,7 @@ export function ThreeViewport({
           resourceKey,
           descriptorKey,
           error: error instanceof Error ? error.message : String(error),
+          showingPrevious,
         });
         apply();
       });
@@ -241,12 +270,14 @@ export function ThreeViewport({
       {runtimeStatus.state === 'error' && (
         <div className="viewport-runtime-error" role="alert">
           <strong>新材质加载失败</strong>
-          <span>当前仍显示上一套完整材质，正式导出已阻止。</span>
+          <span>{runtimeStatus.showingPrevious ? '当前仍显示上一套完整材质。正式导出已阻止。' : '当前材质未就绪，正式导出已阻止。'}</span>
           {runtimeStatus.error && <span>{runtimeStatus.error}</span>}
         </div>
       )}
-      {runtimeStatus.state === 'loading' && style.materialRuntime && (
-        <div className="viewport-runtime-status">材质贴图加载中…</div>
+      {(runtimeStatus.state === 'loading' || runtimeStatus.state === 'stale') && style.materialRuntime && (
+        <div className="viewport-runtime-status">
+          {runtimeStatus.showingPrevious ? '新材质加载中，当前仍显示上一套材质。正式导出已阻止。' : '材质贴图加载中…'}
+        </div>
       )}
       {snapshot.status === 'game-over' && mode === 'play' && (
         <div className="game-over-card">

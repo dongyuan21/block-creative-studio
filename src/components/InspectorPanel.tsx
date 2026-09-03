@@ -41,6 +41,8 @@ import {
 import { RHYTHM_PRESET_LIST } from '../director/rhythmPresets';
 import { copyLookDevPreset } from '../renderer/lookDev';
 import { VariantWorkspacePanel, type VariantWorkspacePanelProps } from './VariantWorkspacePanel';
+import type { MaterialRuntimeStatus } from '../renderer/materialRuntimeStatus';
+import { IDLE_MATERIAL_RUNTIME_STATUS, materialRuntimeBlocksExport } from '../renderer/materialRuntimeStatus';
 
 interface InspectorPanelProps {
   variantWorkspace: Omit<VariantWorkspacePanelProps, 'locked'>;
@@ -53,6 +55,7 @@ interface InspectorPanelProps {
   locked: boolean;
   setupEditable: boolean;
   exportState: { running: boolean; progress: RenderProgress | null; error: string | null };
+  materialRuntimeStatus?: MaterialRuntimeStatus;
   onStyle(patch: Partial<StyleSpec>): void;
   onGeometry(patch: Partial<StyleSpec['geometry']>): void;
   onRhythmPreset(id: RhythmPresetId): void;
@@ -135,6 +138,7 @@ export function InspectorPanel({
   locked,
   setupEditable,
   exportState,
+  materialRuntimeStatus,
   onStyle,
   onGeometry,
   onRhythmPreset,
@@ -452,12 +456,25 @@ export function InspectorPanel({
           <div><strong>{render.fps} fps</strong><span>固定帧率</span></div>
           <div><strong>{compiled ? (compiled.totalFrames / compiled.fps).toFixed(1) : '—'} s</strong><span>成片时长</span></div>
         </div>
+        {style.renderer !== 'reference-2d' && materialRuntimeStatus && (
+          <p className={materialRuntimeStatus.state === 'ready' ? 'empty-copy' : 'error-copy'}>
+            {materialRuntimeStatus.state === 'ready' && '三维材质已提交，可进入正式导出。'}
+            {materialRuntimeStatus.state === 'loading' && '材质加载中，正式导出已阻止。'}
+            {materialRuntimeStatus.state === 'stale' && '新材质尚未提交，当前仍显示上一套材质。正式导出已阻止。'}
+            {materialRuntimeStatus.state === 'error' && `新材质加载失败${materialRuntimeStatus.showingPrevious ? '，当前仍显示上一套材质' : ''}。正式导出已阻止。`}
+            {materialRuntimeStatus.state === 'idle' && '三维材质尚未完成首次提交。正式导出已阻止。'}
+          </p>
+        )}
         {exportState.running ? (
           <button className="export-button export-button--cancel" onClick={onCancelExport}>
             取消本次渲染
           </button>
         ) : (
-          <button className="export-button" disabled={!take || locked} onClick={() => void onExportVideo()}>
+          <button
+            className="export-button"
+            disabled={!take || locked || (style.renderer !== 'reference-2d' && materialRuntimeBlocksExport(materialRuntimeStatus ?? IDLE_MATERIAL_RUNTIME_STATUS))}
+            onClick={() => void onExportVideo()}
+          >
             生成 1080P MP4
           </button>
         )}

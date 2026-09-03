@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0",
   "id": "material.stainless-steel",
   "version": "1.0.0",
-  "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "contentHash": "sha256:fd7c7735f7a84cfdade524043ef59b1569620e7e1db9b6d7cfe6d38523cc6e2b",
   "materialClass": "metal",
   "baseColor": "#c9d0d8",
   "roughness": 0.22,
@@ -12,28 +12,28 @@
     {
       "slot": "baseColor",
       "uri": "examples/headless/materials/maps/steel-basecolor.png",
-      "contentHash": "sha256:3dc2a6809191a6d8a9e9ab3892bb1d7a7bded8a27c4338fbd754d51df05aaeb2",
+      "contentHash": "sha256:ca50477917e22e0f3579872d8e18e3d26ab8b47d08ec94d88104e200a04dd7a9",
       "colorSpace": "srgb",
       "channels": "rgb"
     },
     {
       "slot": "roughness",
       "uri": "examples/headless/materials/maps/steel-roughness.png",
-      "contentHash": "sha256:814a42b25f7744fa774847302848c1f89760fa8485c653a6b193f68ec19c3fe2",
+      "contentHash": "sha256:cdf0ad08bc6752bfc2675b8f02319397cb316a90d5adcf39591ffeae3ff0042d",
       "colorSpace": "linear",
       "channels": "r"
     },
     {
       "slot": "metallic",
       "uri": "examples/headless/materials/maps/steel-metallic.png",
-      "contentHash": "sha256:32bfc577914a35d78edc8794b5dd5d37013c614e930f65f10c1a22757d4c0545",
+      "contentHash": "sha256:d1d6abfc535c0fdf768ca6f70d3491939ac0a9993d24169789b8466f4b18888d",
       "colorSpace": "linear",
       "channels": "r"
     },
     {
       "slot": "normal",
       "uri": "examples/headless/materials/maps/steel-normal.png",
-      "contentHash": "sha256:edaeb0b002e622838cd32cbfabf193b684937dcef11153aeb4350484a5d6a6dd",
+      "contentHash": "sha256:d2c424e1367839e845ca1ffcb1442a8a1f10169fa534832381e56e575502f929",
       "colorSpace": "linear",
       "channels": "rgb",
       "normalY": "opengl"
@@ -41,7 +41,7 @@
     {
       "slot": "ao",
       "uri": "examples/headless/materials/maps/steel-ao.png",
-      "contentHash": "sha256:e0175c63a9d4c63ad1b2067e73d99b7d16ee3756627f25ba1aaaf1e71a2c0150",
+      "contentHash": "sha256:f5d5e3910ae025b0ea78d4b540a68ee7780d9d1d9c11ce599ee9b3bd0f5ecacc",
       "colorSpace": "linear",
       "channels": "r"
     }
@@ -57,7 +57,7 @@
     ],
     "rotationRadians": 0
   },
-  "combine": "multiply-factor",
+  "combine": "replace",
   "capabilities": {
     "heightDisplacement": "unsupported",
     "anisotropy": "unsupported",

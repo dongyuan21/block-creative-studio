@@ -7,6 +7,7 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,6 +25,12 @@ jobs:
           CI: true
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: npm run test:browser-e2e
+      - name: Browser capture full
+        timeout-minutes: 40
+        env:
+          CI: true
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: npm run capture:review
       - uses: actions/upload-artifact@v4
         if: always()
         with:

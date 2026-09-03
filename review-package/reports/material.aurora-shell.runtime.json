@@ -3,7 +3,7 @@
   "contractVersion": "1.0.0",
   "id": "material.aurora-shell",
   "version": "1.0.0",
-  "contentHash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "contentHash": "sha256:8d3a88b4b483da08c5c4c2457b60cb14a84772bdd56a9467fd122bd05b6401fe",
   "materialClass": "custom",
   "baseColor": "#6ad0c8",
   "roughness": 0.28,
@@ -31,8 +31,6 @@
   "unsupportedFields": [],
   "behaviorPending": true,
   "clearcoat": 0.42,
-  "transmission": 0.12,
-  "ior": 1.46,
   "normalStrength": 0.2,
   "emission": 0.04
 }

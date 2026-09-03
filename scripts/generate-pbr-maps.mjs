@@ -13,7 +13,7 @@ import { deflateSync } from 'node:zlib';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const outDir = resolve(root, 'examples/headless/materials/maps');
 const publicDir = resolve(root, 'public/materials/maps');
-const SIZE = 128;
+const SIZE = 256;
 
 function crc32(buffer) {
   let crc = 0xffffffff;
@@ -118,24 +118,33 @@ const steelAo = fill((x, y) => {
 });
 
 const woodColor = fill((x, y) => {
-  const grain = Math.sin(x * 0.38 + Math.sin(y * 0.07) * 3) * 28;
-  const pore = hash2(x, Math.floor(y / 3), 11) * 18;
-  return [118 + grain - pore, 72 + grain * 0.45, 38 + grain * 0.15];
+  const u = x / SIZE;
+  const v = y / SIZE;
+  const ring = Math.sin((u * 0.22 + v) * 18 + Math.sin(u * 7.4) * 2.1);
+  const latewood = ring > 0.35 ? 26 : ring < -0.4 ? -10 : 0;
+  const grain = Math.sin(x * 0.21 + Math.sin(y * 0.046) * 4.6) * 38;
+  const pore = hash2(x, Math.floor(y / 2), 11) * 16;
+  const knot = hash2(Math.floor(x / 18), Math.floor(y / 22), 19) > 0.97 ? 28 : 0;
+  return [
+    176 + grain * 0.55 - pore - latewood - knot,
+    108 + grain * 0.22 - pore * 0.55 - latewood * 0.75 - knot * 0.4,
+    48 + grain * 0.06 - pore * 0.25 - latewood * 0.35,
+  ];
 });
 const woodRough = fill((x, y) => {
-  const grain = Math.abs(Math.sin(x * 0.38 + Math.sin(y * 0.07) * 3)) * 50;
-  const v = 150 + grain + hash2(x, y, 12) * 20;
+  const grain = Math.abs(Math.sin(x * 0.21 + Math.sin(y * 0.046) * 4.6)) * 36;
+  const v = 168 + grain + hash2(x, y, 12) * 18;
   return [v, v, v];
 });
-const woodMetal = gray(8);
+const woodMetal = gray(6);
 const woodNormal = fill((x, y) => {
-  const nx = 128 + Math.cos(x * 0.38) * 36;
-  const ny = 128 + Math.sin(y * 0.11) * 10;
+  const nx = 128 + Math.cos(x * 0.21) * 42 + (hash2(x + 1, y, 14) - hash2(x, y, 14)) * 10;
+  const ny = 128 + Math.sin(y * 0.09) * 8 + (hash2(x, y + 1, 14) - hash2(x, y, 14)) * 6;
   return [nx, ny, 255];
 });
 const woodAo = fill((x, y) => {
-  const grain = Math.abs(Math.sin(x * 0.38)) * 35;
-  const v = 200 - grain;
+  const grain = Math.abs(Math.sin(x * 0.21)) * 28;
+  const v = 214 - grain - hash2(x, y, 16) * 12;
   return [v, v, v];
 });
 
@@ -212,7 +221,7 @@ writeFileSync(
     {
       origin: 'synthetic-public-fixture',
       license: 'CC0-1.0',
-      note: 'Independently generated 128×128 maps. Steel uses horizontal scratches; wood uses vertical grain. Aurora-shell intentionally has no maps.',
+      note: 'Independently generated 256×256 maps. Steel uses horizontal scratches; wood uses warm vertical grain and growth rings. Aurora-shell intentionally has no maps.',
       size: SIZE,
       files: Object.fromEntries(Object.entries(hashes).map(([name, sha]) => [name, `sha256:${sha}`])),
     },

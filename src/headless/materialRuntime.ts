@@ -68,6 +68,13 @@ function issue(code: string, message: string, path: string): ContractIssue {
   return { code, severity: 'error', message, path, recoverable: true };
 }
 
+/** Mapped albedo/ORM samples already carry appearance; multiplying tile×pack×map muddies identity. */
+export function defaultCombineForMaps(maps: readonly MaterialMapBinding[]): MaterialRuntimeDescriptor['combine'] {
+  return maps.some((map) => map.slot === 'baseColor' || map.slot === 'orm' || map.slot === 'roughness' || map.slot === 'metallic')
+    ? 'replace'
+    : 'multiply-factor';
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -368,7 +375,7 @@ export function compileMaterialRuntime(input: MaterialCompileInput): MaterialRun
     metalness: input.pack.appearance.metalness,
     maps,
     uv: input.uv ?? { repeat: [1, 1], offset: [0, 0], rotationRadians: 0 },
-    combine: input.combine ?? 'multiply-factor',
+    combine: input.combine ?? defaultCombineForMaps(maps),
     capabilities: {
       heightDisplacement: 'unsupported',
       anisotropy: 'unsupported',
