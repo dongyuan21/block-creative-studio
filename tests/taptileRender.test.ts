@@ -20,6 +20,7 @@ import {
   TapTileAssetCache,
   TAPTILE_Z_BANDS,
 } from '../src/taptile/render';
+import { tapTileTraySlotRect } from '../src/taptile/trayLayout';
 
 const ACTION_IDS = ['hourglass-43', 'hourglass-44', 'hourglass-45', 'hourglass-46', 'hourglass-47', 'hourglass-48'];
 
@@ -136,6 +137,11 @@ describe('TapTile Canvas render pipeline', () => {
     expect(trace.items.some((item) => item.band === TAPTILE_Z_BANDS.moving)).toBe(true);
     const tray = project.stage.safeAreas.tray!;
     expect(trace.items.find((item) => item.id === 'tray')?.bounds).toEqual({ x: tray.left, y: tray.top, width: tray.width, height: tray.height });
+    for (const index of [0, 6]) {
+      const slot = tapTileTraySlotRect(index, tray);
+      expect(trace.items.find((item) => item.id === `tray-slot:${index}`)?.bounds)
+        .toEqual({ x: slot.left, y: slot.top, width: slot.width, height: slot.height });
+    }
   });
 
   it('selects deterministic visual regression checkpoints from the compiled timeline', () => {

@@ -152,6 +152,7 @@ export interface PresentationEffect {
   tileIds: string[];
   implementation: DirectorEffectImplementation;
   presetId: string;
+  slotIndexes?: number[];
   particles: Array<{ id: string; xPx: number; yPx: number; rotationDeg: number; scale: number; opacity: number }>;
 }
 

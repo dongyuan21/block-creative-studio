@@ -1,5 +1,11 @@
 import type { CompiledTapTileLevel, OutroPack, TapTilePresentationRole, TapTileProjectV2 } from '../project';
 import type { TapTilePresentationFrame } from '../director';
+import {
+  normalizeTapTileTrayBounds,
+  TAPTILE_TRAY_CAPACITY,
+  tapTileTraySlotCenter,
+  tapTileTraySlotRect,
+} from '../trayLayout';
 import { resolveStageAssembly, resolveTileVisual, type ResolvedTileVisual } from '../visual';
 import type { TapTileAssetCache } from './AssetCache';
 
@@ -203,24 +209,25 @@ export function renderTapTilePresentationFrame(
   }
   context.restore();
 
-  const tray = bundle.project.stage.safeAreas.tray ?? { left: 75, top: 1640, right: 1005, bottom: 1830, width: 930, height: 190 };
-  const trayGap = 14;
-  const slotWidth = round((tray.width - trayGap * 8) / 7);
-  const slotHeight = Math.min(round(tray.height - 24), slotWidth);
+  const tray = normalizeTapTileTrayBounds(bundle.project.stage.safeAreas.tray);
   roundedRect(context, tray.left, tray.top, tray.width, tray.height, 36);
   context.fillStyle = 'rgba(7, 27, 64, 0.78)';
   context.fill();
-  for (let index = 0; index < 7; index += 1) {
-    const centerX = tray.left + trayGap + slotWidth / 2 + index * (slotWidth + trayGap);
-    const centerY = tray.top + tray.height / 2;
-    roundedRect(context, centerX - slotWidth / 2, centerY - slotHeight / 2, slotWidth, slotHeight, 18);
+  context.strokeStyle = 'rgba(130, 169, 255, 0.62)';
+  context.lineWidth = 5;
+  context.stroke();
+  trace.items.push({ band: TAPTILE_Z_BANDS.tray, id: 'tray', bounds: { x: tray.left, y: tray.top, width: tray.width, height: tray.height } });
+  for (let index = 0; index < TAPTILE_TRAY_CAPACITY; index += 1) {
+    const slot = tapTileTraySlotRect(index, tray);
+    const center = tapTileTraySlotCenter(index, tray);
+    roundedRect(context, slot.left, slot.top, slot.width, slot.height, 18);
     context.fillStyle = 'rgba(3, 17, 45, 0.65)';
     context.fill();
     const tileId = frame.gameState.trayIds[index];
     const tile = tileId ? bundle.level.tiles[tileId] : undefined;
-    if (tile) drawTile(context, bundle, tile.archetypeId, 'tray', centerX, centerY, slotWidth, slotHeight, 0);
+    if (tile) drawTile(context, bundle, tile.archetypeId, 'tray', center.xPx, center.yPx, slot.width, slot.height, 0);
+    trace.items.push({ band: TAPTILE_Z_BANDS.tray, id: `tray-slot:${index}`, bounds: { x: slot.left, y: slot.top, width: slot.width, height: slot.height } });
   }
-  trace.items.push({ band: TAPTILE_Z_BANDS.tray, id: 'tray', bounds: { x: tray.left, y: tray.top, width: tray.width, height: tray.height } });
 
   if (frame.pointer.visible) {
     context.save();
@@ -238,7 +245,10 @@ export function renderTapTilePresentationFrame(
     for (const [index, tileId] of effect.tileIds.entries()) {
       const tile = bundle.level.tiles[tileId];
       if (!tile) continue;
-      drawTile(context, bundle, tile.archetypeId, 'match-ghost', 410 + index * 130, tray.top + tray.height / 2, slotWidth, slotHeight, 0, 1 + effect.progress * 0.5, 1 - effect.progress);
+      const slotIndex = effect.slotIndexes?.[index] ?? index;
+      const slot = tapTileTraySlotRect(slotIndex, tray);
+      const center = tapTileTraySlotCenter(slotIndex, tray);
+      drawTile(context, bundle, tile.archetypeId, 'match-ghost', center.xPx, center.yPx, slot.width, slot.height, 0, 1 + effect.progress * 0.5, 1 - effect.progress);
     }
     for (const particle of effect.particles) {
       context.save();
@@ -249,7 +259,7 @@ export function renderTapTilePresentationFrame(
       context.fillRect(-7 * particle.scale, -7 * particle.scale, 14 * particle.scale, 14 * particle.scale);
       context.restore();
     }
-    trace.items.push({ band: TAPTILE_Z_BANDS.matchVfx, id: effect.id, bounds: { x: tray.left, y: tray.top - 120, width: tray.width, height: tray.height + 240 } });
+    trace.items.push({ band: TAPTILE_Z_BANDS.matchVfx, id: effect.id, bounds: { x: tray.left, y: tray.top - 80, width: tray.width, height: tray.height + 160 } });
   }
 
   const warning = frame.gameState.status === 'playing' && frame.gameState.trayIds.length === 6;
@@ -258,9 +268,9 @@ export function renderTapTilePresentationFrame(
     context.fillStyle = 'rgba(255, 186, 35, 0.94)';
     context.font = '700 42px "Segoe UI", sans-serif';
     context.textAlign = 'center';
-    context.fillText('槽位即将填满 6 / 7', width / 2, tray.top - 38);
+    context.fillText('槽位即将填满 6 / 7', width / 2, tray.bottom + 62);
     context.restore();
-    trace.items.push({ band: TAPTILE_Z_BANDS.praiseWarning, id: 'warning', bounds: { x: 260, y: tray.top - 88, width: 560, height: 64 } });
+    trace.items.push({ band: TAPTILE_Z_BANDS.praiseWarning, id: 'warning', bounds: { x: 260, y: tray.bottom + 8, width: 560, height: 76 } });
   }
 
   context.save();

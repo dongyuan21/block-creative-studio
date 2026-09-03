@@ -12,6 +12,7 @@ function makeFixture() {
   const project = createDefaultTapTileProject('free');
   project.level.tileInstances = project.level.tileInstances.slice(0, 6).map((tile, order) => ({
     ...tile,
+    archetypeId: order < 3 ? 'archetype-bear' : 'archetype-gift',
     geometry: {
       ...tile.geometry,
       centerXPx: 100 + (order % 3) * 300,

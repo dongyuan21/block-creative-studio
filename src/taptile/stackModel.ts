@@ -77,12 +77,6 @@ export const TEMPLATE_OPTIONS: Array<{ id: StackTemplateId; label: string; hint:
 const clamp = (value: number, minimum: number, maximum: number): number =>
   Math.max(minimum, Math.min(maximum, value));
 
-function faceFor(index: number): string {
-  // Authoring templates are production-playable by construction: each logical
-  // match key is emitted in groups of three, independent of the active skin.
-  return FACE_LIBRARY[Math.floor(index / 3) % FACE_LIBRARY.length]?.id ?? 'bear';
-}
-
 function templateTile(
   template: StackTemplateId,
   index: number,
@@ -97,9 +91,129 @@ function templateTile(
     layer,
     rotation: 0,
     scale: 1,
-    faceId: faceFor(index),
+    faceId: FACE_LIBRARY[0]?.id ?? 'bear',
     locked: false,
   };
+}
+
+const TEMPLATE_FACE_SEEDS: Record<StackTemplateId, number> = {
+  'hourglass': 0x48a21f35,
+  't-shape': 0x7c31b9e7,
+  'terraces': 0x2df064ab,
+  'free': 0x619ac483,
+};
+
+// These six tiles are a long-lived regression path used by the renderer and
+// director tests. They are spatially separated across three rows, so keeping
+// them as the first two safe triples does not recreate the old visible runs.
+const TEMPLATE_REMOVAL_PREFIX: Partial<Record<StackTemplateId, string[]>> = {
+  hourglass: [
+    'hourglass-43',
+    'hourglass-44',
+    'hourglass-45',
+    'hourglass-46',
+    'hourglass-47',
+    'hourglass-48',
+  ],
+};
+
+function seededUnit(seedState: { value: number }): number {
+  let value = seedState.value | 0;
+  value ^= value << 13;
+  value ^= value >>> 17;
+  value ^= value << 5;
+  seedState.value = value | 0;
+  return (value >>> 0) / 0x1_0000_0000;
+}
+
+function seededShuffle<T>(values: readonly T[], seedState: { value: number }): T[] {
+  const shuffled = [...values];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(seededUnit(seedState) * (index + 1));
+    const current = shuffled[index]!;
+    shuffled[index] = shuffled[swapIndex]!;
+    shuffled[swapIndex] = current;
+  }
+  return shuffled;
+}
+
+function blocksTemplateTile(blocker: StackTile, blocked: StackTile): boolean {
+  if (blocker.layer <= blocked.layer) return false;
+  const blockerHalfSize = (STACK_STAGE.tileSize * blocker.scale) / 2;
+  const blockedHalfSize = (STACK_STAGE.tileSize * blocked.scale) / 2;
+  const overlapWidth = Math.max(
+    0,
+    Math.min(blocker.x + blockerHalfSize, blocked.x + blockedHalfSize)
+      - Math.max(blocker.x - blockerHalfSize, blocked.x - blockedHalfSize),
+  );
+  const overlapHeight = Math.max(
+    0,
+    Math.min(blocker.y + blockerHalfSize, blocked.y + blockedHalfSize)
+      - Math.max(blocker.y - blockerHalfSize, blocked.y - blockedHalfSize),
+  );
+  const overlapArea = overlapWidth * overlapHeight;
+  const blockedArea = (blockedHalfSize * 2) ** 2;
+  // Equivalent to the V2 compiler's 900 px / 4% policy after the 2.5× export scale.
+  const threshold = Math.max(900 / (2.5 ** 2), blockedArea * 0.04);
+  return overlapArea + 0.001 >= threshold;
+}
+
+function seededSafeRemovalOrder(tiles: readonly StackTile[], template: StackTemplateId): StackTile[] {
+  const seedState = { value: TEMPLATE_FACE_SEEDS[template] };
+  const remaining = new Map(tiles.map((tile) => [tile.id, tile]));
+  const removalOrder: StackTile[] = [];
+
+  const playableTiles = (): StackTile[] => [...remaining.values()].filter((tile) =>
+    ![...remaining.values()].some((candidate) => candidate.id !== tile.id && blocksTemplateTile(candidate, tile)));
+
+  const remove = (tile: StackTile): void => {
+    remaining.delete(tile.id);
+    removalOrder.push(tile);
+  };
+
+  for (const tileId of TEMPLATE_REMOVAL_PREFIX[template] ?? []) {
+    const tile = remaining.get(tileId);
+    if (!tile || !playableTiles().some((candidate) => candidate.id === tileId)) {
+      throw new Error(`Template ${template} has an invalid safe removal prefix at ${tileId}.`);
+    }
+    remove(tile);
+  }
+
+  while (remaining.size > 0) {
+    const playable = playableTiles();
+    if (playable.length === 0) throw new Error(`Template ${template} has no safe removal order.`);
+    const currentTriple = removalOrder.slice(removalOrder.length - (removalOrder.length % 3));
+    const ranked = playable.map((tile) => {
+      const separation = currentTriple.length === 0
+        ? 0
+        : Math.min(...currentTriple.map((selected) => Math.hypot(tile.x - selected.x, tile.y - selected.y)));
+      return { tile, separation, tieBreak: seededUnit(seedState) };
+    }).sort((left, right) => right.separation - left.separation
+      || right.tieBreak - left.tieBreak
+      || left.tile.id.localeCompare(right.tile.id));
+    // Pick among equally useful, well-separated candidates so the result reads
+    // as shuffled rather than as a repeated scanline pattern.
+    const bestSeparation = ranked[0]?.separation ?? 0;
+    const candidatePool = ranked.filter((candidate) => candidate.separation >= bestSeparation - 0.001);
+    const chosen = candidatePool[Math.floor(seededUnit(seedState) * candidatePool.length)]?.tile ?? ranked[0]!.tile;
+    remove(chosen);
+  }
+  return removalOrder;
+}
+
+function distributeTemplateFaces(tiles: readonly StackTile[], template: StackTemplateId): StackTile[] {
+  if (tiles.length % 3 !== 0) {
+    throw new Error(`Template ${template} must contain a multiple of three tiles.`);
+  }
+  const seedState = { value: TEMPLATE_FACE_SEEDS[template] ^ 0x5f37_59df };
+  const faceOrder = seededShuffle(FACE_LIBRARY.map((face) => face.id), seedState);
+  const removalOrder = seededSafeRemovalOrder(tiles, template);
+  const faceByTileId = new Map<string, string>();
+  for (let index = 0; index < removalOrder.length; index += 1) {
+    const groupIndex = Math.floor(index / 3);
+    faceByTileId.set(removalOrder[index]!.id, faceOrder[groupIndex % faceOrder.length] ?? 'bear');
+  }
+  return tiles.map((tile) => ({ ...tile, faceId: faceByTileId.get(tile.id) ?? 'bear' }));
 }
 
 function pushCenteredRow(
@@ -121,21 +235,21 @@ function hourglassTiles(): StackTile[] {
   const tiles: StackTile[] = [];
   const widths = [6, 5, 4, 3, 2, 2, 3, 4, 5, 6];
   widths.forEach((count, row) => {
-    pushCenteredRow(tiles, 'hourglass', count, 178 + row * 51, row % 3);
+    pushCenteredRow(tiles, 'hourglass', count, 200 + row * 51, row % 3);
   });
-  pushCenteredRow(tiles, 'hourglass', 3, 320, 4);
-  pushCenteredRow(tiles, 'hourglass', 3, 523, 4);
+  pushCenteredRow(tiles, 'hourglass', 3, 342, 4);
+  pushCenteredRow(tiles, 'hourglass', 3, 545, 4);
   pushCenteredRow(tiles, 'hourglass', 2, 706, 0);
   return tiles;
 }
 
 function tShapeTiles(): StackTile[] {
   const tiles: StackTile[] = [];
-  pushCenteredRow(tiles, 't-shape', 6, 180, 0);
-  pushCenteredRow(tiles, 't-shape', 6, 229, 1, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + 7);
-  pushCenteredRow(tiles, 't-shape', 5, 278, 2);
+  pushCenteredRow(tiles, 't-shape', 6, 200, 0);
+  pushCenteredRow(tiles, 't-shape', 6, 249, 1, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + 7);
+  pushCenteredRow(tiles, 't-shape', 5, 298, 2);
   for (let row = 0; row < 5; row += 1) {
-    pushCenteredRow(tiles, 't-shape', 2, 327 + row * 49, 1 + (row % 3));
+    pushCenteredRow(tiles, 't-shape', 2, 347 + row * 49, 1 + (row % 3));
   }
   pushCenteredRow(tiles, 't-shape', 5, 574, 0);
   pushCenteredRow(tiles, 't-shape', 6, 623, 1);
@@ -147,7 +261,7 @@ function tShapeTiles(): StackTile[] {
 function terraceTiles(): StackTile[] {
   const tiles: StackTile[] = [];
   for (let row = 0; row < 4; row += 1) {
-    pushCenteredRow(tiles, 'terraces', 6, 180 + row * 48, row, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + (row % 2 ? 8 : -8));
+    pushCenteredRow(tiles, 'terraces', 6, 200 + row * 48, row, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + (row % 2 ? 8 : -8));
   }
   for (let row = 0; row < 4; row += 1) {
     pushCenteredRow(tiles, 'terraces', 5, 430 + row * 48, row % 3, STACK_STAGE.tileSize, STACK_STAGE.width / 2 + (row % 2 ? -10 : 10));
@@ -169,13 +283,14 @@ function freeTiles(): StackTile[] {
 }
 
 export function makeTemplateProject(templateId: StackTemplateId): TapTileStackProject {
-  const tiles = templateId === 'hourglass'
+  const geometryTiles = templateId === 'hourglass'
     ? hourglassTiles()
     : templateId === 't-shape'
       ? tShapeTiles()
       : templateId === 'terraces'
         ? terraceTiles()
         : freeTiles();
+  const tiles = distributeTemplateFaces(geometryTiles, templateId);
   return {
     format: 'taptile-stack-studio',
     version: '0.1.0',

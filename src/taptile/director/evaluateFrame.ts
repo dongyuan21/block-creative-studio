@@ -1,4 +1,5 @@
 import type { TapTileGameState } from '../gameplay';
+import { tapTileTraySlotCenter } from '../trayLayout';
 import { easeProgress, frameProgress, lerp } from './easing';
 import { seededSigned, seededUnit } from './seededNoise';
 import type {
@@ -21,7 +22,7 @@ function cloneState(state: TapTileGameState): TapTileGameState {
 }
 
 function trayPoint(index: number): { xPx: number; yPx: number } {
-  return { xPx: 142 + Math.max(0, index) * 133, yPx: 1735 };
+  return tapTileTraySlotCenter(index);
 }
 
 function movingTile(compiled: CompiledTapTileTake, action: CompiledDirectorAction, frame: number): PresentationMovingTile | null {
@@ -70,13 +71,23 @@ function matchEffect(compiled: CompiledTapTileTake, action: CompiledDirectorActi
   const { matchStartFrame, matchVfxEndFrame } = action.timing;
   if (frame < matchStartFrame || frame > matchVfxEndFrame) return null;
   const progress = frameProgress(frame, matchStartFrame, matchVfxEndFrame);
+  const slotIndexes = action.transition.matchedTileIds
+    .map((tileId) => action.transition.trayAfterInsert.indexOf(tileId))
+    .filter((index) => index >= 0);
+  const slotCenters = slotIndexes.map((index) => trayPoint(index));
+  const origin = slotCenters.length > 0
+    ? {
+      xPx: slotCenters.reduce((total, point) => total + point.xPx, 0) / slotCenters.length,
+      yPx: slotCenters.reduce((total, point) => total + point.yPx, 0) / slotCenters.length,
+    }
+    : trayPoint(3);
   const particles = Array.from({ length: 12 }, (_, index) => {
     const angle = seededUnit(compiled.seed + action.index * 101, 0, index) * Math.PI * 2;
     const radius = (30 + seededUnit(compiled.seed, action.index, index + 31) * 120) * progress;
     return {
       id: `${action.actionId}:particle:${index}`,
-      xPx: 540 + Math.cos(angle) * radius,
-      yPx: 1710 + Math.sin(angle) * radius,
+      xPx: origin.xPx + Math.cos(angle) * radius,
+      yPx: origin.yPx + Math.sin(angle) * radius,
       rotationDeg: seededSigned(compiled.seed, frame, index + 80) * 180,
       scale: 0.45 + seededUnit(compiled.seed, action.index, index + 120) * 0.8,
       opacity: Math.max(0, 1 - progress),
@@ -90,6 +101,7 @@ function matchEffect(compiled: CompiledTapTileTake, action: CompiledDirectorActi
     tileIds: [...action.transition.matchedTileIds],
     implementation: binding?.implementation ?? 'web-procedural',
     presetId: binding?.presetId ?? 'default-match',
+    slotIndexes,
     particles,
   };
 }

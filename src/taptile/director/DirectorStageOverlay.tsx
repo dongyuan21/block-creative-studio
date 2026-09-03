@@ -1,4 +1,5 @@
 import type { CompiledTapTileLevel, TapTileProjectV2 } from '../project';
+import { tapTileTraySlotCenter, tapTileTraySlotRect } from '../trayLayout';
 import { resolveTileVisual } from '../visual';
 import { TileVisual } from '../visual/TileVisual';
 import type { TapTilePresentationFrame } from './types';
@@ -44,14 +45,17 @@ export function DirectorStageOverlay({
         const tile = level.tiles[tileId];
         if (!tile) return null;
         const visual = resolveTileVisual(project, tile.archetypeId, project.visuals.selectedThemeId, 'match-ghost');
+        const slotIndex = effect.slotIndexes?.[index] ?? index;
+        const slot = tapTileTraySlotRect(slotIndex);
+        const center = tapTileTraySlotCenter(slotIndex);
         return (
           <span
             key={`${effect.id}:${tileId}`}
             className="tpt-director-match-ghost"
             style={{
-              left: `${37 + index * 13}%`,
-              top: '88%',
-              width: `${(tile.geometry.widthPx / width) * 100}%`,
+              left: `${(center.xPx / width) * 100}%`,
+              top: `${(center.yPx / height) * 100}%`,
+              width: `${(slot.width / width) * 100}%`,
               opacity: Math.max(0, 1 - effect.progress),
               transform: `translate(-50%, -50%) scale(${1 + effect.progress * 0.5})`,
             }}

@@ -81,6 +81,7 @@ import { TapTileProductionPanel } from './production/TapTileProductionPanel';
 import { exportFixedFrameVideo, type FrameRenderProgress } from '../exporter/fixedFrameExporter';
 import { safeFileName } from '../utils/download';
 import { resolveTapTileBuiltinAssetUrl } from './assetUrl';
+import { tapTileBoardDownwardShiftPx } from './trayLayout';
 import {
   TAPTILE_WORKSPACE_MODES,
   type TapTileWorkspaceMode,
@@ -166,22 +167,58 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
   return { past: [], present: action.value, future: [] };
 }
 
+function upgradeLegacyTemplateFaceRuns(project: TapTileProjectV2): TapTileProjectV2 {
+  if (project.takes.length > 0) return project;
+  const templateId = project.authoring.templateId;
+  const instances = project.level.tileInstances;
+  const isUntouchedLegacyDistribution = instances.length > 0 && instances.every((tile, index) => {
+    const expectedId = `${templateId}-${index + 1}`;
+    const expectedFaceId = FACE_LIBRARY[Math.floor(index / 3) % FACE_LIBRARY.length]?.id;
+    return tile.id === expectedId
+      && project.visuals.archetypes[tile.archetypeId]?.matchKey === expectedFaceId;
+  });
+  if (!isUntouchedLegacyDistribution) return project;
+  const shuffledTemplate = createDefaultTapTileProject(templateId);
+  const archetypeByTileId = new Map(
+    shuffledTemplate.level.tileInstances.map((tile) => [tile.id, tile.archetypeId]),
+  );
+  const upgraded = structuredClone(project);
+  for (const tile of upgraded.level.tileInstances) {
+    tile.archetypeId = archetypeByTileId.get(tile.id) ?? tile.archetypeId;
+  }
+  return upgraded;
+}
+
+function fitProjectBelowTopTray(project: TapTileProjectV2): TapTileProjectV2 {
+  const upgraded = upgradeLegacyTemplateFaceRuns(project);
+  const shiftPx = tapTileBoardDownwardShiftPx(
+    upgraded.level.tileInstances.map((tile) => tile.geometry),
+    upgraded.stage.exportHeight,
+  );
+  if (shiftPx <= 0) return upgraded;
+  const fitted = structuredClone(upgraded);
+  for (const tile of fitted.level.tileInstances) tile.geometry.centerYPx += shiftPx;
+  const fittedLevelHash = compileTapTileLevel(fitted).levelHash;
+  fitted.takes = fitted.takes.map((take) => ({ ...take, levelHash: fittedLevelHash }));
+  return fitted;
+}
+
 function initialProject(): TapTileProjectV2 {
   try {
     const storedV2 = window.localStorage.getItem(AUTOSAVE_KEY_V2);
     if (storedV2) {
       const parsed: unknown = JSON.parse(storedV2);
-      if (isTapTileProjectV2(parsed)) return ensureTapTileProductionDefaults(parseTapTileProjectV2(parsed));
+      if (isTapTileProjectV2(parsed)) return fitProjectBelowTopTray(ensureTapTileProductionDefaults(parseTapTileProjectV2(parsed)));
     }
     const storedV1 = window.localStorage.getItem(AUTOSAVE_KEY_V1);
     if (storedV1) {
       const parsed: unknown = JSON.parse(storedV1);
-      if (isStackProject(parsed)) return migrateTapTileStackProjectV1(parsed);
+      if (isStackProject(parsed)) return fitProjectBelowTopTray(migrateTapTileStackProjectV1(parsed));
     }
   } catch {
     // A malformed local draft should never block the editor from opening.
   }
-  return createDefaultTapTileProject('hourglass');
+  return fitProjectBelowTopTray(createDefaultTapTileProject('hourglass'));
 }
 
 interface DragSession {
@@ -542,7 +579,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     dispatch({ type: 'commit', value: next });
     setSelectedIds([]);
     setLayerFocus('all');
-    setNotice(`${TEMPLATE_OPTIONS.find((option) => option.id === templateId)?.label ?? ''}模板已载入`);
+    setNotice(`${TEMPLATE_OPTIONS.find((option) => option.id === templateId)?.label ?? ''}模板已载入 · 牌面已安全打散`);
   };
 
   const chooseFace = (faceId: string): void => {
@@ -997,12 +1034,13 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
   const importProject = async (file: File): Promise<void> => {
     const parsed: unknown = JSON.parse(await file.text());
-    const next = isTapTileProjectV2(parsed)
+    const imported = isTapTileProjectV2(parsed)
       ? ensureTapTileProductionDefaults(parseTapTileProjectV2(parsed))
       : isStackProject(parsed)
         ? migrateTapTileStackProjectV1(parsed)
         : null;
-    if (!next) throw new Error('不是可识别的 TapTile V2 或旧版工程。');
+    if (!imported) throw new Error('不是可识别的 TapTile V2 或旧版工程。');
+    const next = fitProjectBelowTopTray(imported);
     dispatch({ type: 'commit', value: next });
     setSelectedIds([]);
     setLayerFocus('all');
@@ -1092,7 +1130,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
 
           <section className="tpt-face-section">
             <div className="tpt-section-title"><span>匹配分组</span><small>{FACE_LIBRARY.length} MATCH KEYS</small></div>
-            <p className="tpt-helper">这里会改变玩法与 Take 有效性；纯换皮请使用右侧“视觉主题”。</p>
+            <p className="tpt-helper">模板默认按固定种子安全打散；每种牌仍为 3 的倍数且通过可解校验。这里会改变玩法与 Take 有效性；纯换皮请使用右侧“视觉主题”。</p>
             <div className="tpt-face-grid">
               {FACE_LIBRARY.map((face) => (
                 <button
@@ -1225,9 +1263,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   }}
                 />
               ) : (
-                <div className="tpt-tray" aria-hidden="true">
-                  {Array.from({ length: 7 }, (_, index) => <i key={index} />)}
-                </div>
+                <GameplayTray trayIds={[]} status="playing" renderTile={() => null} />
               )}
               <div className="tpt-safe-area" aria-hidden="true"><span>游戏区域</span></div>
 
@@ -1287,6 +1323,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                 </div>
               ))}
 
+              <div className="tpt-board-layer">
               {tiles.filter((tile) => displayedBoardIds.has(tile.id)).map((tile, index) => {
                 const selected = selectedIds.includes(tile.id);
                 const dimmed = layerFocus !== 'all' && tile.layer !== layerFocus;
@@ -1349,6 +1386,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
                   </button>
                 );
               })}
+              </div>
               {displayState && (
                 <GameplayStageOverlay
                   state={displayState}

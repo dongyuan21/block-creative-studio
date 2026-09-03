@@ -336,7 +336,7 @@
 .island-one { left: -12%; }
 .island-two { right: -17%; bottom: 20%; }
 
-.tpt-hud { position: absolute; z-index: 20; left: 4%; right: 4%; top: 3.2%; display: flex; align-items: center; gap: 2.2%; pointer-events: none; }
+.tpt-hud { position: absolute; z-index: 90; left: 4%; right: 4%; top: 3.2%; display: flex; align-items: center; gap: 2.2%; pointer-events: none; }
 .tpt-hud button { width: 9.5%; aspect-ratio: 1; border: 0; border-radius: 50%; background: rgba(14, 44, 97, 0.78); color: white; font-size: clamp(9px, 1.6vw, 17px); box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25); }
 .tpt-hud strong { position: absolute; left: 50%; transform: translateX(-50%); font-size: clamp(10px, 2vw, 24px); color: white; letter-spacing: 0.04em; text-shadow: 0 3px 3px rgba(0, 0, 0, 0.28); }
 .tpt-logo { margin-left: auto; display: grid; justify-items: center; transform: rotate(-3deg); line-height: 0.75; filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.3)); }
@@ -346,23 +346,19 @@
 
 .tpt-tray {
   position: absolute;
-  z-index: 18;
-  left: 8%;
-  right: 8%;
-  top: 12.5%;
-  height: 7.8%;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 1.2%;
-  padding: 1.8%;
+  z-index: 50;
+  left: 2.777778%;
+  top: 11.197917%;
+  width: 94.444444%;
+  height: 8.854167%;
   border: 2px solid rgba(130, 169, 255, 0.62);
   border-radius: 12px;
   background: rgba(11, 37, 86, 0.76);
   box-shadow: 0 7px 10px rgba(0, 0, 0, 0.24), inset 0 0 8px rgba(20, 33, 74, 0.75);
   pointer-events: none;
 }
-.tpt-tray i { border-radius: 7px; background: rgba(5, 18, 45, 0.62); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.08); }
-.tpt-gameplay-tray i { display: grid; place-items: center; transition: 160ms ease; }
+.tpt-tray i { position: absolute; min-width: 0; min-height: 0; overflow: hidden; border-radius: 7px; background: rgba(5, 18, 45, 0.62); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.08); }
+.tpt-gameplay-tray i { display: grid; place-items: center; isolation: isolate; transition: 160ms ease; }
 .tpt-gameplay-tray i.is-occupied {
   background: linear-gradient(145deg, #fffdf7, #ddd8cd);
   box-shadow: 0 2px 0 #9aa5ad, 0 4px 7px rgba(0, 0, 0, 0.34), inset 0 1px white;
@@ -372,11 +368,13 @@
 .tpt-gameplay-tray.status-lost { border-color: #ff6b74; }
 .tpt-safe-area { position: absolute; z-index: 15; left: 3.2%; right: 3.2%; top: 22.5%; bottom: 4%; border: 1px dashed rgba(255, 255, 255, 0.1); border-radius: 9px; pointer-events: none; }
 .tpt-safe-area span { position: absolute; right: 7px; top: 5px; color: rgba(255, 255, 255, 0.18); font-size: clamp(5px, 0.7vw, 8px); }
+.tpt-board-layer { position: absolute; z-index: 20; inset: 0; pointer-events: none; }
+.tpt-board-layer .stack-tile { pointer-events: auto; }
 
 .tpt-snap-guide {
   --snap-color: #62f0ed;
   position: absolute;
-  z-index: 10000;
+  z-index: 60;
   pointer-events: none;
   background: var(--snap-color);
   box-shadow: 0 0 0 1px rgba(8, 22, 34, 0.32), 0 0 10px color-mix(in srgb, var(--snap-color) 60%, transparent);
@@ -429,7 +427,7 @@
 
 .tpt-selection-marquee {
   position: absolute;
-  z-index: 12000;
+  z-index: 70;
   border: 1px solid #6df2ef;
   border-radius: 5px;
   background: rgba(56, 222, 224, 0.13);
@@ -440,7 +438,7 @@
 .tpt-blocker-graph {
   position: absolute;
   inset: 0;
-  z-index: 90;
+  z-index: 40;
   width: 100%;
   height: 100%;
   overflow: visible;

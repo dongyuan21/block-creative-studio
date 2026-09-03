@@ -15,6 +15,27 @@
     { "id": "chain_clear", "family": "manual-in-place-match", "trayCapacity": 0, "matchSize": 3, "confidence": "medium-high", "features": ["flat-grid", "in-place-selection", "fixed-holes", "no-gravity"] },
     { "id": "big_flower", "family": "direct-set-clear-ornamental", "trayCapacity": 0, "matchSize": 3, "confidence": "medium", "features": ["no-fixed-tile-body", "same-flower-gather", "not-tile-face-only"] }
   ],
+  "trayMatch3Resolution": {
+    "observedOrder": [
+      "reject a covered or unavailable tile",
+      "remove an accepted tile from its fixed board coordinate",
+      "insert it after the last tray tile with the same match key, otherwise append",
+      "resolve exactly three matching tray tiles",
+      "recompute unlocks without board gravity",
+      "warn when six unresolved tiles remain",
+      "evaluate terminal state after match resolution"
+    ],
+    "directEvidence": {
+      "groupedInsertion": "tpt811 11.5s to 12.5s",
+      "seventhTileMatchBeforeFailure": "fb_competitor 0.5s to 4.5s",
+      "sixOfSevenWarning": "tpt811 39.5s",
+      "selectedTargetProgress": "archive04 7.5s to 10.5s"
+    },
+    "productDecisionsNotClaimedAsVideoEvidence": [
+      "an unresolved seventh tray tile causes loss",
+      "board and tray both empty causes win"
+    ]
+  },
   "unresolved": [
     "full-tray failure is inferred because no complete loss sample is present",
     "coin and multiplier formulas are not fully observable",

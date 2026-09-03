@@ -9,6 +9,7 @@ import {
   MAX_TAPTILE_SNAP_GAP_PX,
   MIN_TAPTILE_SNAP_GAP_PX,
 } from '../snapGap';
+import { normalizeTapTileTrayBounds } from '../trayLayout';
 
 export class TapTileProjectValidationError extends Error {
   constructor(
@@ -203,6 +204,7 @@ export function parseTapTileProjectV2(value: unknown): TapTileProjectV2 {
     if (!cuts[selectedCutId]) fail('root.production.selectedCutId', `找不到 CutSpec ${selectedCutId}。`);
   }
   const parsed = structuredClone(value) as TapTileProjectV2;
+  parsed.stage.safeAreas.tray = normalizeTapTileTrayBounds(parsed.stage.safeAreas.tray);
   parsed.authoring.snapGapPx = authoring.snapGapPx === undefined
     ? DEFAULT_TAPTILE_SNAP_GAP_PX
     : authoring.snapGapPx as number;

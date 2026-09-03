@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   estimateOverlapPairs,
+  FACE_LIBRARY,
   makeTemplateProject,
   maxLayer,
   normalizeTile,
   STACK_STAGE,
   type StackTemplateId,
 } from '../src/taptile/stackModel';
+import { TAPTILE_REFERENCE_BOARD_TOP_PX } from '../src/taptile/trayLayout';
 
 describe('TapTile stack model', () => {
   it('creates four non-empty templates with stable unique tile ids', () => {
@@ -16,6 +18,34 @@ describe('TapTile stack model', () => {
       expect(project.tiles.length).toBeGreaterThan(10);
       expect(new Set(project.tiles.map((tile) => tile.id)).size).toBe(project.tiles.length);
       expect(maxLayer(project.tiles)).toBeGreaterThan(0);
+    }
+  });
+
+  it('distributes complete triples deterministically instead of placing equal faces in runs', () => {
+    const templates: StackTemplateId[] = ['hourglass', 't-shape', 'terraces', 'free'];
+    for (const template of templates) {
+      const first = makeTemplateProject(template).tiles;
+      const second = makeTemplateProject(template).tiles;
+      expect(second.map((tile) => tile.faceId)).toEqual(first.map((tile) => tile.faceId));
+      expect(first.some((tile, index) => index > 0 && tile.faceId !== first[index - 1]?.faceId)).toBe(true);
+      for (const face of FACE_LIBRARY) {
+        const count = first.filter((tile) => tile.faceId === face.id).length;
+        expect(count % 3, `${template}: ${face.id} has ${count}`).toBe(0);
+      }
+      const rows = new Map<string, typeof first>();
+      for (const tile of first) {
+        const key = `${tile.layer}:${tile.y}`;
+        rows.set(key, [...(rows.get(key) ?? []), tile]);
+      }
+      for (const [rowKey, row] of rows) {
+        const ordered = [...row].sort((left, right) => left.x - right.x);
+        for (let index = 2; index < ordered.length; index += 1) {
+          const run = ordered.slice(index - 2, index + 1);
+          const contiguous = run.every((tile, runIndex) => runIndex === 0
+            || Math.abs(tile.x - run[runIndex - 1]!.x) <= STACK_STAGE.tileSize + 0.001);
+          expect(contiguous && new Set(run.map((tile) => tile.faceId)).size === 1, `${template}: triple run in ${rowKey}`).toBe(false);
+        }
+      }
     }
   });
 
@@ -32,6 +62,16 @@ describe('TapTile stack model', () => {
           const minimumDistance = (STACK_STAGE.tileSize * left.scale) / 2 + (STACK_STAGE.tileSize * right.scale) / 2;
           expect(Math.abs(left.x - right.x), `${template}: ${left.id} / ${right.id}`).toBeGreaterThanOrEqual(minimumDistance - 0.001);
         }
+      }
+    }
+  });
+
+  it('keeps every template tile below the fixed top tray', () => {
+    const templates: StackTemplateId[] = ['hourglass', 't-shape', 'terraces', 'free'];
+    for (const template of templates) {
+      for (const tile of makeTemplateProject(template).tiles) {
+        const tileTopPx = (tile.y - (STACK_STAGE.tileSize * tile.scale) / 2) * 2.5;
+        expect(tileTopPx, `${template}: ${tile.id}`).toBeGreaterThanOrEqual(TAPTILE_REFERENCE_BOARD_TOP_PX);
       }
     }
   });

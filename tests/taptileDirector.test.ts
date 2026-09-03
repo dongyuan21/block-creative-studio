@@ -15,6 +15,7 @@ import {
   DEFAULT_DIRECTOR_PROFILES,
   type TapTileTakeAction,
 } from '../src/taptile/project';
+import { tapTileTraySlotCenter } from '../src/taptile/trayLayout';
 
 const ACTION_IDS = [
   'hourglass-43',
@@ -119,6 +120,8 @@ describe('TapTile Director compiler and fixed-frame evaluation', () => {
     const flightFrame = evaluateTapTileFrame(compiled, Math.floor((action.timing.flightStartFrame + action.timing.flightEndFrame) / 2));
     expect(flightFrame.movingTiles).toHaveLength(1);
     expect(flightFrame.gameState.boardIds).not.toContain(action.tileId);
+    const landedFrame = evaluateTapTileFrame(compiled, action.timing.flightEndFrame);
+    expect(landedFrame.movingTiles[0]).toMatchObject(tapTileTraySlotCenter(0));
     const finalFrame = evaluateTapTileFrame(compiled, compiled.totalFrames - 1);
     const replay = replayTapTileTake(level, take);
     expect(finalFrame.gameState).toEqual(replay.states.at(-1));

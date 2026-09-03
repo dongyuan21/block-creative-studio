@@ -51,12 +51,14 @@ function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
 }
 
 describe('TapTile deterministic Beam Search', () => {
-  it('solves the production hourglass template through the same engine API', () => {
-    const level = compileTapTileLevel(createDefaultTapTileProject('hourglass'));
-    const solved = solveTapTileTake(level, { profile: 'safe-win', seed: 20260902, beamWidth: 80 });
-    expect(solved.status, solved.diagnostic).toBe('solved');
-    expect(solved.take?.result).toBe('won');
-    expect(solved.validation?.valid).toBe(true);
+  it('solves every seeded production template through the same engine API', () => {
+    for (const template of ['hourglass', 't-shape', 'terraces', 'free'] as const) {
+      const level = compileTapTileLevel(createDefaultTapTileProject(template));
+      const solved = solveTapTileTake(level, { profile: 'safe-win', seed: 20260902, beamWidth: 40 });
+      expect(solved.status, `${template}: ${solved.diagnostic}`).toBe('solved');
+      expect(solved.take?.result).toBe('won');
+      expect(solved.validation?.valid).toBe(true);
+    }
   });
 
   it('solves a small level and produces a formally replayable Take', () => {

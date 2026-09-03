@@ -15,6 +15,10 @@ import {
   type TapTileProjectV2,
   type ThemeVariant,
 } from './types';
+import {
+  TAPTILE_REFERENCE_BOARD_TOP_PX,
+  TAPTILE_REFERENCE_TRAY_BOUNDS,
+} from '../trayLayout';
 import { createDefaultTapTileAudioAssets, createDefaultTapTileProductionSpec } from '../production/defaults';
 
 const ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
@@ -218,8 +222,15 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
       scale: 2.5,
       fps: 30,
       safeAreas: {
-        board: { left: 50, top: 330, right: 1030, bottom: 1590, width: 980, height: 1260 },
-        tray: { left: 75, top: 1640, right: 1005, bottom: 1830, width: 930, height: 190 },
+        board: {
+          left: 50,
+          top: TAPTILE_REFERENCE_BOARD_TOP_PX,
+          right: 1030,
+          bottom: 1830,
+          width: 980,
+          height: 1830 - TAPTILE_REFERENCE_BOARD_TOP_PX,
+        },
+        tray: { ...TAPTILE_REFERENCE_TRAY_BOUNDS },
       },
     },
     assets: {

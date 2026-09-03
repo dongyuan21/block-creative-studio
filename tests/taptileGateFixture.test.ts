@@ -55,12 +55,12 @@ describe('TapTile Gate A browser fixture', () => {
   it('has a deterministic path with two matches and an unlock', () => {
     const actions = findGateASequence();
     expect(actions).toEqual([
+      'hourglass-30',
+      'hourglass-34',
+      'hourglass-41',
       'hourglass-43',
       'hourglass-44',
       'hourglass-45',
-      'hourglass-46',
-      'hourglass-47',
-      'hourglass-48',
     ]);
   });
 });
