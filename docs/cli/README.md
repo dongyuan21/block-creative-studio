@@ -62,7 +62,7 @@ node dist-cli/cli/bcs.js material compile \
   --out /tmp/aurora-runtime.json
 ```
 
-The command never sets `rendered: true`. Missing maps leave `resourcesReady: false` when maps are required by the caller.
+The command never sets `rendered: true`. Packs with on-disk maps under `examples/headless/materials/maps/` compile those URIs into the descriptor; Node still reports `resourcesReady: false` because it does not decode GPU textures. Parameter-only packs (no maps) report `resourcesReady: true`.
 
 ## Golden batch report
 

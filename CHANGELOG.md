@@ -12,6 +12,8 @@
 - `fixed-camera-cinematic` renderer option consuming a locked 9:16 Shot Profile and LookDev diagnostic views.
 - MaterialPack → MaterialRuntime compile path and three public packs (stainless-steel, oak-wood, aurora-shell).
 - Public gameplay fixtures for idle, preview, single/cross clear, consecutive placements and endgame.
+- Synthetic independent PBR maps for stainless-steel and oak-wood; aurora-shell remains a parameter-only custom ID.
+- Headless Chrome review capture (`npm run capture:review`) writing native frames and 1080×1920 silent MP4s.
 - Review evidence files under `review-package/` and `docs/reports/`.
 
 ### Changed
@@ -20,9 +22,11 @@
 
 ### Current boundary
 
-- Browser E2E, native PNG dumps and three-variant MP4 exports were not produced in the agent VM.
+- Original reference video Golden content remains BLOCKED.
 - Bloom remains threshold-bloom.
 - Material-aware fracture stays pending.
+- Capture GPU is SwiftShader; not a shipping performance result.
+- Visual status is ready-for-review, not visually-approved.
 
 
 ## 0.3.0-alpha.3 — 2026-09-03

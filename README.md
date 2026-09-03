@@ -50,6 +50,8 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - 原生 1064×1788 捕获与图层 Pass 隔离；1080×1920 导出对 2D 使用 contain，不再拉伸。
 - `fixed-camera-cinematic`：锁定 9:16 Shot Profile，并提供 Albedo/Roughness/Metalness 等诊断视图。
 - Headless Material Runtime 与 `bcs material compile` / `bcs golden batch`。
+- 不锈钢 / 橡木独立合成 PBR 贴图进入 Three.js 牌块；aurora-shell 为任意 ID 的参数材质。
+- `npm run capture:review`：无头 Chrome 产出公开 Fixture 原生帧与三变体 1080×1920 无声样片。
 
 
 ## Headless Core 与外部 Agent 边界
@@ -162,9 +164,16 @@ npm run check:reference
 npm test
 npm run typecheck
 npm run build
+npm run test:render-regression
+npm run test:golden-batch
+npm run test:pbr-runtime
+npm run test:browser-e2e
+npm run capture:review
 ```
 
-GitHub Actions 会在每次 Push 和 Pull Request 中执行同一组检查。`check:reference` 会验证整段帧覆盖、事件边界、149 个 Atom、必选性分类、固定机位映射与 Golden Scene 引用。
+`test:browser-e2e` 在本机有 Chrome 时跑冒烟捕获；`capture:review` 写出原生 PNG 与三变体 1080×1920 无声 MP4 到 `review-package/`。软件 SwiftShader 不能当作高端 GPU 性能结论。缺少源视频时 Golden 内容校准仍为 BLOCKED。
+
+GitHub Actions 会在每次 Push 和 Pull Request 中执行 check / test / typecheck / build。`check:reference` 会验证整段帧覆盖、事件边界、149 个 Atom、必选性分类、固定机位映射与 Golden Scene 引用。
 
 ## 本地重建整段视频索引
 

@@ -8,9 +8,15 @@
   "label": "Oak wood",
   "contentHash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "runtime": {
-    "renderers": ["reference-2d", "three-3d", "fixed-camera-cinematic"],
+    "renderers": [
+      "reference-2d",
+      "three-3d",
+      "fixed-camera-cinematic"
+    ],
     "deterministic": true,
-    "budget": { "textureMemoryMiB": 16 }
+    "budget": {
+      "textureMemoryMiB": 16
+    }
   },
   "appearance": {
     "baseColor": "#8a5a32",
@@ -18,7 +24,39 @@
     "metalness": 0.02,
     "clearcoat": 0.04,
     "normalStrength": 0.55,
-    "emission": 0
+    "emission": 0,
+    "textureRefs": {
+      "baseColor": {
+        "id": "tex.wood.basecolor",
+        "version": "1.0.0",
+        "kind": "bitmap",
+        "contentHash": "sha256:05d688eb2856e549314458ca585c1e6beb74edd44f85c44e73c110958ee426ef"
+      },
+      "roughness": {
+        "id": "tex.wood.roughness",
+        "version": "1.0.0",
+        "kind": "bitmap",
+        "contentHash": "sha256:16e93f3fc228ce27a3edea592f53ec3feaf972390cccda4865e8cf52ed2fdbcd"
+      },
+      "metallic": {
+        "id": "tex.wood.metallic",
+        "version": "1.0.0",
+        "kind": "bitmap",
+        "contentHash": "sha256:875661c1119a887844e8741056ec2fa598690925e55c3e300a912360ec56e200"
+      },
+      "normal": {
+        "id": "tex.wood.normal",
+        "version": "1.0.0",
+        "kind": "bitmap",
+        "contentHash": "sha256:cbcd516e41cd84c5f19480f2946f794db17d7c0940ffa71a208a5d60ad5386cd"
+      },
+      "ao": {
+        "id": "tex.wood.ao",
+        "version": "1.0.0",
+        "kind": "bitmap",
+        "contentHash": "sha256:4cdc9150431da5af58be90795e8da6d19db00b8f1a6d1d5a4b11401a47f843e2"
+      }
+    }
   },
   "behavior": {
     "materialClass": "wood",
@@ -35,5 +73,15 @@
     "gravityScale": 0.95,
     "drag": 0.16
   },
-  "provenance": { "createdBy": "tool", "generator": "public-fixture-pbr" }
+  "provenance": {
+    "createdBy": "tool",
+    "generator": "public-fixture-pbr",
+    "sourceUris": [
+      "examples/headless/materials/maps/wood-basecolor.png",
+      "examples/headless/materials/maps/wood-roughness.png",
+      "examples/headless/materials/maps/wood-metallic.png",
+      "examples/headless/materials/maps/wood-normal.png",
+      "examples/headless/materials/maps/wood-ao.png"
+    ]
+  }
 }

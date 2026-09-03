@@ -1,0 +1,18 @@
+{
+  "origin": "synthetic-public-fixture",
+  "license": "CC0-1.0",
+  "note": "Independently generated 128×128 maps. Steel uses horizontal scratches; wood uses vertical grain. Aurora-shell intentionally has no maps.",
+  "size": 128,
+  "files": {
+    "steel-basecolor.png": "sha256:3dc2a6809191a6d8a9e9ab3892bb1d7a7bded8a27c4338fbd754d51df05aaeb2",
+    "steel-roughness.png": "sha256:814a42b25f7744fa774847302848c1f89760fa8485c653a6b193f68ec19c3fe2",
+    "steel-metallic.png": "sha256:32bfc577914a35d78edc8794b5dd5d37013c614e930f65f10c1a22757d4c0545",
+    "steel-normal.png": "sha256:edaeb0b002e622838cd32cbfabf193b684937dcef11153aeb4350484a5d6a6dd",
+    "steel-ao.png": "sha256:e0175c63a9d4c63ad1b2067e73d99b7d16ee3756627f25ba1aaaf1e71a2c0150",
+    "wood-basecolor.png": "sha256:05d688eb2856e549314458ca585c1e6beb74edd44f85c44e73c110958ee426ef",
+    "wood-roughness.png": "sha256:16e93f3fc228ce27a3edea592f53ec3feaf972390cccda4865e8cf52ed2fdbcd",
+    "wood-metallic.png": "sha256:875661c1119a887844e8741056ec2fa598690925e55c3e300a912360ec56e200",
+    "wood-normal.png": "sha256:cbcd516e41cd84c5f19480f2946f794db17d7c0940ffa71a208a5d60ad5386cd",
+    "wood-ao.png": "sha256:4cdc9150431da5af58be90795e8da6d19db00b8f1a6d1d5a4b11401a47f843e2"
+  }
+}

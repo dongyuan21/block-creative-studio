@@ -21,6 +21,10 @@ import { compileTake, evaluateCompiledTake } from '../src/director/presentationC
 import { RHYTHM_PRESETS } from '../src/director/rhythmPresets';
 import { containedCompositionViewport, lockedCameraDistance, FIXED_SHOT_PROFILE } from '../src/renderer/shotProfile';
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
+import { compileVariantRuntime } from '../src/capture/materialVariants';
+import { createPbrTileMaterial } from '../src/renderer/pbrMaterialFactory';
+import { resolveTakeAnchor, STILL_SPECS } from '../src/capture/capturePlan';
+import * as THREE from 'three';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -128,6 +132,13 @@ describe('public fixtures', () => {
     expect(back.snapshot.score).toBe(a.snapshot.score);
     expect(shuffled.frame).toBe(90);
   });
+
+  it('keeps the consecutive public slice in the 6–8s review window', () => {
+    const compiled = compileTake(consecutiveTake(), RHYTHM_PRESETS['human-natural'], 30);
+    const seconds = compiled.totalFrames / compiled.fps;
+    expect(seconds).toBeGreaterThanOrEqual(6);
+    expect(seconds).toBeLessThanOrEqual(8);
+  });
 });
 
 describe('material runtime', () => {
@@ -150,6 +161,36 @@ describe('material runtime', () => {
     expect(sampleOrmChannel({ r: 0.2, g: 0.4, b: 0.8 }, 'metallic')).toBe(0.8);
     expect(combineFactorAndSample(0.5, 0.4, 'multiply-factor')).toBeCloseTo(0.2);
     expect(combineFactorAndSample(0.5, 0.4, 'replace')).toBeCloseTo(0.4);
+  });
+
+  it('binds independent steel/wood maps and leaves aurora parameter-only', () => {
+    const steel = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.stainless-steel.json'), 'utf8'));
+    const wood = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.oak-wood.json'), 'utf8'));
+    const aurora = JSON.parse(readFileSync(resolve(process.cwd(), 'examples/headless/materials/material.aurora-shell.json'), 'utf8'));
+    const steelRuntime = compileVariantRuntime(steel);
+    const woodRuntime = compileVariantRuntime(wood);
+    const auroraRuntime = compileVariantRuntime(aurora);
+    expect(steelRuntime.maps).toHaveLength(5);
+    expect(woodRuntime.maps).toHaveLength(5);
+    expect(auroraRuntime.maps).toHaveLength(0);
+    expect(steelRuntime.maps[0]?.contentHash).not.toBe(woodRuntime.maps[0]?.contentHash);
+    const steelColor = new THREE.Texture();
+    const woodColor = new THREE.Texture();
+    const steelMat = createPbrTileMaterial({
+      descriptor: steelRuntime,
+      color: 'coral',
+      textures: { baseColor: steelColor },
+    });
+    const woodMat = createPbrTileMaterial({
+      descriptor: woodRuntime,
+      color: 'coral',
+      textures: { baseColor: woodColor },
+    });
+    expect(steelMat.map).toBe(steelColor);
+    expect(woodMat.map).toBe(woodColor);
+    expect(steelMat.metalness).toBeGreaterThan(woodMat.metalness);
+    steelMat.dispose();
+    woodMat.dispose();
   });
 
   it('rejects unspecified normal Y instead of flipping silently', () => {
@@ -219,5 +260,15 @@ describe('shot profile', () => {
     expect(lockedCameraDistance(0)).toBeGreaterThan(17);
     expect(REFERENCE_PASS_ORDER).toHaveLength(9);
     expect(VIDEO_RESOLUTION).toEqual({ width: 1080, height: 1920 });
+  });
+});
+
+describe('capture plan', () => {
+  it('resolves consecutive peak inside the compiled timeline', () => {
+    const resolved = resolveTakeAnchor(consecutiveTake());
+    expect(resolved.frames.peak).toBeGreaterThan(resolved.frames.pickup);
+    expect(resolved.frames.peak).toBeLessThan(resolved.frames.end);
+    expect(STILL_SPECS.some((item) => item.id === '2d-idle')).toBe(true);
+    expect(STILL_SPECS.filter((item) => item.renderer === 'fixed-camera-cinematic').length).toBeGreaterThanOrEqual(3);
   });
 });

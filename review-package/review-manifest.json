@@ -1,31 +1,56 @@
 {
   "templateOnly": false,
-  "taskIds": ["T0", "T1", "T2", "T3", "T4", "T5"],
+  "taskIds": [
+    "T0",
+    "T1",
+    "T2",
+    "T3",
+    "T4",
+    "T5"
+  ],
   "repository": "dongyuan21/block-creative-studio",
   "baselineCommit": "74a2fba002fe62643884759b6611af9181330964",
   "planCommit": "fec24de6764bb50ef082730321b167cf8a29259f",
-  "implementationCommit": "6a47f32e35af486e1afa67a605733ceab960b4c8",
-  "pullRequests": [],
+  "implementationCommit": "PENDING_AFTER_GIT_COMMIT",
+  "pullRequests": [
+    "https://github.com/dongyuan21/block-creative-studio/pull/1"
+  ],
   "status": "ready-for-review",
   "environment": {
-    "os": "linux 6.12.94+",
+    "os": "linux 6.12.94+ x86_64",
+    "arch": "x64",
     "node": "22.14.0",
     "npm": "10.9.7",
-    "browser": null,
-    "browserVersion": null,
+    "browser": "HeadlessChrome/148.0.0.0",
+    "browserBinary": "/usr/local/bin/google-chrome",
     "threeVersion": "0.185.1",
-    "gpuRenderer": null,
-    "softwareRendering": null
+    "gpuRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "softwareRendering": true,
+    "designResolution": {
+      "width": 1064,
+      "height": 1788
+    },
+    "videoResolution": {
+      "width": 1080,
+      "height": 1920
+    },
+    "fps": 30,
+    "audio": false,
+    "dpr": 1,
+    "exportQuality": "preview",
+    "notes": "Software WebGL/SwiftShader. Not a discrete-GPU performance result."
   },
   "renderSpec": {
     "width": 1080,
     "height": 1920,
     "fps": 30,
     "audio": false,
-    "dpr": null
+    "dpr": 1,
+    "quality": "preview"
   },
   "identities": {
-    "takeHash": "fnv1a32:b4869325",
+    "takeId": "take-consecutive-placements",
+    "takeHash": "fnv1a32:f1ff5d0e",
     "cameraHash": "block-garden-fixed-shot-v1",
     "layoutHash": "design-1064x1788",
     "planHashes": [],
@@ -36,20 +61,246 @@
     ]
   },
   "tests": [
-    { "name": "npm test", "status": "PASS", "count": 79 },
-    { "name": "npm run check", "status": "PASS" },
-    { "name": "npm run typecheck", "status": "PASS" },
-    { "name": "npm run build", "status": "PASS" },
-    { "name": "test:browser-e2e", "status": "NOT_RUN" }
+    {
+      "name": "npm test",
+      "status": "PASS",
+      "count": 82
+    },
+    {
+      "name": "npm run check",
+      "status": "PASS"
+    },
+    {
+      "name": "npm run typecheck",
+      "status": "PASS"
+    },
+    {
+      "name": "npm run build",
+      "status": "PASS"
+    },
+    {
+      "name": "test:browser-e2e",
+      "status": "PASS",
+      "mode": "full"
+    }
   ],
   "artifacts": [
-    { "path": "review-package/reports/golden-report.json", "sha256": "265431a2c46c5bdb728499d379bdbca859e1d9ada20eaabb0407ebf442e3137a", "role": "golden-batch" },
-    { "path": "review-package/reports/golden-report.html", "sha256": "8e7e56afad9cd473c13662534f15f73395af9afa5697d415bbc9f075a99f3d27", "role": "golden-batch-html" },
-    { "path": "review-package/fixtures/public-scenes.json", "sha256": "9777df8ea75c3f1ddc1f1ec29598db4ccf83b429834c18005ee4c736789380a9", "role": "public-fixtures" },
-    { "path": "review-package/reports/material.stainless-steel.runtime.json", "sha256": "6af0be0de268f1a1bbae2a3b18faf4d0cbb114c84b668e26187901e315dffba4", "role": "pbr-runtime" },
-    { "path": "review-package/reports/material.oak-wood.runtime.json", "sha256": "0da7cf0ebca8f2b3b3f6f2ab788b6cd3ef79507c8805ef20bfa091a43f42402a", "role": "pbr-runtime" },
-    { "path": "review-package/reports/material.aurora-shell.runtime.json", "sha256": "52c04809abca50547f16edb3e4735ffd67f036925a1d87e649acce0331bf28e6", "role": "pbr-runtime" },
-    { "path": "review-package/reports/browser-e2e.json", "sha256": "d7ccf6805544fff9d576b0ff1259faf98dc8af31349c2ba7f5d2d8ae016450dd", "role": "e2e-status" }
+    {
+      "path": "REVIEW.md",
+      "sha256": "f56f21eaf97da1df220637c3a8697828efb3dfe6e3057630eca50d9eb1bb860b",
+      "bytes": 6348,
+      "role": "review"
+    },
+    {
+      "path": "review-package/REVIEW.md",
+      "sha256": "f56f21eaf97da1df220637c3a8697828efb3dfe6e3057630eca50d9eb1bb860b",
+      "bytes": 6348,
+      "role": "review"
+    },
+    {
+      "path": "review-package/environment.json",
+      "sha256": "771ab2768b72601931f881ce9e4ed550e93037a9326b42edb03b61713bcfb71f",
+      "bytes": 623,
+      "role": "environment"
+    },
+    {
+      "path": "review-package/fixtures/public-scenes.json",
+      "sha256": "9777df8ea75c3f1ddc1f1ec29598db4ccf83b429834c18005ee4c736789380a9",
+      "bytes": 1274,
+      "role": "public-fixtures"
+    },
+    {
+      "path": "review-package/frames/after/2d-consecutive-peak.png",
+      "sha256": "8420f061527c4bc2f02eb4ccaebff5d5903ed92eaea7ae7c808ae43a08a969d5",
+      "bytes": 655668,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-cross-clear-peak.png",
+      "sha256": "ff1bdd6dd36112141b743b2cb7fbc1eaabac615e25e58237ad4f6ecea8e4c696",
+      "bytes": 735129,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-endgame.png",
+      "sha256": "76c6fb8e431d167c81ab4735bf8caf96689c203ecb9e9f275bda1636ff44351d",
+      "bytes": 598299,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-idle.png",
+      "sha256": "42bdb6768eb35b8a3fda5fbc83307b1c095464dad498aa05e5332b128aee1811",
+      "bytes": 585088,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-illegal-preview.png",
+      "sha256": "6a3cbd615064b2fdb2cc08d1062dcfad4820ec55d3ae3d976768d9f11f7dea9b",
+      "bytes": 604439,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-legal-preview.png",
+      "sha256": "2a8354fddeaed116082ab30ca86fcb7c810eda50eb94e1e1c6c74d7ac52c0ea9",
+      "bytes": 604533,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-pickup.png",
+      "sha256": "782f6818a289d89a0eb27af04d2d9c7ebf80c26b344f23370a6dda2689cecb24",
+      "bytes": 590120,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-single-clear-end.png",
+      "sha256": "b4b89b5c39d5a64f75711eb1bae3e385077c8615bf8bb60c16d1a698bed9bdfa",
+      "bytes": 577205,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-single-clear-peak.png",
+      "sha256": "3384a009b53dd14a3f63b2e54cb2f1357d9065ca9d091ffc28440ea896b47223",
+      "bytes": 649634,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/2d-single-clear-start.png",
+      "sha256": "fc3607c24cea9b3dfa6ca3c3575efc685b17150d36b696dcd13cb75e3ee5ebb5",
+      "bytes": 580615,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/3d-aurora-peak.png",
+      "sha256": "445b8f878315636522b0df2d53f42cef0a894703eb9d0261e3115eef386f7afd",
+      "bytes": 1320105,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/3d-steel-peak.png",
+      "sha256": "3dc7eb1c7f494d564dbc892ec038915a957ea8ed54f384b07d1ee4ed2d2e8391",
+      "bytes": 1373440,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/after/3d-wood-peak.png",
+      "sha256": "bf746dd8e8aeffc6a12c8cceef8a35573221cd9da4e1bc54fd24802ef7231f98",
+      "bytes": 1346316,
+      "role": "after-frame"
+    },
+    {
+      "path": "review-package/frames/diagnostic/3d-steel-albedo.png",
+      "sha256": "bd11aa6189cd2452def5f40ae4c9a6b34ca247b43ccd5f3f06d9b4d60895265a",
+      "bytes": 1355635,
+      "role": "diagnostic-frame"
+    },
+    {
+      "path": "review-package/frames/diagnostic/3d-steel-metalness.png",
+      "sha256": "aad7a120ec64a53928aa1d0a495b33a904e35a493d38a83e692a95b6a83adcd8",
+      "bytes": 1317395,
+      "role": "diagnostic-frame"
+    },
+    {
+      "path": "review-package/frames/diagnostic/3d-steel-roughness.png",
+      "sha256": "d9f418f7602105730a7ad6ad863acb9bf579f759b2afdfc8fce31e8a37a797b2",
+      "bytes": 1376675,
+      "role": "diagnostic-frame"
+    },
+    {
+      "path": "review-package/frames/pass-isolation/2d-background-only.png",
+      "sha256": "aac1162a1eef54b0030f30be935740ebfdfac0ac3f29026eb0141e435ee62610",
+      "bytes": 971785,
+      "role": "pass-isolation"
+    },
+    {
+      "path": "review-package/known-limitations.md",
+      "sha256": "15a39d2da7fe5b372a3089bdfcf5534f688c55e090e9ad421e5337c771683ff3",
+      "bytes": 1209,
+      "role": "limitations"
+    },
+    {
+      "path": "review-package/reports/browser-e2e.json",
+      "sha256": "b205361d10563dbb5d458e9c66609df8f27b5237238d1d66f4e676cf98ca555b",
+      "bytes": 5919,
+      "role": "e2e-status"
+    },
+    {
+      "path": "review-package/reports/golden-report.html",
+      "sha256": "8e7e56afad9cd473c13662534f15f73395af9afa5697d415bbc9f075a99f3d27",
+      "bytes": 6390,
+      "role": "golden-batch-html"
+    },
+    {
+      "path": "review-package/reports/golden-report.json",
+      "sha256": "265431a2c46c5bdb728499d379bdbca859e1d9ada20eaabb0407ebf442e3137a",
+      "bytes": 55874,
+      "role": "golden-batch"
+    },
+    {
+      "path": "review-package/reports/invariants-report.json",
+      "sha256": "6e41ab66fad4c17f419ef2a21304e1715e74dab34d67bf4d6fd6eb6d01722c36",
+      "bytes": 1132,
+      "role": "invariants"
+    },
+    {
+      "path": "review-package/reports/material.aurora-shell.runtime.json",
+      "sha256": "52c04809abca50547f16edb3e4735ffd67f036925a1d87e649acce0331bf28e6",
+      "bytes": 849,
+      "role": "pbr-runtime"
+    },
+    {
+      "path": "review-package/reports/material.oak-wood.runtime.json",
+      "sha256": "da498e87488c2502aad5ac92d23d1acb90d69b9a23aff0c2a7dd970873d32c1c",
+      "bytes": 2095,
+      "role": "pbr-runtime"
+    },
+    {
+      "path": "review-package/reports/material.stainless-steel.runtime.json",
+      "sha256": "ee90119ce7d703947145f5b4662eced694902809ec59aaa73271068b24b8e51b",
+      "bytes": 2108,
+      "role": "pbr-runtime"
+    },
+    {
+      "path": "review-package/reports/performance-report.json",
+      "sha256": "e5c3668cb9a2c9587aad874286ef6100d8171094dd9373ea6f26c17d3d04521e",
+      "bytes": 646,
+      "role": "performance"
+    },
+    {
+      "path": "review-package/reports/resource-report.json",
+      "sha256": "2227c92dba4801a07aaf9115be1966b3a0615d94bb039c5f9e4d6a1381665a67",
+      "bytes": 781,
+      "role": "resources"
+    },
+    {
+      "path": "review-package/test-results.json",
+      "sha256": "8d1c8d04016ebc8dc7e2373711dbcd66520dae9160bcb1e8be3d83aacbb83ff5",
+      "bytes": 469,
+      "role": "tests"
+    },
+    {
+      "path": "review-package/videos/fixed-aurora-1080x1920.mp4",
+      "sha256": "de4a0d1be6aee41427b952eb92289bff9fc541386fd08814d078835e3f86facf",
+      "bytes": 1899512,
+      "role": "sample-video"
+    },
+    {
+      "path": "review-package/videos/fixed-steel-1080x1920.mp4",
+      "sha256": "6d838b5c383c6909bbb36daa1ac8320d3fa4e37b3f3fd02d18f9e35573ca0fb7",
+      "bytes": 2067959,
+      "role": "sample-video"
+    },
+    {
+      "path": "review-package/videos/fixed-wood-1080x1920.mp4",
+      "sha256": "603733f3effe6740290a4cf0b5987bb21c9a518b932970dc465fa4a1d9a00471",
+      "bytes": 1995929,
+      "role": "sample-video"
+    },
+    {
+      "path": "review-package/videos/reference-2d-1080x1920.mp4",
+      "sha256": "dd5fe18ea42dca2ecf3b38e5328081929da88402b99105f58a1aac8ecc752505",
+      "bytes": 1121484,
+      "role": "sample-video"
+    }
   ],
   "referenceCorrespondence": {
     "mode": "exact-replay",
@@ -60,10 +311,11 @@
   "technicalReview": "PENDING",
   "humanVisualApproval": "PENDING",
   "knownLimitations": [
-    "No public reference frames",
-    "No MP4 evidence in this run",
+    "No public commercial reference frames",
+    "SwiftShader software GL",
+    "No frames/before from pre-refactor capture",
     "Threshold bloom only",
-    "PBR GPU sampling not captured"
+    "Material-aware fracture pending"
   ],
-  "notes": "Do not treat compile/CI success as rendered or visually-approved."
+  "notes": "Do not treat compile/CI success as visually-approved. Golden content is BLOCKED. MP4s prove the export path on software GL."
 }

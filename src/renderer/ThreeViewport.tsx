@@ -94,6 +94,10 @@ export function ThreeViewport({
   }, [runtimeAssets]);
 
   useEffect(() => {
+    void stageRef.current?.prepareMaterialRuntime(style);
+  }, [style]);
+
+  useEffect(() => {
     const stage = stageRef.current;
     if (!stage) return;
     if ((mode === 'replay' || mode === 'render') && frame) stage.setFrame(frame, style);

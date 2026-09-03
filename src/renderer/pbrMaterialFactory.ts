@@ -25,8 +25,17 @@ function assignMaps(
   material: THREE.MeshPhysicalMaterial,
   textures: RuntimeTextureSet | undefined,
   descriptor: MaterialRuntimeDescriptor,
+  mode: 'beauty' | 'albedo' | 'data' = 'beauty',
 ): void {
   if (!textures) return;
+  if (mode === 'albedo') {
+    if (textures.baseColor) {
+      material.map = textures.baseColor;
+      applyUv(textures.baseColor, descriptor);
+    }
+    return;
+  }
+  if (mode === 'data') return;
   if (textures.baseColor) {
     material.map = textures.baseColor;
     applyUv(textures.baseColor, descriptor);
@@ -78,19 +87,23 @@ export function createPbrTileMaterial(options: {
       transparent: ghosted,
       opacity,
     });
-    assignMaps(material, options.textures, options.descriptor);
+    assignMaps(material, options.textures, options.descriptor, 'albedo');
     return material;
   }
   if (diagnostic === 'roughness' || diagnostic === 'metalness') {
     const value = diagnostic === 'roughness' ? roughness : metalness;
-    const gray = new THREE.Color(value, value, value);
+    const dataMap = diagnostic === 'roughness' ? options.textures?.roughness : options.textures?.metallic;
+    const gray = dataMap ? new THREE.Color(1, 1, 1) : new THREE.Color(value, value, value);
     const material = new THREE.MeshPhysicalMaterial({
       color: gray,
       roughness: 1,
       metalness: 0,
       envMapIntensity: 0,
     });
-    assignMaps(material, options.textures, options.descriptor);
+    if (dataMap) {
+      material.map = dataMap;
+      applyUv(dataMap, options.descriptor);
+    }
     return material;
   }
   if (diagnostic === 'emission' || diagnostic === 'world-normal') {

@@ -26,7 +26,8 @@ import {
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
 import { resolveLookDevBloom } from './lookDev';
 import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './materialPresets';
-import { createPbrTileMaterial } from './pbrMaterialFactory';
+import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
+import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureCacheKey } from './runtimeTextures';
 import { containedCompositionViewport, FIXED_SHOT_PROFILE, lockedCameraDistance } from './shotProfile';
 import { materialCacheKey } from '../headless/materialRuntime';
 
@@ -306,6 +307,8 @@ export class StudioScene {
   private runtimeAssets: RuntimeAssetBindings = EMPTY_RUNTIME_ASSET_BINDINGS;
   private runtimeBackgroundImage: HTMLImageElement | null = null;
   private runtimeAssetsReady: Promise<void> = Promise.resolve();
+  private runtimeTextures: RuntimeTextureSet = {};
+  private runtimeTextureKey = '';
 
   constructor(canvas: HTMLCanvasElement, options: StudioSceneOptions = {}) {
     this.canvas = canvas;
@@ -548,7 +551,20 @@ export class StudioScene {
     this.render(frame.frame * (1000 / Math.max(1, frame.fps)));
   }
 
+  async prepareMaterialRuntime(style: StyleSpec): Promise<void> {
+    const maps = style.materialRuntime?.maps ?? [];
+    const key = runtimeTextureCacheKey(maps);
+    if (key === this.runtimeTextureKey) return;
+    disposeRuntimeTextureSet(this.runtimeTextures);
+    this.runtimeTextures = {};
+    this.runtimeTextureKey = key;
+    this.materialCache.clear();
+    if (maps.length === 0) return;
+    this.runtimeTextures = await loadRuntimeTextureSet(maps);
+  }
+
   async warmup(frame: PresentationFrame, style: StyleSpec): Promise<void> {
+    await this.prepareMaterialRuntime(style);
     this.renderAt(frame, style);
     await this.runtimeAssetsReady;
     await this.renderer.compileAsync(this.scene, this.camera);
@@ -577,6 +593,9 @@ export class StudioScene {
     this.runtimeAssets = EMPTY_RUNTIME_ASSET_BINDINGS;
     this.runtimeBackgroundImage = null;
     this.runtimeAssetsReady = Promise.resolve();
+    disposeRuntimeTextureSet(this.runtimeTextures);
+    this.runtimeTextures = {};
+    this.runtimeTextureKey = '';
     this.environmentTarget.dispose();
     for (const material of this.materialCache.values()) material.dispose();
     this.materialCache.clear();
@@ -821,6 +840,7 @@ export class StudioScene {
           opacity,
           environmentIntensity,
           diagnosticView: diagnostic,
+          textures: this.runtimeTextures,
         })
         : createBlockMaterial(
           color,

@@ -16,8 +16,8 @@ Implementation branch: `cursor/next-phase-t0-t5-5d9d`
 | Three.js | 0.185.1 |
 | Design canvas | 1064×1788 |
 | Video output | 1080×1920, 30fps, silent |
-| Browser E2E | NOT_RUN (no Playwright/WebCodecs harness in this agent VM) |
-| GPU renderer | unknown / software possible |
+| Browser capture | Headless Chrome 148 + SwiftShader (`npm run capture:review`) |
+| GPU renderer | ANGLE SwiftShader Device (Subzero); software rendering |
 
 `npm ci`, `npm run check`, `npm test`, `npm run typecheck`, `npm run build` were executed on this branch.
 
@@ -47,5 +47,6 @@ See `docs/reports/INTERFACE_DECISIONS_V1.md`.
 
 ## T0 gate
 
-PASS for: repo checks, types, public fixture identity, coordinate mapping.  
-BLOCKED for: original reference frames, GPU identity, browser-exported MP4.
+PASS for: repo checks, types, public fixture identity, coordinate mapping, browser native capture and four silent 1080×1920 MP4s (software GL).  
+BLOCKED for: original reference frames / exact-replay Golden content.  
+PENDING: human visual approval.

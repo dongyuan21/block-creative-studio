@@ -22,5 +22,6 @@ export const BCS_CAPABILITIES = {
   notes: {
     'fixed-camera-cinematic': 'Available for locked 9:16 preview/export through the existing Three.js scene with Shot Profile, LookDev diagnostics and PBR runtime. Not a new engine.',
     headlessVideo: 'Browser WebCodecs export only. CLI does not emit rendered:true.',
+    browserCapture: 'npm run capture:review uses headless Chrome to write native 2D frames and 1080×1920 silent MP4s. Software WebGL is not a GPU performance result.',
   },
 } as const;

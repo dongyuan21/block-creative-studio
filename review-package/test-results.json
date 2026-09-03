@@ -1,0 +1,30 @@
+{
+  "npm test": {
+    "status": "PASS",
+    "count": 82
+  },
+  "npm run check": {
+    "status": "PASS"
+  },
+  "npm run typecheck": {
+    "status": "PASS"
+  },
+  "npm run build": {
+    "status": "PASS"
+  },
+  "test:render-regression": {
+    "status": "PASS"
+  },
+  "test:golden-batch": {
+    "status": "PASS"
+  },
+  "test:pbr-runtime": {
+    "status": "PASS"
+  },
+  "test:browser-e2e": {
+    "status": "PASS",
+    "mode": "full",
+    "frames": 17,
+    "videos": 4
+  }
+}

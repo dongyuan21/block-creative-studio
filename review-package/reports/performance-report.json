@@ -1,0 +1,17 @@
+{
+  "contract": "bcs.performance-report",
+  "device": "cloud-agent linux + SwiftShader",
+  "captureMode": "full",
+  "startedAt": "2026-09-03T07:27:24.468Z",
+  "finishedAt": "2026-09-03T07:38:02.817Z",
+  "wallClockSeconds": 638,
+  "stills": 17,
+  "videos": 4,
+  "videoFramesEach": 180,
+  "output": { "width": 1080, "height": 1920, "fps": 30, "quality": "preview" },
+  "gpuPeakMemoryMiB": null,
+  "drawCalls": null,
+  "triangles": null,
+  "status": "NOT_RUN",
+  "notes": "Only wall-clock for the headless capture job was recorded. GPU memory / P95 frame time were not instrumented. SwiftShader numbers must not be used as a shipping GPU budget."
+}
