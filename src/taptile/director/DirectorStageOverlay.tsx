@@ -48,6 +48,8 @@ export function DirectorStageOverlay({
         const slotIndex = effect.slotIndexes?.[index] ?? index;
         const slot = tapTileTraySlotRect(slotIndex);
         const center = tapTileTraySlotCenter(slotIndex);
+        const pulse = Math.sin(Math.min(1, effect.progress / 0.34) * Math.PI) * 0.12;
+        const dissolve = Math.max(0, Math.min(1, (effect.progress - 0.24) / 0.5));
         return (
           <span
             key={`${effect.id}:${tileId}`}
@@ -56,16 +58,23 @@ export function DirectorStageOverlay({
               left: `${(center.xPx / width) * 100}%`,
               top: `${(center.yPx / height) * 100}%`,
               width: `${(slot.width / width) * 100}%`,
-              opacity: Math.max(0, 1 - effect.progress),
-              transform: `translate(-50%, -50%) scale(${1 + effect.progress * 0.5})`,
+              opacity: Math.max(0, 1 - dissolve),
+              filter: `brightness(${1 + pulse * 2.8}) saturate(${1 + pulse}) drop-shadow(0 0 ${6 + pulse * 70}px rgba(112, 255, 173, 0.96))`,
+              transform: `translate(-50%, -50%) scale(${1 + pulse + dissolve * 0.2})`,
             }}
-          ><TileVisual visual={visual} /></span>
+          >
+            <i
+              className="tpt-director-match-halo"
+              style={{ opacity: Math.max(0, (1 - effect.progress) * 0.92), transform: `scale(${0.72 + effect.progress * 0.78})` }}
+            />
+            <TileVisual visual={visual} />
+          </span>
         );
       }))}
       {frame.effects.flatMap((effect) => effect.particles.map((particle) => (
         <i
           key={particle.id}
-          className="tpt-director-particle"
+          className={`tpt-director-particle is-${particle.shape ?? 'spark'} tone-${particle.tone ?? 0}`}
           style={{
             left: `${(particle.xPx / width) * 100}%`,
             top: `${(particle.yPx / height) * 100}%`,

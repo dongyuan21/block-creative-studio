@@ -85,9 +85,9 @@ function drawTile(
   context.globalAlpha = opacity;
   context.translate(round(centerX), round(centerY));
   context.rotate(rotationDeg * Math.PI / 180);
-  context.shadowColor = 'rgba(3, 13, 29, 0.38)';
+  context.shadowColor = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.92)' : 'rgba(3, 13, 29, 0.38)';
   context.shadowBlur = role === 'match-ghost' ? 26 : 14;
-  context.shadowOffsetY = role === 'board' ? 9 : 5;
+  context.shadowOffsetY = role === 'match-ghost' ? 0 : role === 'board' ? 9 : 5;
   roundedRect(context, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight, visual.bodyStyle.cornerRadiusPx);
   context.fillStyle = visual.bodyStyle.fill ?? '#fff7e7';
   context.fill();
@@ -248,15 +248,62 @@ export function renderTapTilePresentationFrame(
       const slotIndex = effect.slotIndexes?.[index] ?? index;
       const slot = tapTileTraySlotRect(slotIndex, tray);
       const center = tapTileTraySlotCenter(slotIndex, tray);
-      drawTile(context, bundle, tile.archetypeId, 'match-ghost', center.xPx, center.yPx, slot.width, slot.height, 0, 1 + effect.progress * 0.5, 1 - effect.progress);
+      const pulse = Math.sin(Math.min(1, effect.progress / 0.34) * Math.PI) * 0.12;
+      const dissolve = Math.max(0, Math.min(1, (effect.progress - 0.24) / 0.5));
+      context.save();
+      context.globalAlpha = Math.max(0, (1 - effect.progress) * 0.72);
+      context.fillStyle = '#8dffb0';
+      context.shadowColor = 'rgba(96, 255, 169, 0.96)';
+      context.shadowBlur = 44;
+      context.beginPath();
+      context.arc(center.xPx, center.yPx, slot.width * (0.36 + effect.progress * 0.45), 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+      drawTile(
+        context,
+        bundle,
+        tile.archetypeId,
+        'match-ghost',
+        center.xPx,
+        center.yPx,
+        slot.width,
+        slot.height,
+        0,
+        1 + pulse + dissolve * 0.2,
+        1 - dissolve,
+      );
     }
     for (const particle of effect.particles) {
       context.save();
       context.globalAlpha = particle.opacity;
       context.translate(round(particle.xPx), round(particle.yPx));
       context.rotate(particle.rotationDeg * Math.PI / 180);
-      context.fillStyle = indexColor(particle.id);
-      context.fillRect(-7 * particle.scale, -7 * particle.scale, 14 * particle.scale, 14 * particle.scale);
+      context.scale(particle.scale, particle.scale);
+      context.shadowColor = particle.shape === 'spark' ? 'rgba(126, 255, 175, 0.95)' : 'rgba(213, 255, 239, 0.82)';
+      context.shadowBlur = particle.shape === 'spark' ? 14 : 7;
+      context.fillStyle = particle.shape === 'spark' ? '#dfff9f' : ceramicShardColor(particle.tone ?? 0);
+      context.strokeStyle = 'rgba(103, 145, 164, 0.58)';
+      context.lineWidth = 1.4;
+      context.beginPath();
+      if (particle.shape === 'spark') {
+        context.moveTo(0, -9);
+        context.lineTo(3, -3);
+        context.lineTo(9, 0);
+        context.lineTo(3, 3);
+        context.lineTo(0, 9);
+        context.lineTo(-3, 3);
+        context.lineTo(-9, 0);
+        context.lineTo(-3, -3);
+      } else {
+        context.moveTo(-11, -7);
+        context.lineTo(8, -10);
+        context.lineTo(12, 3);
+        context.lineTo(2, 10);
+        context.lineTo(-12, 5);
+      }
+      context.closePath();
+      context.fill();
+      if (particle.shape !== 'spark') context.stroke();
       context.restore();
     }
     trace.items.push({ band: TAPTILE_Z_BANDS.matchVfx, id: effect.id, bounds: { x: tray.left, y: tray.top - 80, width: tray.width, height: tray.height + 160 } });
@@ -373,9 +420,6 @@ export function renderTapTileOutroOverlay(
   return { band: TAPTILE_Z_BANDS.outro, id: `outro:${outro.id}`, bounds: { x: 0, y: 0, width, height } };
 }
 
-function indexColor(value: string): string {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) hash = Math.imul(hash ^ value.charCodeAt(index), 31);
-  const colors = ['#ffdc67', '#ff72c4', '#6fe3ff', '#8dff9b'];
-  return colors[Math.abs(hash) % colors.length] ?? '#ffffff';
+function ceramicShardColor(tone: number): string {
+  return ['#ffffff', '#e4f3f5', '#b8dce4'][Math.abs(Math.round(tone)) % 3] ?? '#ffffff';
 }

@@ -10,6 +10,7 @@ import {
   type FaceAssembly,
   type TapTilePresentationRole,
   type TapTileTakeAction,
+  upgradeLegacyBuiltInThemeGlyphs,
 } from '../src/taptile/project';
 import { createTapTileTake } from '../src/taptile/gameplay/take';
 import {
@@ -46,6 +47,30 @@ describe('TapTile SkinPack and presentation roles', () => {
     expect(report.valid).toBe(false);
     expect(report.issues).toContainEqual(expect.objectContaining({ code: 'THEME_BINDING_MISSING', archetypeId: firstArchetypeId }));
     expect(() => resolveTileVisual(incomplete, firstArchetypeId, 'food-v1', 'board')).toThrow('THEME_BINDING_NOT_FOUND');
+  });
+
+  it('keeps every built-in match key visually unique and upgrades the legacy duplicate frog', () => {
+    const project = createDefaultTapTileProject('hourglass');
+    const archetypeIds = Object.keys(project.visuals.archetypes);
+    for (const themeId of ['animals-v1', 'food-v1']) {
+      const glyphs = archetypeIds.map((archetypeId) => {
+        const binding = project.visuals.themes[themeId]!.bindings[archetypeId]!;
+        const part = project.visuals.faceAssemblies[binding.faceAssemblyId]!.parts[0]!;
+        return part.source.kind === 'glyph' ? part.source.value : part.source.assetId;
+      });
+      expect(new Set(glyphs).size, `${themeId} contains duplicate visible faces`).toBe(glyphs.length);
+    }
+
+    const legacy = structuredClone(project);
+    const oldStarPart = legacy.visuals.faceAssemblies['face-animals-star']!.parts[0]!;
+    if (oldStarPart.source.kind !== 'glyph') throw new Error('Built-in star must be a glyph.');
+    oldStarPart.source.value = '🐸';
+    expect(validateSkinPack(legacy, 'animals-v1').issues)
+      .toContainEqual(expect.objectContaining({ code: 'MATCH_VISUAL_DUPLICATE', severity: 'error' }));
+    const upgraded = upgradeLegacyBuiltInThemeGlyphs(legacy);
+    const upgradedStarPart = upgraded.visuals.faceAssemblies['face-animals-star']!.parts[0]!;
+    expect(upgradedStarPart.source.kind === 'glyph' ? upgradedStarPart.source.value : '').toBe('🐹');
+    expect(validateSkinPack(upgraded, 'animals-v1').valid).toBe(true);
   });
 
   it('resolves one visual identity consistently for every presentation role', () => {

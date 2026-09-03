@@ -30,6 +30,7 @@ import {
   projectAsLegacyView,
   projectStackTiles,
   replaceProjectStackTiles,
+  upgradeLegacyBuiltInThemeGlyphs,
   type TapTileDirectorTiming,
   type TapTileProjectV2,
 } from './project';
@@ -63,6 +64,10 @@ import {
   type TapTileScenarioProfileId,
 } from './gameplay';
 import { GameplayStageOverlay } from './play/GameplayStage';
+import {
+  GameplayMatchEffects,
+  type GameplayMatchEffect,
+} from './play/GameplayMatchEffects';
 import { GameplayTray } from './play/GameplayTray';
 import { useGameplaySession } from './play/useGameplaySession';
 import {
@@ -190,7 +195,7 @@ function upgradeLegacyTemplateFaceRuns(project: TapTileProjectV2): TapTileProjec
 }
 
 function fitProjectBelowTopTray(project: TapTileProjectV2): TapTileProjectV2 {
-  const upgraded = upgradeLegacyTemplateFaceRuns(project);
+  const upgraded = upgradeLegacyBuiltInThemeGlyphs(upgradeLegacyTemplateFaceRuns(project));
   const shiftPx = tapTileBoardDownwardShiftPx(
     upgraded.level.tileInstances.map((tile) => tile.geometry),
     upgraded.stage.exportHeight,
@@ -292,6 +297,8 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const rejectClearTimerRef = useRef<number | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<TapTileWorkspaceMode>('edit');
   const [rejectedTileId, setRejectedTileId] = useState<string | null>(null);
+  const [liveMatchEffects, setLiveMatchEffects] = useState<GameplayMatchEffect[]>([]);
+  const liveMatchTimersRef = useRef<Map<string, number>>(new Map());
   const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('safe-win');
   const [agentBusy, setAgentBusy] = useState(false);
   const [directorFrame, setDirectorFrame] = useState(0);
@@ -390,6 +397,17 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     tapTileExportAbortRef.current?.abort();
     if (tapTileExportResult?.url) URL.revokeObjectURL(tapTileExportResult.url);
   }, [tapTileExportResult?.url]);
+
+  const clearLiveMatchEffects = useCallback((): void => {
+    for (const timer of liveMatchTimersRef.current.values()) window.clearTimeout(timer);
+    liveMatchTimersRef.current.clear();
+    setLiveMatchEffects([]);
+  }, []);
+
+  useEffect(() => () => {
+    for (const timer of liveMatchTimersRef.current.values()) window.clearTimeout(timer);
+    liveMatchTimersRef.current.clear();
+  }, []);
 
   const visibleTileIds = useMemo(
     () => tiles
@@ -886,6 +904,12 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       setNotice(firstError ? `${firstError.code}：${firstError.message}` : '关卡未通过验证');
       return;
     }
+    if (!selectedSkinCompatibility.valid) {
+      const firstError = selectedSkinCompatibility.issues.find((issue) => issue.severity === 'error');
+      setNotice(firstError ? `${firstError.code}：${firstError.message}` : '当前视觉主题无法清楚表达匹配分组');
+      return;
+    }
+    clearLiveMatchEffects();
     gameplay.begin(compiledLevel);
     setSelectedIds([]);
     setWorkspaceMode('play');
@@ -959,6 +983,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       openSelectedReplay();
       return;
     }
+    clearLiveMatchEffects();
     setWorkspaceMode(mode);
     if (mode === 'validate') {
       const errors = compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length;
@@ -991,6 +1016,20 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
         ? `不可点击：仍被 ${(transition.blockerIds ?? []).join('、')} 阻挡`
         : `点击被拒绝：${transition.rejectReason}`);
       return;
+    }
+    if (transition.matchedTileIds.length > 0) {
+      const effect: GameplayMatchEffect = {
+        id: transition.action.id,
+        tileIds: [...transition.matchedTileIds],
+        slotIndexes: transition.matchedTileIds.map((tileId) => transition.trayAfterInsert.indexOf(tileId)),
+      };
+      setLiveMatchEffects((current) => [...current.filter((candidate) => candidate.id !== effect.id), effect]);
+      const previousTimer = liveMatchTimersRef.current.get(effect.id);
+      if (previousTimer !== undefined) window.clearTimeout(previousTimer);
+      liveMatchTimersRef.current.set(effect.id, window.setTimeout(() => {
+        liveMatchTimersRef.current.delete(effect.id);
+        setLiveMatchEffects((current) => current.filter((candidate) => candidate.id !== effect.id));
+      }, 820));
     }
     if (transition.terminal === 'won') setNotice('关卡胜利；请保存 Take');
     else if (transition.terminal === 'lost') setNotice('槽位结算后失败；可保存失败 Take 或重新开始');
@@ -1265,6 +1304,19 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               ) : (
                 <GameplayTray trayIds={[]} status="playing" renderTile={() => null} />
               )}
+              {workspaceMode === 'play' && (
+                <GameplayMatchEffects
+                  effects={liveMatchEffects}
+                  stageWidth={project.stage.exportWidth}
+                  stageHeight={project.stage.exportHeight}
+                  renderTile={(tileId) => {
+                    const archetypeId = compiledLevel.tiles[tileId]?.archetypeId;
+                    return archetypeId
+                      ? <TileVisual visual={resolveTileVisual(project, archetypeId, project.visuals.selectedThemeId, 'match-ghost')} />
+                      : null;
+                  }}
+                />
+              )}
               <div className="tpt-safe-area" aria-hidden="true"><span>游戏区域</span></div>
 
               {(workspaceMode === 'validate' || project.authoring.debugView === 'blockers') && (
@@ -1420,7 +1472,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               <div className="tpt-session-actions">
                 <label className="tpt-agent-profile"><span>Agent 剧情</span><select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)}>{TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
                 <button data-action="generate-agent-take" onClick={generateAgentTake} disabled={agentBusy}>{agentBusy ? '搜索中…' : 'Agent 生成'}</button>
-                <button onClick={gameplay.restart}>重新开始</button>
+                <button onClick={() => { clearLiveMatchEffects(); gameplay.restart(); }}>重新开始</button>
                 <button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
               </div>
             </div>

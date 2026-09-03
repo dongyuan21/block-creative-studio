@@ -153,7 +153,16 @@ export interface PresentationEffect {
   implementation: DirectorEffectImplementation;
   presetId: string;
   slotIndexes?: number[];
-  particles: Array<{ id: string; xPx: number; yPx: number; rotationDeg: number; scale: number; opacity: number }>;
+  particles: Array<{
+    id: string;
+    xPx: number;
+    yPx: number;
+    rotationDeg: number;
+    scale: number;
+    opacity: number;
+    shape?: 'ceramic-shard' | 'spark';
+    tone?: number;
+  }>;
 }
 
 export interface TapTilePresentationFrame {

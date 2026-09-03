@@ -21,8 +21,39 @@ import {
 } from '../trayLayout';
 import { createDefaultTapTileAudioAssets, createDefaultTapTileProductionSpec } from '../production/defaults';
 
-const ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
-const FOOD_GLYPHS = ['🍓', '🍉', '🍋', '🥝', '🍒', '🍇', '🥕', '🍩', '🍪', '🧁', '🍄', '🥑'];
+const LEGACY_ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
+const LEGACY_FOOD_GLYPHS = ['🍓', '🍉', '🍋', '🥝', '🍒', '🍇', '🥕', '🍩', '🍪', '🧁', '🍄', '🥑'];
+
+// A visible face is gameplay language: two different match keys must never look
+// identical. Earlier builds wrapped 16 keys over 12 glyphs, so (for example)
+// shoe and star both appeared as a frog even though they could not match.
+const ANIMAL_GLYPHS = [...LEGACY_ANIMAL_GLYPHS, '🐶', '🐱', '🐹', '🐮'];
+const FOOD_GLYPHS = [...LEGACY_FOOD_GLYPHS, '🍔', '🍕', '🥨', '🧀'];
+
+interface BuiltInGlyphTheme {
+  id: 'animals-v1' | 'food-v1';
+  assemblyPrefix: 'face-animals-' | 'face-food-';
+  label: '动物' | '食物';
+  legacyGlyphs: readonly string[];
+  glyphs: readonly string[];
+}
+
+const BUILT_IN_GLYPH_THEMES: readonly BuiltInGlyphTheme[] = [
+  {
+    id: 'animals-v1',
+    assemblyPrefix: 'face-animals-',
+    label: '动物',
+    legacyGlyphs: LEGACY_ANIMAL_GLYPHS,
+    glyphs: ANIMAL_GLYPHS,
+  },
+  {
+    id: 'food-v1',
+    assemblyPrefix: 'face-food-',
+    label: '食物',
+    legacyGlyphs: LEGACY_FOOD_GLYPHS,
+    glyphs: FOOD_GLYPHS,
+  },
+];
 
 export const DEFAULT_DIRECTOR_PROFILES: Record<string, TapTileDirectorProfile> = {
   'human-natural': {
@@ -166,6 +197,41 @@ function makeBodyStyles(material: TapTileStackProject['material']): Record<strin
   };
 }
 
+export function upgradeLegacyBuiltInThemeGlyphs(project: TapTileProjectV2): TapTileProjectV2 {
+  let upgraded: TapTileProjectV2 | null = null;
+  const archetypesByMatchKey = new Map(
+    Object.values(project.visuals.archetypes).map((archetype) => [archetype.matchKey, archetype]),
+  );
+
+  for (const [faceIndex, face] of FACE_LIBRARY.entries()) {
+    const archetype = archetypesByMatchKey.get(face.id);
+    if (!archetype) continue;
+    for (const themeSpec of BUILT_IN_GLYPH_THEMES) {
+      const theme = project.visuals.themes[themeSpec.id];
+      const expectedAssemblyId = `${themeSpec.assemblyPrefix}${slug(archetype.matchKey)}`;
+      if (theme?.bindings[archetype.id]?.faceAssemblyId !== expectedAssemblyId) continue;
+      const assembly = project.visuals.faceAssemblies[expectedAssemblyId];
+      const part = assembly?.parts.length === 1 ? assembly.parts[0] : undefined;
+      const expectedPartId = `${expectedAssemblyId}-glyph`;
+      const legacyGlyph = themeSpec.legacyGlyphs[faceIndex % themeSpec.legacyGlyphs.length];
+      const nextGlyph = themeSpec.glyphs[faceIndex];
+      if (!assembly
+        || assembly.name !== `${archetype.displayName} · ${themeSpec.label}`
+        || part?.id !== expectedPartId
+        || part.source.kind !== 'glyph'
+        || part.source.value !== legacyGlyph
+        || !nextGlyph
+        || nextGlyph === legacyGlyph) continue;
+
+      upgraded ??= structuredClone(project);
+      const upgradedPart = upgraded.visuals.faceAssemblies[expectedAssemblyId]?.parts[0];
+      if (upgradedPart?.source.kind === 'glyph') upgradedPart.source.value = nextGlyph;
+    }
+  }
+
+  return upgraded ?? project;
+}
+
 export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTileProjectV2 {
   const updatedAt = safeTimestamp(source.updatedAt);
   const createdAt = updatedAt;
@@ -186,8 +252,8 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
     const legacy = FACE_LIBRARY.find((face) => face.id === archetype.matchKey);
     const animalId = `face-animals-${slug(archetype.matchKey)}`;
     const foodId = `face-food-${slug(archetype.matchKey)}`;
-    faceAssemblies[animalId] = makeFaceAssembly(animalId, `${archetype.displayName} · 动物`, ANIMAL_GLYPHS[index % ANIMAL_GLYPHS.length] ?? legacy?.glyph ?? '⭐');
-    faceAssemblies[foodId] = makeFaceAssembly(foodId, `${archetype.displayName} · 食物`, FOOD_GLYPHS[index % FOOD_GLYPHS.length] ?? legacy?.glyph ?? '⭐');
+    faceAssemblies[animalId] = makeFaceAssembly(animalId, `${archetype.displayName} · 动物`, ANIMAL_GLYPHS[index] ?? legacy?.glyph ?? '⭐');
+    faceAssemblies[foodId] = makeFaceAssembly(foodId, `${archetype.displayName} · 食物`, FOOD_GLYPHS[index] ?? legacy?.glyph ?? '⭐');
     animalBindings[archetype.id] = {
       faceAssemblyId: animalId,
       bodyStyleId: index % 2 === 0 ? 'body-warm' : 'body-cool',

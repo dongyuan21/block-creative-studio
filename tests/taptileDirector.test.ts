@@ -79,6 +79,20 @@ describe('TapTile Director compiler and fixed-frame evaluation', () => {
     }
   });
 
+  it('builds one glow-and-ceramic-shatter burst from each of the three matched slots', () => {
+    const { project, level, take } = makeGateTake();
+    const compiled = compileTapTileTake(level, take, project.director.profiles['human-natural']!, { seed: 73 });
+    const match = compiled.actions.find((action) => action.transition.matchedTileIds.length === 3)!;
+    const frame = evaluateTapTileFrame(compiled, Math.floor((match.timing.matchStartFrame + match.timing.matchVfxEndFrame) / 2));
+    const effect = frame.effects.find((candidate) => candidate.kind === 'match')!;
+    expect(effect.tileIds).toHaveLength(3);
+    expect(effect.slotIndexes).toHaveLength(3);
+    expect(effect.particles).toHaveLength(30);
+    expect(effect.particles.some((particle) => particle.shape === 'ceramic-shard')).toBe(true);
+    expect(effect.particles.some((particle) => particle.shape === 'spark')).toBe(true);
+    expect(effect.particles.some((particle) => particle.opacity > 0)).toBe(true);
+  });
+
   it('evaluates direct seek exactly like evaluating the full sequential range', () => {
     const { project, level, take } = makeGateTake();
     const compiled = compileTapTileTake(level, take, project.director.profiles['human-natural']!, { seed: 812 });

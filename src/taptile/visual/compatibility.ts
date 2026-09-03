@@ -1,4 +1,4 @@
-import type { FaceAssembly, FacePart, TapTileProjectV2 } from '../project';
+import { stableHash, type FaceAssembly, type FacePart, type TapTileProjectV2 } from '../project';
 import { TapTileAssetRegistry } from './AssetRegistry';
 import { renderFaceAssembly } from './FaceAssemblyRenderer';
 import type { SkinCompatibilityIssue, SkinCompatibilityReport } from './types';
@@ -71,6 +71,7 @@ export function validateSkinPack(project: TapTileProjectV2, themeId: string): Sk
   }
   const registry = new TapTileAssetRegistry(project.assets);
   const coveredArchetypeIds: string[] = [];
+  const visibleFaceOwners = new Map<string, { matchKey: string; displayName: string }>();
   for (const archetype of Object.values(project.visuals.archetypes).sort((left, right) => left.id.localeCompare(right.id))) {
     const binding = theme.bindings[archetype.id];
     if (!binding) {
@@ -89,6 +90,39 @@ export function validateSkinPack(project: TapTileProjectV2, themeId: string): Sk
     try {
       renderFaceAssembly(assembly, registry);
       coveredArchetypeIds.push(archetype.id);
+      const visibleFaceSignature = stableHash({
+        mode: assembly.mode,
+        bodyInteraction: assembly.bodyInteraction,
+        parts: assembly.parts.map((part) => {
+          if (part.source.kind === 'glyph') {
+            return { source: part.source, transform: part.transform, repeat: part.repeat };
+          }
+          const asset = project.assets.entries[part.source.assetId];
+          const assetIdentity = asset?.contentHash
+            ?? (asset?.source.type === 'builtin' ? asset.source.uri : part.source.assetId);
+          return {
+            source: { kind: part.source.kind, assetIdentity },
+            transform: part.transform,
+            repeat: part.repeat,
+          };
+        }),
+      }, 'visible-face');
+      const previousOwner = visibleFaceOwners.get(visibleFaceSignature);
+      if (previousOwner && previousOwner.matchKey !== archetype.matchKey) {
+        issues.push({
+          code: 'MATCH_VISUAL_DUPLICATE',
+          severity: 'error',
+          message: `${archetype.displayName} 与 ${previousOwner.displayName} 使用了相同可见牌面，但属于不同匹配组。`,
+          themeId,
+          archetypeId: archetype.id,
+          faceAssemblyId: assembly.id,
+        });
+      } else {
+        visibleFaceOwners.set(visibleFaceSignature, {
+          matchKey: archetype.matchKey,
+          displayName: archetype.displayName,
+        });
+      }
     } catch (error) {
       issues.push({ code: 'FACE_RESOLUTION_FAILED', severity: 'error', message: error instanceof Error ? error.message : String(error), themeId, archetypeId: archetype.id, faceAssemblyId: assembly.id });
     }

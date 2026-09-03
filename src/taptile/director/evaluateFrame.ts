@@ -75,24 +75,25 @@ function matchEffect(compiled: CompiledTapTileTake, action: CompiledDirectorActi
     .map((tileId) => action.transition.trayAfterInsert.indexOf(tileId))
     .filter((index) => index >= 0);
   const slotCenters = slotIndexes.map((index) => trayPoint(index));
-  const origin = slotCenters.length > 0
-    ? {
-      xPx: slotCenters.reduce((total, point) => total + point.xPx, 0) / slotCenters.length,
-      yPx: slotCenters.reduce((total, point) => total + point.yPx, 0) / slotCenters.length,
-    }
-    : trayPoint(3);
-  const particles = Array.from({ length: 12 }, (_, index) => {
-    const angle = seededUnit(compiled.seed + action.index * 101, 0, index) * Math.PI * 2;
-    const radius = (30 + seededUnit(compiled.seed, action.index, index + 31) * 120) * progress;
+  const burstProgress = Math.max(0, Math.min(1, (progress - 0.16) / 0.84));
+  const particles = slotCenters.flatMap((center, tileIndex) => Array.from({ length: 10 }, (_, shardIndex) => {
+    const noiseIndex = tileIndex * 20 + shardIndex;
+    const angle = seededUnit(compiled.seed + action.index * 101, tileIndex, shardIndex) * Math.PI * 2;
+    const travel = 34 + seededUnit(compiled.seed, action.index, noiseIndex + 31) * 118;
+    const radius = travel * burstProgress;
+    const gravity = burstProgress ** 2 * (28 + seededUnit(compiled.seed, action.index, noiseIndex + 71) * 62);
+    const fadeIn = Math.min(1, burstProgress * 10);
     return {
-      id: `${action.actionId}:particle:${index}`,
-      xPx: origin.xPx + Math.cos(angle) * radius,
-      yPx: origin.yPx + Math.sin(angle) * radius,
-      rotationDeg: seededSigned(compiled.seed, frame, index + 80) * 180,
-      scale: 0.45 + seededUnit(compiled.seed, action.index, index + 120) * 0.8,
-      opacity: Math.max(0, 1 - progress),
+      id: `${action.actionId}:particle:${tileIndex}:${shardIndex}`,
+      xPx: center.xPx + Math.cos(angle) * radius,
+      yPx: center.yPx + Math.sin(angle) * radius + gravity,
+      rotationDeg: seededSigned(compiled.seed, action.index, noiseIndex + 80) * 260 * burstProgress,
+      scale: 0.45 + seededUnit(compiled.seed, action.index, noiseIndex + 120) * 0.9,
+      opacity: fadeIn * Math.max(0, 1 - burstProgress),
+      shape: shardIndex % 5 === 0 ? 'spark' as const : 'ceramic-shard' as const,
+      tone: noiseIndex % 3,
     };
-  });
+  }));
   const binding = compiled.profile.matchPresentation.particles ?? compiled.profile.matchPresentation.shatter;
   return {
     id: `${action.actionId}:match`,
