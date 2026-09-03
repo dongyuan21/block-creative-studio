@@ -1,5 +1,6 @@
 import { stableHash, type AssetManifestEntry, type TapTileProjectV2 } from '../project';
 import { resolveTapTileBuiltinAssetUrl } from '../assetUrl';
+import { TAPTILE_POINTER_ASSET_ID } from '../presentation/assets';
 
 export interface TapTileAssetCacheLoaders {
   image?(entry: AssetManifestEntry, uri: string): Promise<CanvasImageSource>;
@@ -112,6 +113,7 @@ export class TapTileAssetCache {
 
 export function collectTapTileDrawableAssetIds(project: TapTileProjectV2): string[] {
   const ids = new Set<string>();
+  if (project.assets.entries[TAPTILE_POINTER_ASSET_ID]) ids.add(TAPTILE_POINTER_ASSET_ID);
   const theme = project.visuals.themes[project.visuals.selectedThemeId];
   for (const binding of Object.values(theme?.bindings ?? {})) {
     const body = project.visuals.bodyStyles[binding.bodyStyleId];

@@ -13,8 +13,9 @@ export function TileVisual({ visual }: { visual: ResolvedTileVisual }) {
   };
   return (
     <span
-      className={`tpt-tile-visual mode-${visual.renderedFace.mode}`}
+      className={`tpt-tile-visual mode-${visual.renderedFace.mode} material-${visual.material}`}
       data-presentation-role={visual.role}
+      data-tile-material={visual.material}
       data-visual-archetype={visual.archetype.id}
       data-visual-identity={visual.identityHash}
       data-face-assembly={visual.faceAssembly.id}

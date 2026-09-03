@@ -1,5 +1,7 @@
 import type { CompiledTapTileLevel, TapTileProjectV2 } from '../project';
 import { tapTileTraySlotCenter, tapTileTraySlotRect } from '../trayLayout';
+import { resolveTapTileBuiltinAssetUrl } from '../assetUrl';
+import { TAPTILE_POINTER_ASSET_ID, TAPTILE_POINTER_ASSET_URI } from '../presentation/assets';
 import { resolveTileVisual } from '../visual';
 import { TileVisual } from '../visual/TileVisual';
 import type { TapTilePresentationFrame } from './types';
@@ -15,6 +17,10 @@ export function DirectorStageOverlay({
 }) {
   const width = project.stage.exportWidth;
   const height = project.stage.exportHeight;
+  const pointerEntry = project.assets.entries[TAPTILE_POINTER_ASSET_ID];
+  const pointerUri = pointerEntry?.source.type === 'builtin'
+    ? resolveTapTileBuiltinAssetUrl(pointerEntry.source.uri)
+    : resolveTapTileBuiltinAssetUrl(TAPTILE_POINTER_ASSET_URI);
   return (
     <div
       className="tpt-director-stage-overlay"
@@ -86,8 +92,16 @@ export function DirectorStageOverlay({
       {frame.pointer.visible && (
         <span
           className={`tpt-director-pointer${frame.pointer.pressed ? ' is-pressed' : ''}`}
-          style={{ left: `${(frame.pointer.xPx / width) * 100}%`, top: `${(frame.pointer.yPx / height) * 100}%` }}
-        ><i /></span>
+          style={{
+            left: `${(frame.pointer.xPx / width) * 100}%`,
+            top: `${(frame.pointer.yPx / height) * 100}%`,
+            opacity: frame.pointer.opacity,
+            transform: `rotate(${frame.pointer.rotationDeg}deg) scale(${frame.pointer.scale})`,
+          }}
+        >
+          <img src={pointerUri} alt="" draggable={false} />
+          <i />
+        </span>
       )}
     </div>
   );

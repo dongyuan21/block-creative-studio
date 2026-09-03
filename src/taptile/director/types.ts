@@ -132,6 +132,9 @@ export interface PresentationPointer {
   xPx: number;
   yPx: number;
   pressed: boolean;
+  opacity: number;
+  scale: number;
+  rotationDeg: number;
   actionIndex?: number;
 }
 

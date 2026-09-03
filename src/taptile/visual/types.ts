@@ -9,6 +9,7 @@ import type {
   ThemeVariant,
   TileArchetype,
 } from '../project';
+import type { TileMaterialId } from '../stackModel';
 
 export interface ResolvedAsset {
   entry: AssetManifestEntry;
@@ -38,6 +39,7 @@ export interface RenderedFaceAssembly {
 export interface ResolvedTileVisual {
   archetype: TileArchetype;
   theme: ThemeVariant;
+  material: TileMaterialId;
   role: TapTilePresentationRole;
   faceAssembly: FaceAssembly;
   renderedFace: RenderedFaceAssembly;

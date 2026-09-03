@@ -1,5 +1,6 @@
 import { stableHash } from '../project/stableHash';
 import type { AssetManifestEntry, AudioCueRef, TapTileProductionSpec } from '../project/types';
+import { createDefaultTapTilePresentationAssets } from '../presentation/assets';
 
 function synthAsset(id: string): AssetManifestEntry {
   return {
@@ -103,7 +104,11 @@ export function createDefaultTapTileProductionSpec(): TapTileProductionSpec {
 export function ensureTapTileProductionDefaults<T extends { assets: { entries: Record<string, AssetManifestEntry> }; production: TapTileProductionSpec }>(project: T): T {
   const next = structuredClone(project);
   const defaults = createDefaultTapTileProductionSpec();
-  next.assets.entries = { ...createDefaultTapTileAudioAssets(), ...next.assets.entries };
+  next.assets.entries = {
+    ...createDefaultTapTileAudioAssets(),
+    ...createDefaultTapTilePresentationAssets(),
+    ...next.assets.entries,
+  };
   next.production = {
     audioPacks: { ...defaults.audioPacks, ...(next.production?.audioPacks ?? {}) },
     selectedAudioPackId: next.production?.selectedAudioPackId ?? defaults.selectedAudioPackId ?? 'bright-pop-v1',

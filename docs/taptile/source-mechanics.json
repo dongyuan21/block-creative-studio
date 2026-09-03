@@ -29,6 +29,7 @@
       "groupedInsertion": "tpt811 11.5s to 12.5s",
       "seventhTileMatchBeforeFailure": "fb_competitor 0.5s to 4.5s",
       "matchGlowThenCeramicShatter": "fb_competitor 3.5s to 4.8s",
+      "fingerAnchoredHandWithoutTapShake": "tpt811 1.25s to 2.25s",
       "sixOfSevenWarning": "tpt811 39.5s",
       "selectedTargetProgress": "archive04 7.5s to 10.5s"
     },

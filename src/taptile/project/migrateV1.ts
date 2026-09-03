@@ -20,6 +20,7 @@ import {
   TAPTILE_REFERENCE_TRAY_BOUNDS,
 } from '../trayLayout';
 import { createDefaultTapTileAudioAssets, createDefaultTapTileProductionSpec } from '../production/defaults';
+import { createDefaultTapTilePresentationAssets } from '../presentation/assets';
 
 const LEGACY_ANIMAL_GLYPHS = ['🐼', '🦊', '🐸', '🐯', '🐰', '🐨', '🐵', '🦁', '🐙', '🐳', '🦜', '🦋'];
 const LEGACY_FOOD_GLYPHS = ['🍓', '🍉', '🍋', '🥝', '🍒', '🍇', '🥕', '🍩', '🍪', '🧁', '🍄', '🥑'];
@@ -302,6 +303,7 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
     assets: {
       entries: {
         ...createDefaultTapTileAudioAssets(),
+        ...createDefaultTapTilePresentationAssets(),
         'classic-tile-surface-v1': {
           id: 'classic-tile-surface-v1',
           kind: 'image',

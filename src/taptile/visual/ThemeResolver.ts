@@ -33,6 +33,7 @@ export function resolveTileVisual(
   const identityHash = stableHash({
     themeVariantId,
     archetypeId,
+    material: project.authoring.material,
     faceAssembly,
     bodyStyle,
     assetVersions: [
@@ -47,6 +48,7 @@ export function resolveTileVisual(
   return {
     archetype,
     theme,
+    material: project.authoring.material,
     role,
     faceAssembly,
     renderedFace,

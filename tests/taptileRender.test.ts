@@ -13,6 +13,7 @@ import {
 } from '../src/taptile/project';
 import { resolveTapTileBuiltinAssetUrl } from '../src/taptile/assetUrl';
 import {
+  collectTapTileDrawableAssetIds,
   createTapTileRenderJob,
   hashPixelBytes,
   renderTapTilePresentationFrame,
@@ -21,6 +22,7 @@ import {
   TAPTILE_Z_BANDS,
 } from '../src/taptile/render';
 import { tapTileTraySlotRect } from '../src/taptile/trayLayout';
+import { TAPTILE_POINTER_ASSET_ID } from '../src/taptile/presentation/assets';
 
 const ACTION_IDS = ['hourglass-43', 'hourglass-44', 'hourglass-45', 'hourglass-46', 'hourglass-47', 'hourglass-48'];
 
@@ -40,8 +42,8 @@ function renderFixture() {
   return { project, level, take, compiled };
 }
 
-function fakeCanvas(): HTMLCanvasElement {
-  const gradient = { addColorStop: () => undefined };
+function fakeCanvas(gradientColors: string[] = []): HTMLCanvasElement {
+  const gradient = { addColorStop: (_offset: number, color: string) => { gradientColors.push(color); } };
   const context = new Proxy({
     globalAlpha: 1,
     createLinearGradient: () => gradient,
@@ -109,6 +111,17 @@ describe('TapTile Canvas render pipeline', () => {
     expect(cache.has('classic-tile-surface-v1')).toBe(false);
   });
 
+  it('preloads the reference hand used by both preview and exported frames', () => {
+    const project = createDefaultTapTileProject('hourglass');
+    expect(project.assets.entries[TAPTILE_POINTER_ASSET_ID]).toMatchObject({
+      kind: 'image',
+      width: 280,
+      height: 360,
+      hasAlpha: true,
+    });
+    expect(collectTapTileDrawableAssetIds(project)).toContain(TAPTILE_POINTER_ASSET_ID);
+  });
+
   it('freezes project/level/take/skin/director identity for one job', () => {
     const { project, level, compiled } = renderFixture();
     const first = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) });
@@ -142,6 +155,16 @@ describe('TapTile Canvas render pipeline', () => {
       expect(trace.items.find((item) => item.id === `tray-slot:${index}`)?.bounds)
         .toEqual({ x: slot.left, y: slot.top, width: slot.width, height: slot.height });
     }
+  });
+
+  it('renders the selected ice material into the same Canvas path used by MP4 export', () => {
+    const { project, level, compiled } = renderFixture();
+    project.authoring.material = 'ice';
+    const cache = new TapTileAssetCache(project, { image: async () => ({} as CanvasImageSource) });
+    const gradientColors: string[] = [];
+    const presentation = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) }).evaluate(0);
+    renderTapTilePresentationFrame(fakeCanvas(gradientColors), presentation, { project, level, assets: cache });
+    expect(gradientColors).toEqual(expect.arrayContaining(['#ffffff', '#eef5ff', '#d3e4ff']));
   });
 
   it('selects deterministic visual regression checkpoints from the compiled timeline', () => {

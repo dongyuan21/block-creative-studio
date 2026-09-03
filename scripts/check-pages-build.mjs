@@ -26,4 +26,5 @@ for (const cssFile of cssFiles) {
 }
 
 await access(new URL('assets/taptile/classic-tile-surface-v1.png', distDirectory));
-console.log(`✓ Pages artifact uses ${normalizedBase} and contains the TapTile built-in texture`);
+await access(new URL('assets/taptile/reference-hand-pointer-v1.svg', distDirectory));
+console.log(`✓ Pages artifact uses ${normalizedBase} and contains the TapTile texture and pointer assets`);

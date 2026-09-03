@@ -124,6 +124,41 @@ describe('TapTile Director compiler and fixed-frame evaluation', () => {
     }
   });
 
+  it('keeps ordinary taps steady and reserves smooth camera impact for a resolved match', () => {
+    const { project, level, take } = makeGateTake();
+    const compiled = compileTapTileTake(level, take, project.director.profiles['combo-rush']!, { seed: 41 });
+    const ordinaryTap = compiled.actions.find((action) => action.transition.matchedTileIds.length === 0)!;
+    const clickFrame = evaluateTapTileFrame(compiled, ordinaryTap.timing.pressFrame);
+    expect(clickFrame.effects.some((effect) => effect.kind === 'click')).toBe(true);
+    expect(clickFrame.camera).toEqual({ xPx: 0, yPx: 0, zoom: 1 });
+
+    const match = compiled.actions.find((action) => action.transition.matchedTileIds.length === 3)!;
+    const matchFrame = evaluateTapTileFrame(compiled, match.timing.matchStartFrame + 3);
+    expect(matchFrame.camera.zoom).toBeGreaterThan(1);
+    expect(Math.abs(matchFrame.camera.xPx)).toBeLessThanOrEqual(compiled.profile.camera.shakePx);
+    expect(Math.abs(matchFrame.camera.yPx)).toBeLessThanOrEqual(compiled.profile.camera.shakePx);
+  });
+
+  it('uses the recorded normalized pointer path and exposes a deterministic hand pose', () => {
+    const { project, level, take } = makeGateTake();
+    const recorded = structuredClone(take);
+    recorded.actions[0]!.durationFrames = 6;
+    recorded.actions[0]!.pointerPath = [
+      { frameOffset: 0, x: 0.72, y: 0.78 },
+      { frameOffset: 6, x: 0.28, y: 0.34 },
+    ];
+    const compiled = compileTapTileTake(level, recorded, project.director.profiles['human-natural']!, { seed: 11 });
+    const action = compiled.actions[0]!;
+    const start = evaluateTapTileFrame(compiled, action.timing.actionStartFrame).pointer;
+    const arrived = evaluateTapTileFrame(compiled, action.timing.pointerArriveFrame).pointer;
+    expect(start).toMatchObject({ opacity: 0, scale: 1, rotationDeg: -18 });
+    expect(start.xPx).toBeCloseTo(777.6);
+    expect(start.yPx).toBeCloseTo(1497.6);
+    expect(arrived).toMatchObject({ opacity: 1, pressed: true, rotationDeg: -18 });
+    expect(arrived.xPx).toBeCloseTo(302.4);
+    expect(arrived.yPx).toBeCloseTo(652.8);
+  });
+
   it('exposes pointer, flight, tray and final logical presentation without calling gameplay during seek', () => {
     const { project, level, take } = makeGateTake();
     const compiled = compileTapTileTake(level, take, project.director.profiles['human-natural']!, { seed: 11 });

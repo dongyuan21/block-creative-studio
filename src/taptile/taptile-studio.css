@@ -673,9 +673,48 @@
   transform-origin: center;
   pointer-events: none;
 }
-.tile-body > .tpt-tile-visual { inset: 0; border: 0; background: transparent; }
+.tpt-tile-visual.material-porcelain {
+  border-color: rgba(116, 119, 122, 0.72);
+  background-image: var(--tile-body-image, none), linear-gradient(145deg, #fffdf8, #f7f2e8 56%, #ddd8cd);
+  background-blend-mode: soft-light, normal;
+  box-shadow: 0 3px 0 #d3d1ca, 1px 5px 0 #a7aaae, 2px 8px 9px rgba(4, 13, 28, 0.4), inset 1px 1px 1px rgba(255, 255, 255, 0.92);
+}
+.tpt-tile-visual.material-ice {
+  border-radius: 16%;
+  border-color: rgba(104, 143, 208, 0.72);
+  background-image: var(--tile-body-image, none), linear-gradient(145deg, #ffffff, #eef5ff 56%, #d3e4ff);
+  background-blend-mode: soft-light, normal;
+  box-shadow: 0 5px 0 -1px #779cdd, 0 9px 10px rgba(6, 26, 70, 0.45), inset 0 2px 2px rgba(255, 255, 255, 0.95), inset 0 -3px 7px rgba(80, 130, 210, 0.18);
+}
+.tpt-tile-visual.material-jelly {
+  border-radius: 14%;
+  border-color: rgba(217, 245, 255, 0.94);
+  background-image: var(--tile-body-image, none), linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(218, 242, 255, 0.88) 52%, rgba(160, 211, 250, 0.82));
+  background-blend-mode: soft-light, normal;
+  box-shadow: 0 5px 0 rgba(87, 159, 221, 0.8), 0 9px 11px rgba(6, 29, 70, 0.42), inset 0 0 10px rgba(255, 255, 255, 0.88);
+}
+.tpt-tile-visual.material-paper {
+  border-radius: 8.5%;
+  border-color: rgba(201, 192, 174, 0.9);
+  background-image: var(--tile-body-image, none), linear-gradient(145deg, #fffdf7, #f4efe6 62%, #e4dac9);
+  background-blend-mode: multiply, normal;
+  box-shadow: 0 4px 0 #b9aa92, 0 8px 9px rgba(24, 27, 38, 0.37), inset 0 1px rgba(255, 255, 255, 0.8);
+}
+.tpt-tile-visual::after {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 3%;
+  border-radius: 10%;
+  border-top: 1px solid rgba(255, 255, 255, 0.68);
+  border-left: 1px solid rgba(255, 255, 255, 0.44);
+  pointer-events: none;
+}
+.tpt-tile-visual.material-ice::after { inset: 7%; border: 1px solid rgba(255, 255, 255, 0.82); border-radius: 12%; }
+.tile-body > .tpt-tile-visual { inset: 0; border: 0; background: transparent; box-shadow: none; }
+.tile-body > .tpt-tile-visual::after { display: none; }
 .tpt-tile-visual.mode-full-front { inset: 0; }
-.tpt-face-part { position: absolute; display: grid; place-items: center; transform-origin: center; }
+.tpt-face-part { position: absolute; z-index: 2; display: grid; place-items: center; transform-origin: center; }
 .tpt-face-part img { width: 100%; height: 100%; object-fit: contain; }
 .mode-full-front .tpt-face-part img { object-fit: cover; }
 .tpt-face-glyph { font-size: clamp(14px, 3.7vw, 42px); line-height: 1; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72)) drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28)); }
@@ -812,16 +851,22 @@
 }
 .tpt-director-pointer {
   position: absolute;
-  width: 7%;
-  aspect-ratio: 0.72;
-  transform: translate(-18%, -12%) rotate(-22deg);
-  transform-origin: 20% 15%;
-  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.42));
+  width: 18.5%;
+  aspect-ratio: 280 / 360;
+  transform-origin: 0 0;
 }
-.tpt-director-pointer::before { content: "☝️"; display: block; font-size: clamp(18px, 4.5vw, 50px); line-height: 1; }
-.tpt-director-pointer i { position: absolute; left: -16%; top: -14%; width: 48%; aspect-ratio: 1; border: 2px solid rgba(255, 238, 124, 0.9); border-radius: 50%; opacity: 0; }
-.tpt-director-pointer.is-pressed { transform: translate(-18%, -12%) rotate(-22deg) scale(0.9); }
-.tpt-director-pointer.is-pressed i { opacity: 1; animation: tpt-click-ring 300ms ease-out infinite; }
+.tpt-director-pointer img {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: translate(-20.7%, -5.3%);
+  filter: drop-shadow(0 5px 6px rgba(2, 14, 44, 0.38));
+}
+.tpt-director-pointer i { position: absolute; left: -10%; top: -7.8%; width: 20%; aspect-ratio: 1; border: 3px solid rgba(190, 255, 156, 0.94); border-radius: 50%; box-shadow: 0 0 10px rgba(93, 255, 169, 0.82); opacity: 0; }
+.tpt-director-pointer.is-pressed i { opacity: 1; animation: tpt-click-ring 300ms ease-out both; }
 @keyframes tpt-click-ring { from { transform: scale(0.5); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
 
 .tpt-director-timeline {

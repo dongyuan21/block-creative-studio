@@ -83,6 +83,11 @@ describe('TapTile SkinPack and presentation roles', () => {
     expect(new Set(animals.map((visual) => visual.bodyStyle.id))).toHaveLength(1);
     const food = resolveTileVisual(project, archetypeId, 'food-v1', 'board');
     expect(food.identityHash).not.toBe(animals[0]!.identityHash);
+    const iceProject = structuredClone(project);
+    iceProject.authoring.material = 'ice';
+    const ice = resolveTileVisual(iceProject, archetypeId, 'animals-v1', 'board');
+    expect(ice.material).toBe('ice');
+    expect(ice.identityHash).not.toBe(animals[0]!.identityHash);
   });
 
   it('renders overlay, full-front and composed assemblies including repeats', () => {

@@ -7,6 +7,8 @@ import {
   tapTileTraySlotRect,
 } from '../trayLayout';
 import { resolveStageAssembly, resolveTileVisual, type ResolvedTileVisual } from '../visual';
+import { tapTileMaterialAppearance } from '../visual/materialAppearance';
+import { TAPTILE_POINTER_ASSET_ID } from '../presentation/assets';
 import type { TapTileAssetCache } from './AssetCache';
 
 export const TAPTILE_Z_BANDS = Object.freeze({
@@ -65,6 +67,69 @@ function drawCover(context: CanvasRenderingContext2D, image: CanvasImageSource, 
   context.drawImage(image, round(x), round(y), round(width), round(height));
 }
 
+function drawTileMaterial(
+  context: CanvasRenderingContext2D,
+  bundle: TapTileCanvasRenderBundle,
+  visual: ResolvedTileVisual,
+  role: TapTilePresentationRole,
+  width: number,
+  height: number,
+): number {
+  const material = tapTileMaterialAppearance(visual.material);
+  const shortestSide = Math.min(width, height);
+  const radius = shortestSide * material.radiusRatio;
+  const surfaceOffsetY = height * material.surfaceOffsetYRatio;
+  const edgeDepth = Math.max(2, height * material.edgeDepthRatio);
+  const left = -width / 2;
+  const top = -height / 2 + surfaceOffsetY;
+
+  context.save();
+  context.shadowColor = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.92)' : material.shadowColor;
+  context.shadowBlur = shortestSide * material.shadowBlurRatio;
+  context.shadowOffsetY = edgeDepth * 0.8;
+  context.fillStyle = material.edgeColor;
+  roundedRect(context, left, top + edgeDepth, width, height, radius);
+  context.fill();
+  context.restore();
+
+  const surface = context.createLinearGradient(left, top, width / 2, top + height);
+  for (const [offset, color] of material.fillStops) surface.addColorStop(offset, color);
+  context.fillStyle = surface;
+  roundedRect(context, left, top, width, height, radius);
+  context.fill();
+
+  const bodyImage = visual.bodyStyle.bodyAssetId ? bundle.assets.get(visual.bodyStyle.bodyAssetId) : undefined;
+  if (bodyImage) {
+    context.save();
+    roundedRect(context, left, top, width, height, radius);
+    context.clip();
+    context.globalAlpha *= material.textureOpacity;
+    drawCover(context, bodyImage, left, top, width, height);
+    context.restore();
+  }
+
+  context.save();
+  context.shadowColor = 'transparent';
+  context.lineWidth = Math.max(1.5, visual.bodyStyle.borderWidthPx * 0.72);
+  context.strokeStyle = material.borderColor;
+  roundedRect(context, left, top, width, height, radius);
+  context.stroke();
+  const highlightInset = shortestSide * material.highlightInsetRatio;
+  context.lineWidth = Math.max(1, shortestSide * material.highlightWidthRatio);
+  context.strokeStyle = material.highlightColor;
+  roundedRect(
+    context,
+    left + highlightInset,
+    top + highlightInset,
+    width - highlightInset * 2,
+    height - highlightInset * 2,
+    Math.max(0, radius - highlightInset * 0.45),
+  );
+  context.stroke();
+  context.restore();
+  return surfaceOffsetY;
+}
+
 function drawTile(
   context: CanvasRenderingContext2D,
   bundle: TapTileCanvasRenderBundle,
@@ -85,32 +150,13 @@ function drawTile(
   context.globalAlpha = opacity;
   context.translate(round(centerX), round(centerY));
   context.rotate(rotationDeg * Math.PI / 180);
-  context.shadowColor = role === 'match-ghost' ? 'rgba(96, 255, 169, 0.92)' : 'rgba(3, 13, 29, 0.38)';
-  context.shadowBlur = role === 'match-ghost' ? 26 : 14;
-  context.shadowOffsetY = role === 'match-ghost' ? 0 : role === 'board' ? 9 : 5;
-  roundedRect(context, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight, visual.bodyStyle.cornerRadiusPx);
-  context.fillStyle = visual.bodyStyle.fill ?? '#fff7e7';
-  context.fill();
-  const bodyImage = visual.bodyStyle.bodyAssetId ? bundle.assets.get(visual.bodyStyle.bodyAssetId) : undefined;
-  if (bodyImage) {
-    context.save();
-    roundedRect(context, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight, visual.bodyStyle.cornerRadiusPx);
-    context.clip();
-    context.globalAlpha *= 0.44;
-    drawCover(context, bodyImage, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-    context.restore();
-  }
-  context.shadowColor = 'transparent';
-  context.lineWidth = visual.bodyStyle.borderWidthPx;
-  context.strokeStyle = 'rgba(112, 119, 126, 0.7)';
-  roundedRect(context, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight, visual.bodyStyle.cornerRadiusPx);
-  context.stroke();
+  const surfaceOffsetY = drawTileMaterial(context, bundle, visual, role, drawWidth, drawHeight);
 
   for (const part of visual.renderedFace.parts) {
     const partWidth = Math.abs(part.transform.scaleX) * drawWidth;
     const partHeight = Math.abs(part.transform.scaleY) * drawHeight;
     const x = (part.transform.x - 0.5) * drawWidth;
-    const y = (part.transform.y - 0.5) * drawHeight;
+    const y = (part.transform.y - 0.5) * drawHeight + surfaceOffsetY;
     context.save();
     context.globalAlpha *= part.transform.opacity;
     context.translate(round(x), round(y));
@@ -231,14 +277,50 @@ export function renderTapTilePresentationFrame(
 
   if (frame.pointer.visible) {
     context.save();
+    context.globalAlpha = frame.pointer.opacity;
     context.translate(round(frame.pointer.xPx), round(frame.pointer.yPx));
-    context.rotate(-0.25);
-    context.font = `${frame.pointer.pressed ? 96 : 108}px "Segoe UI Emoji", sans-serif`;
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText('☝️', 0, 0);
+    context.rotate(frame.pointer.rotationDeg * Math.PI / 180);
+    context.scale(frame.pointer.scale, frame.pointer.scale);
+    const pointerImage = bundle.assets.get(TAPTILE_POINTER_ASSET_ID);
+    const pointerWidth = 235;
+    const pointerHeight = pointerWidth * 360 / 280;
+    if (pointerImage) {
+      drawCover(
+        context,
+        pointerImage,
+        -pointerWidth * 58 / 280,
+        -pointerHeight * 19 / 360,
+        pointerWidth,
+        pointerHeight,
+      );
+    } else {
+      context.font = '132px "Segoe UI Emoji", sans-serif';
+      context.textAlign = 'left';
+      context.textBaseline = 'top';
+      context.fillText('👆🏻', -36, -22);
+    }
+    if (frame.pointer.pressed) {
+      const ringProgress = (frame.frameNumber % 4) / 3;
+      context.globalAlpha *= 1 - ringProgress;
+      context.strokeStyle = '#c6ff9f';
+      context.shadowColor = 'rgba(91, 255, 169, 0.9)';
+      context.shadowBlur = 14;
+      context.lineWidth = 5;
+      context.beginPath();
+      context.arc(0, 0, 24 + ringProgress * 26, 0, Math.PI * 2);
+      context.stroke();
+    }
     context.restore();
-    trace.items.push({ band: TAPTILE_Z_BANDS.pointer, id: 'pointer', bounds: { x: round(frame.pointer.xPx - 54), y: round(frame.pointer.yPx - 54), width: 108, height: 108 } });
+    trace.items.push({
+      band: TAPTILE_Z_BANDS.pointer,
+      id: 'pointer',
+      bounds: {
+        x: round(frame.pointer.xPx - pointerWidth * 0.22),
+        y: round(frame.pointer.yPx - pointerHeight * 0.06),
+        width: pointerWidth,
+        height: round(pointerHeight),
+      },
+    });
   }
 
   for (const effect of frame.effects.filter((candidate) => candidate.kind === 'match')) {
