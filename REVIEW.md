@@ -20,7 +20,7 @@ Base SHA：`f1c1052226eeaba92aff4cb4727a8fc7ee66ce74`
 1. **Architecture Import Guard。** `scripts/check-architecture.mjs` 立即禁止 `headless → games / React / Three / Scene`、`game-runtime → React / Three / Canvas / games / renderer`、`games/A → games/B`。Exporter / App / integration 的第一游戏耦合写入递减 allowlist，漏记新边或残留旧边都会失败。
 2. **基线身份冻结。** `docs/reports/MULTI_GAME_REFACTOR_BASELINE_V2.md` 与 `docs/reports/multi-game-refactor-baseline-identities.json` 固定 public fixture identity、三份 V1 Plan Hash、Material Runtime Hash 和 Shot 证据。`resolveStyleFromRenderPlan` 路径上 `cameraDrivesPixels` / `layoutDrivesPixels` 为 true；Pose/FOV 仍是 `fallback-fixed-shot`。
 3. **门禁。** `npm run check:architecture` 纳入 `npm run check`；CI `validate` 增加同名步骤。
-4. **Capture 口径。** 历史 Full Capture（`5c95db1` / `526aee6`）与工作树遗留 Smoke（`66b30c2`）都不是本 HEAD 视觉基线。R0 必须重跑当前 HEAD 的 Full Capture；未跑完前不得把旧 MP4 写成 PASS。
+4. **Capture。** 已重跑 Full Capture（20 PNG + 4 条 1080×1920 MP4，SwiftShader）。历史 `5c95db1` / `526aee6` 与 `66b30c2` Smoke 不再作为视觉基线。Plan Hash 与冻结 identities 一致；`cameraDrivesPixels` / `layoutDrivesPixels` 为 true。实现者未视觉自批。
 
 R0 未改 Gameplay、Compiler、Scene、PBR、Shot 参数或 Capture Spec。网页与像素路径不应变化。
 
@@ -28,11 +28,11 @@ R0 未改 Gameplay、Compiler、Scene、PBR、Shot 参数或 Capture Spec。网�
 
 | 条件 | 状态 | 证据 | 复跑 |
 |---|---|---|---|
-| 源码/类型/构建检查 | 本 PR 验证后填写 | `npm run check && npm run typecheck && npm run build` | 同上 |
-| 单元与负向测试 | 本 PR 验证后填写 | `npm test`；含 architecture + baseline identity | 同上 |
-| Architecture Guard | 实现已加 | `npm run check:architecture` | 同上 |
-| 本 HEAD Smoke Capture | 本 PR 验证后填写 | `npm run test:browser-e2e` | 同上 |
-| 本 HEAD Full Capture | **NOT_YET_RUN_ON_THIS_HEAD** | 必须 `npm run capture:review`；禁止引用旧 MP4 | `npm run capture:review` 或 label `full-capture` |
+| 源码/类型/构建检查 | PASS | `npm run check && npm run typecheck && npm run build` | 同上 |
+| 单元与负向测试 | PASS（137） | `npm test`；含 architecture 5 + baseline identity 1 | 同上 |
+| Architecture Guard | PASS | `npm run check:architecture`；allowlist 9 条 | 同上 |
+| R0 Smoke Capture | PASS | `fbb11f8`；3 still；steel `b0ca5623`；`cameraDrivesPixels=true` | `npm run test:browser-e2e` |
+| Full Capture | PASS（技术捕获） | 20 PNG + 4 MP4；报告 `review-package/reports/browser-e2e.json`；媒体在 `review-package/run/` | `npm run capture:review` 或 label `full-capture` |
 | Git 中旧 PNG/MP4 | stale | `review-package/frames/STALE.md` `videos/STALE.md` | 不得当作当前 HEAD 视觉证据 |
 | 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | 无源视频 |
 | 人工视觉批准 | PENDING | 实现者不得自批 | 用户 / 指定审阅者 |
@@ -66,4 +66,5 @@ R0 未改 Gameplay、Compiler、Scene、PBR、Shot 参数或 Capture Spec。网�
 技术状态：R0 ready-for-review  
 人工视觉批准：PENDING  
 T0–T5：未完成  
-重构：仅完成 R0 守卫与基线冻结，未完成多游戏接入
+重构：仅完成 R0 守卫与基线冻结，未完成多游戏接入  
+Full Capture：技术 PASS，不是视觉批准

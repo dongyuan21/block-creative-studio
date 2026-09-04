@@ -113,22 +113,37 @@ src/games/<A> → src/games/<B>
 
 ## Capture
 
-树内 `review-package/frames/` 与 `review-package/videos/` 仍是 STALE，不得引用。
+树内 `review-package/frames/` 与 `review-package/videos/` 仍是 STALE，不得引用。媒体只在 `review-package/run/`（gitignore）和 CI artifact。
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 历史 Full Capture | SUPERSEDED | `5c95db1` / CI `526aee6`；当时 Plan Hash 与证据字段都不是本 HEAD |
-| 工作树遗留 Smoke | SUPERSEDED | `review-package/run/artifact-manifest.json` 绑定 `66b30c2`，且 `cameraDrivesPixels=false` |
-| 本 HEAD Smoke | 见本 PR 后续更新 | `npm run test:browser-e2e` |
-| 本 HEAD Full Capture | 见本 PR 后续更新 | `npm run capture:review`；未完成前不得把旧 MP4 写成 PASS |
+| 历史 Full Capture | SUPERSEDED | `5c95db1` / CI `526aee6`；当时证据字段仍是 `cameraDrivesPixels=false` |
+| 工作树遗留 Smoke | SUPERSEDED | 曾绑定 `66b30c2` |
+| R0 Smoke | PASS | `fbb11f8`；3 张 still；steel planHash `fnv1a32:b0ca5623`；`cameraDrivesPixels=true` |
+| Full Capture | PASS | 20 PNG + 4 条 1080×1920 无声 MP4；SwiftShader；报告 `review-package/reports/browser-e2e.json` |
 | 商业 Golden | BLOCKED | 无源视频；39 条保持 BLOCKED，不得改成 PASS |
 | 人工视觉批准 | PENDING | 实现者不得自批 |
 
-R0 **必须**为 `f1c1052` 重新生成 Full Capture。文档提交时若捕获尚未跑完，状态只能写 `NOT_YET_RUN_ON_THIS_HEAD`，不能用旧媒体顶替。
+Full Capture 在本机跑完时 git HEAD 是后续 R1 提交 `6801b0265e0b35e33885321b837a7e6f202c6ac4`（只新增未被 App 引用的 `game-runtime` / `games`）。R0 生产 bundle 仍是 156 modules；Plan Hash 与冻结 identities 一致。这是当前工作树的视觉技术捕获，**不是**人工视觉批准，也不是 `f1c1052` 旧媒体。
+
+捕获摘要：
+
+```text
+Chrome 148 + ANGLE SwiftShader Device (Subzero)
+prepared-pbr-maps / letterbox-pick / seek-repeat / cancel-export / webcodecs = PASS
+steel  fnv1a32:b0ca5623
+wood   fnv1a32:7bff218a
+aurora fnv1a32:5c4c3c9a
+videos:
+  reference-2d  sha256:c15af7e1…399f06  1114288 B
+  fixed-steel   sha256:5911593b…444adc4  1968897 B
+  fixed-wood    sha256:5006456a…33643e  1943599 B
+  fixed-aurora  sha256:ae4eeee9…61579c  1751548 B
+```
 
 ## Tests
 
-R0 在现有套件上增加 architecture 与 baseline identity 测试。准确条数以 `npm test` 为准，写入本 PR 的 REVIEW。旧 REVIEW 写的 120 已过时。
+R0 本地：`npm test` **137**（原 131 + architecture 5 + baseline identity 1）。旧 REVIEW 的 120 已过时。
 
 ## Non-goals for R0
 
