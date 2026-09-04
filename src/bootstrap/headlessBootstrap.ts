@@ -1,3 +1,5 @@
+import { blockCrushDropDefinition } from '../games/block-crush-drop/definition';
+import { blockCrushDropPackage } from '../games/block-crush-drop/package';
 import { blockPlacementPackage } from '../games/block-placement/package';
 import { blockPlacementDefinition } from '../games/block-placement/definition';
 import { tapTileTrayMatch3Package } from '../games/taptile-tray-match3/package';
@@ -12,6 +14,7 @@ export function ensureDefaultHeadlessPlatform(): HeadlessPlatform {
     defaultPlatform = createHeadlessPlatform([
       blockPlacementPackage,
       tapTileTrayMatch3Package,
+      blockCrushDropPackage,
     ]);
   }
   return defaultPlatform;
@@ -21,6 +24,7 @@ export function createDefaultGameRegistry(): GameRegistry {
   const registry = new GameRegistry();
   registry.register(blockPlacementDefinition);
   registry.register(tapTileTrayMatch3Definition);
+  registry.register(blockCrushDropDefinition);
   return registry;
 }
 
