@@ -67,13 +67,24 @@
 
 - 状态：PASS（自检，非人工审批）
 - 提交：`refactor(composition): profile coordinate shot and calibration data`
-- 门禁：`check` / `test` 169 / `typecheck` / `build`（169 modules）/ render-regression / golden-batch / pbr-runtime PASS
+- 门禁：`check` / `test` 169 / `typecheck` / `build`（169 modules）/ render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
 - 1064×1788 / 1080×1920 / 80,309,912 仅存在于 Block Placement Profile
 - `designToVideoMapping()` 包装 `mapComposition(defaultComposition)`
 - 假 Composition Profile 通过通用映射，不改共享常量
 - Calibration Case 记录 composition/calibration profile id
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING
 
+## R6 — Backend Registry、Render Job、Exporter 与 Capture Runner 解耦
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(render): decouple backend registry exporter and capture`
+- 门禁：`check` / `test` 173 / `typecheck` / `build` / render-regression / Smoke Capture PASS
+- `offlineVideoExporter.ts` 不再直接 import compileTake / evaluateCompiledTake / Reference2DScene / StudioScene
+- Dummy Backend 无需 Block 类型即可记录像素；不支持的 schema 在渲染前失败
+- Capture Suite 迁到 `games/block-placement/capture`；Runner 消费 Frame Source + Backend
+- Architecture allowlist 从 9 条降到 6 条（exporter 三条已退休）
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
+
 ## Remaining
 
-R6 → R8b 连续执行。R9 DEFERRED。
+R7 → R8b 连续执行。R9 DEFERRED。

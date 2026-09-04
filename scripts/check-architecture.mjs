@@ -15,24 +15,6 @@ const IMPORT_PATTERNS = [
  */
 export const LEGACY_ALLOWLIST = [
   {
-    id: 'exporter-block-compiler',
-    importer: 'src/exporter/offlineVideoExporter.ts',
-    target: 'src/director/presentationCompiler.ts',
-    retireIn: 'R6',
-  },
-  {
-    id: 'exporter-cinematic-scene',
-    importer: 'src/exporter/offlineVideoExporter.ts',
-    target: 'src/renderer/StudioScene.ts',
-    retireIn: 'R6',
-  },
-  {
-    id: 'exporter-reference-scene',
-    importer: 'src/exporter/offlineVideoExporter.ts',
-    target: 'src/reference2d/Reference2DScene.ts',
-    retireIn: 'R6',
-  },
-  {
     id: 'app-block-types',
     importer: 'src/App.tsx',
     target: 'src/domain/types.ts',

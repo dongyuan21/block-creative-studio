@@ -2,10 +2,21 @@ export { blockPlacementDefinition } from './definition';
 export { importStudioDocument, migrateBlockPlacementV1, migrateUnknownProjectToV2 } from './migrations/blockPlacementV1';
 export {
   BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID,
+  blockPlacementFrameFromPacket,
+  blockPlacementPacketFromFrame,
   blockPlacementPresentationAdapter,
   compileBlockPlacementFrameSource,
 } from './presentation/legacyPresentationAdapter';
+export { createBlockPlacementCinematicBackendAdapter } from './render/cinematicBackendAdapter';
+export { createBlockPlacementReferenceBackendAdapter } from './render/referenceBackendAdapter';
 export { blockPlacementRenderContract } from './render/renderContract';
+export {
+  CAPTURE_FPS,
+  STILL_SPECS,
+  VIDEO_SPECS,
+  blockPlacementCaptureSuite,
+  packetForStill,
+} from './capture/suite';
 export {
   BLOCK_PLACEMENT_CALIBRATION_PROFILE_ID,
   blockPlacementCalibrationProfile,

@@ -108,6 +108,17 @@ function packetFromFrame(input: {
   };
 }
 
+export function blockPlacementFrameFromPacket(packet: PresentationPacket): PresentationFrame {
+  if (packet.payloadSchemaId !== BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID) {
+    throw new Error(`Unsupported presentation schema ${packet.payloadSchemaId}`);
+  }
+  return packet.payload as PresentationFrame;
+}
+
+export function blockPlacementPacketFromFrame(takeId: string, frame: PresentationFrame): PresentationPacket {
+  return packetFromFrame({ takeId, frame });
+}
+
 export function compileBlockPlacementFrameSource(input: {
   take: Take;
   rhythm: RhythmProfile;
