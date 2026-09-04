@@ -1,0 +1,237 @@
+/*
+ * TapTile visual polish layer.
+ *
+ * Keep this file after taptile-studio.css so the gameplay/editor DOM and the
+ * fixed-frame renderer share the same material intent: a fine dark keyline,
+ * compact lower-right contact shadow, restrained bevel, and a visible but
+ * neutral sidewall. The rules do not alter gameplay geometry.
+ */
+
+.tpt-studio .tile-body {
+  border: 1px solid var(--tile-keyline-color, rgba(24, 25, 25, 0.9));
+  border-radius: 10.5%;
+  background-color: #f8f3e9;
+  background-image:
+    var(--tpt-classic-tile-surface, none),
+    linear-gradient(145deg, #fffef9 0%, #f9f4eb 42%, #eee8dc 78%, #d8d1c5 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    1px 2px 0 rgba(92, 91, 84, 0.72),
+    2px 4px 0 rgba(112, 109, 100, 0.52),
+    3px 7px 8px rgba(3, 8, 16, 0.42),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.92),
+    inset -1px -2px 2px rgba(79, 74, 65, 0.14);
+}
+
+.tpt-studio .tile-body::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 0.55px rgba(18, 19, 20, 0.68),
+    inset 0 -3px 0 rgba(118, 115, 106, 0.58);
+}
+
+.tpt-studio .tile-body::after {
+  inset: 2.5%;
+  border-radius: 9%;
+  border-top-color: rgba(255, 255, 255, 0.78);
+  border-left-color: rgba(255, 255, 255, 0.5);
+  box-shadow: inset -1px -1px rgba(55, 52, 47, 0.1);
+}
+
+/* A compact contact shadow reads more like a physical tabletop tile than the
+ * broad web-button glow used by the previous treatment. */
+.tpt-studio .tpt-tile-depth-shadow {
+  background: rgba(3, 7, 13, 0.62);
+  filter: blur(calc(var(--tile-depth-shadow-blur, 1.4px) * 0.82));
+  opacity: calc(var(--tile-depth-shadow-opacity, 0.62) * 0.92);
+}
+
+/* Classic ivory ceramic: the closest treatment to the reference tiles. */
+.tpt-studio.material-porcelain .tile-body,
+.tpt-studio .tpt-tile-visual.material-porcelain {
+  --tile-keyline-color: rgba(22, 23, 23, 0.9);
+  border-color: var(--tile-keyline-color);
+  background-image:
+    var(--tile-body-image, var(--tpt-classic-tile-surface, none)),
+    linear-gradient(145deg, #fffef9 0%, #faf5ec 40%, #eee8dc 77%, #d7d0c4 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    1px 2px 0 #c8c2b7,
+    2px 4px 0 #9d9b93,
+    3px 7px 8px rgba(3, 8, 16, 0.44),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.94),
+    inset -1px -2px 2px rgba(76, 72, 65, 0.13);
+}
+
+/* Ice porcelain: cooler and glassier, but still bounded by a dark hairline so
+ * it does not read as an uncontained blue web button. */
+.tpt-studio.material-ice .tile-body,
+.tpt-studio .tpt-tile-visual.material-ice {
+  --tile-keyline-color: rgba(34, 55, 86, 0.78);
+  border-color: var(--tile-keyline-color);
+  border-radius: 14.5%;
+  background-image:
+    var(--tile-body-image, none),
+    linear-gradient(145deg, #ffffff 0%, #f4f9ff 38%, #e3efff 72%, #c6d9f7 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    1px 2px 0 #acc2e6,
+    2px 5px 0 #6f91c7,
+    3px 8px 9px rgba(4, 19, 49, 0.46),
+    inset 1px 2px 2px rgba(255, 255, 255, 0.96),
+    inset -2px -4px 6px rgba(64, 112, 178, 0.18);
+}
+.tpt-studio.material-ice .tile-body::after {
+  inset: 5.5%;
+  border-radius: 11%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Translucent jelly: a soft body with a controlled contour and deeper contact
+ * shadow, rather than a flat cyan gradient. */
+.tpt-studio.material-jelly .tile-body,
+.tpt-studio .tpt-tile-visual.material-jelly {
+  --tile-keyline-color: rgba(36, 70, 101, 0.68);
+  border-color: var(--tile-keyline-color);
+  border-radius: 14%;
+  background-image:
+    var(--tile-body-image, none),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(232, 248, 255, 0.94) 39%, rgba(192, 226, 249, 0.88) 72%, rgba(135, 195, 235, 0.84) 100%);
+  background-blend-mode: soft-light, normal;
+  box-shadow:
+    1px 2px 0 rgba(148, 204, 236, 0.88),
+    2px 5px 0 rgba(66, 137, 194, 0.88),
+    3px 8px 10px rgba(4, 21, 48, 0.45),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.94),
+    inset -3px -6px 8px rgba(37, 119, 178, 0.16);
+  backdrop-filter: blur(2px);
+}
+
+/* Matte paper/cardboard: tighter radius, warmer edge, visible grain. */
+.tpt-studio.material-paper .tile-body,
+.tpt-studio .tpt-tile-visual.material-paper {
+  --tile-keyline-color: rgba(52, 43, 34, 0.78);
+  border-color: var(--tile-keyline-color);
+  border-radius: 7.8%;
+  background-image:
+    var(--tile-body-image, var(--tpt-classic-tile-surface, none)),
+    linear-gradient(145deg, #fffdf8 0%, #f5efe5 46%, #ece3d5 77%, #d8cab5 100%);
+  background-blend-mode: multiply, normal;
+  box-shadow:
+    1px 2px 0 #d3c5af,
+    2px 4px 0 #a99577,
+    3px 7px 7px rgba(22, 18, 14, 0.38),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.74),
+    inset -1px -2px 2px rgba(78, 62, 45, 0.12);
+}
+
+/* TileVisual is used directly in the tray, previews, flight, and match ghosts.
+ * Give those roles the same fine contour rather than the old pale border. */
+.tpt-studio .tpt-tile-visual:not(.mode-full-front) {
+  border-width: var(--tile-keyline-width, 1px);
+  border-color: var(--tile-keyline-color, rgba(24, 25, 25, 0.88));
+}
+
+.tpt-studio .tpt-gameplay-tray {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  pointer-events: none;
+}
+
+.tpt-studio .tpt-gameplay-tray > i {
+  z-index: 1;
+  border: 1px solid rgba(136, 167, 218, 0.13);
+  background: rgba(3, 17, 45, 0.66);
+  box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.07);
+}
+
+.tpt-studio .tpt-gameplay-tray > i.is-occupied {
+  overflow: hidden;
+  border-color: rgba(136, 167, 218, 0.09);
+  background: rgba(3, 17, 45, 0.48);
+  box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.05);
+}
+
+.tpt-studio .tpt-tray-tile-layer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.tpt-studio .tpt-tray-tile {
+  position: absolute;
+  display: block;
+  will-change: left, top, transform;
+  transition:
+    left 230ms cubic-bezier(0.2, 0.84, 0.26, 1.08),
+    top 230ms cubic-bezier(0.2, 0.84, 0.26, 1.08),
+    transform 230ms cubic-bezier(0.2, 0.84, 0.26, 1.08);
+}
+
+.tpt-studio .tpt-tray-tile-card {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 64%;
+  animation: tpt-tray-card-arrive 260ms cubic-bezier(0.18, 0.86, 0.28, 1.14) both;
+}
+
+.tpt-studio .tpt-tray-tile-card > .tpt-tile-visual {
+  inset: 0;
+  border-width: max(0.75px, var(--tile-keyline-width, 1px));
+  box-shadow:
+    0 1px 0 var(--tile-contact-shadow-color, rgba(4, 10, 18, 0.5)),
+    var(--tile-shadow-x, 1px) var(--tile-shadow-y, 3px) var(--tile-shadow-blur, 4px) var(--tile-shadow-color, rgba(4, 13, 28, 0.38)),
+    inset 0 -1px 0 rgba(76, 76, 72, 0.32),
+    inset 1px 1px 1px rgba(255, 255, 255, 0.72);
+}
+
+.tpt-studio .tpt-gameplay-tray > b {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  top: 20.8%;
+  transform: translateX(-50%);
+  color: #ffd45a;
+  font-size: clamp(8px, 1.2vw, 15px);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.58);
+  white-space: nowrap;
+}
+
+.tpt-studio .tpt-gameplay-tray[data-tray-count="6"] ~ .tpt-safe-area,
+.tpt-studio .tpt-gameplay-tray.status-lost ~ .tpt-safe-area {
+  border-color: rgba(255, 190, 72, 0.22);
+}
+
+@keyframes tpt-tray-card-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(62%) scale(1.12) rotate(3.5deg);
+    filter: brightness(1.18) drop-shadow(0 9px 9px rgba(3, 8, 18, 0.42));
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(-7%) scale(0.97) rotate(-1deg);
+  }
+  78% {
+    transform: translateY(3%) scale(1.025) rotate(0.35deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0);
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tpt-studio .tpt-tray-tile { transition-duration: 90ms; }
+  .tpt-studio .tpt-tray-tile-card { animation-duration: 100ms; }
+}

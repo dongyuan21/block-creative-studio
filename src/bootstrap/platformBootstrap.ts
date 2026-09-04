@@ -1,5 +1,7 @@
 import { BlockPlacementWorkspace } from '../games/block-placement/studio/BlockPlacementWorkspace';
 import { BLOCK_PLACEMENT_GAME_ID } from '../games/block-placement/manifest';
+import { TAPTILE_TRAY_MATCH3_GAME_ID } from '../games/taptile-tray-match3/manifest';
+import { TapTileWorkspace } from '../games/taptile-tray-match3/studio/TapTileWorkspace';
 import { GameStudioRegistry, type GameStudioModule } from '../studio/gameStudioRegistry';
 import { ensureDefaultHeadlessPlatform } from './headlessBootstrap';
 import type { HeadlessPlatform } from './gamePackage';
@@ -35,6 +37,13 @@ export function createDefaultPlatform(): StudioPlatform {
       status: 'available',
       description: '固定视图方块创作',
       Workspace: BlockPlacementWorkspace,
+    },
+    {
+      gameId: TAPTILE_TRAY_MATCH3_GAME_ID,
+      displayName: 'TapTile Match-3',
+      status: 'available',
+      description: '分层牌堆、7 槽三消、Take 与固定帧导演',
+      Workspace: TapTileWorkspace,
     },
     ...comingSoon,
   ]);
