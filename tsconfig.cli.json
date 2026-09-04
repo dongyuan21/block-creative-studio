@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": [
-      "ES2023"
+      "ES2023",
+      "DOM"
     ],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "rootDir": "src",
     "outDir": "dist-cli",
     "strict": true,
@@ -22,6 +23,16 @@
   },
   "include": [
     "src/headless/**/*.ts",
-    "src/cli/**/*.ts"
+    "src/cli/**/*.ts",
+    "src/game-runtime/**/*.ts",
+    "src/games/block-placement/**/*.ts",
+    "src/domain/**/*.ts",
+    "src/director/**/*.ts",
+    "src/bootstrap/**/*.ts",
+    "src/rendering/**/*.ts"
+  ],
+  "exclude": [
+    "src/games/block-placement/studio/**",
+    "src/bootstrap/platformBootstrap.ts"
   ]
 }

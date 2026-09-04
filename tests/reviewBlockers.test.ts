@@ -41,7 +41,7 @@ import type { MaterialPackManifest } from '../src/headless/contracts';
 import type { ProjectSpec } from '../src/domain/types';
 import { compileRegisteredMaterialPlan } from '../src/capture/materialVariants';
 import { STILL_SPECS } from '../src/capture/capturePlan';
-import { collectRuntimeAssetRequests } from '../src/assets/runtimeAssetBindings';
+import { collectRuntimeAssetRequests, createRuntimeAssetBindings } from '../src/assets/runtimeAssetBindings';
 
 function packPath(name: string): string {
   return resolve(process.cwd(), `examples/headless/materials/${name}`);
@@ -411,13 +411,8 @@ describe('review blockers', () => {
       colorSpace: 'srgb' as const,
     };
     expect(() => resolveMaterialMapFetchUrl(map)).toThrow(/PreparedResources/);
-    const url = resolveMaterialMapFetchUrl(map, {
+    const url = resolveMaterialMapFetchUrl(map, createRuntimeAssetBindings({
       revision: 'test',
-      background: null,
-      tileFace: null,
-      particleSprites: [],
-      binary: [],
-      missing: [],
       textureMaps: [{
         slotId: 'tile.material',
         role: 'texture-map',
@@ -431,7 +426,7 @@ describe('review blockers', () => {
         blendMode: 'source-over',
         inset: 0,
       }],
-    });
+    }));
     expect(url).toBe('blob:prepared-albedo');
   });
 
@@ -528,13 +523,8 @@ describe('review blockers', () => {
     const map = compiled.runtime.maps.find((item) => item.slot === 'baseColor');
     expect(map?.uri).toBe(uri);
     expect(() => resolveMaterialMapFetchUrl(map!)).toThrow(/PreparedResources/);
-    expect(resolveMaterialMapFetchUrl(map!, {
+    expect(resolveMaterialMapFetchUrl(map!, createRuntimeAssetBindings({
       revision: 'test',
-      background: null,
-      tileFace: null,
-      particleSprites: [],
-      binary: [],
-      missing: [],
       textureMaps: [{
         slotId: 'tile.material.baseColor',
         role: 'texture-map',
@@ -548,6 +538,6 @@ describe('review blockers', () => {
         blendMode: 'source-over',
         inset: 0,
       }],
-    })).toBe('blob:review-pbr');
+    }))).toBe('blob:review-pbr');
   });
 });

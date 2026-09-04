@@ -1,28 +1,7 @@
-import { BLOCK_GARDEN_FIXED_CAMERA_DRAFT } from '../assets/fixedCameraProfile';
-import {
-  DESIGN_RESOLUTION,
-  VIDEO_RESOLUTION,
-  lockedCompositionAspect,
-} from '../headless/coordinateMapping';
+import { blockPlacementShotProfile } from '../games/block-placement/profiles/fixedCamera';
 import { perspectiveDistanceToFitFrame } from './cameraFraming';
 
-export const FIXED_SHOT_PROFILE = {
-  id: 'block-garden-fixed-shot-v1',
-  cameraProfileId: BLOCK_GARDEN_FIXED_CAMERA_DRAFT.id,
-  designResolution: DESIGN_RESOLUTION,
-  videoResolution: VIDEO_RESOLUTION,
-  compositionAspect: lockedCompositionAspect(),
-  verticalFovDegrees: 42,
-  contentWidth: 9.05,
-  contentHeight: 13.8,
-  widthFill: 0.89,
-  heightFill: 0.9,
-  baseDistance: 17.6,
-  lookAt: [0, -0.05, 0.15] as const,
-  cameraOffset: { x: 0.12, y: -1.1 },
-  maximumScreenZoom: BLOCK_GARDEN_FIXED_CAMERA_DRAFT.motionPolicy.maximumScreenZoom,
-  boardScreenRect: BLOCK_GARDEN_FIXED_CAMERA_DRAFT.boardScreenRect,
-} as const;
+export const FIXED_SHOT_PROFILE = blockPlacementShotProfile;
 
 export type ShotProfileLike = {
   compositionAspect: number;
@@ -37,6 +16,7 @@ export type ShotProfileLike = {
   maximumScreenZoom: number;
   boardScreenRect: { x: number; y: number; width: number; height: number };
   designResolution: { width: number; height: number };
+  boardWorld?: { minYOffset: number; maxYOffset: number };
 };
 
 export interface ContainedViewport {
@@ -75,9 +55,16 @@ export function lockedCameraDistance(punch = 0, shot: ShotProfileLike = FIXED_SH
   return fitted / zoom;
 }
 
-export function boardWorldBounds(): { minX: number; maxX: number; minY: number; maxY: number } {
-  const half = FIXED_SHOT_PROFILE.contentWidth / 2;
-  return { minX: -half, maxX: half, minY: -half - 1.2, maxY: half + 0.4 };
+export function boardWorldBounds(shot: ShotProfileLike = FIXED_SHOT_PROFILE): {
+  minX: number;
+  maxX: number;
+  minY: number;
+  maxY: number;
+} {
+  const half = shot.contentWidth / 2;
+  const minYOffset = shot.boardWorld?.minYOffset ?? FIXED_SHOT_PROFILE.boardWorld.minYOffset;
+  const maxYOffset = shot.boardWorld?.maxYOffset ?? FIXED_SHOT_PROFILE.boardWorld.maxYOffset;
+  return { minX: -half, maxX: half, minY: -half + minYOffset, maxY: half + maxYOffset };
 }
 
 export function viewportPolicyForRenderer(

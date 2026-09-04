@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://block-creative.local/schema/game-replay-v1.json",
+  "title": "Game replay envelope",
+  "type": "object",
+  "required": [
+    "contract",
+    "contractVersion",
+    "gameId",
+    "moduleVersion",
+    "takeId",
+    "initialStateHash",
+    "seed",
+    "actions",
+    "interactions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "contract": { "const": "bcs.game-replay" },
+    "contractVersion": { "const": "1.0.0" },
+    "gameId": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "moduleVersion": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "takeId": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "initialStateHash": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "seed": { "type": "integer", "minimum": 0, "maximum": 2147483647 },
+    "actions": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "required": ["id", "actor", "schemaId", "action"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "actor": { "enum": ["human", "agent"] },
+          "schemaId": { "type": "string", "minLength": 1 },
+          "action": true
+        }
+      }
+    },
+    "interactions": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "required": ["id", "modality", "startFrame", "endFrame"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "modality": { "enum": ["pointer", "touch", "tap", "system"] },
+          "startFrame": { "type": "integer", "minimum": 0 },
+          "endFrame": { "type": "integer", "minimum": 0 },
+          "samples": {
+            "type": "array",
+            "maxItems": 10000,
+            "items": {
+              "type": "object",
+              "required": ["frameOffset", "x", "y"],
+              "additionalProperties": false,
+              "properties": {
+                "frameOffset": { "type": "integer", "minimum": 0 },
+                "x": { "type": "number", "minimum": 0, "maximum": 1 },
+                "y": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          },
+          "committedActionId": { "type": "string", "minLength": 1 },
+          "metadata": { "type": "object" }
+        }
+      }
+    }
+  }
+}

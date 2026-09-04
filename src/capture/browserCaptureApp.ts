@@ -1,15 +1,17 @@
+import { ensureDefaultHeadlessPlatform } from '../bootstrap/headlessBootstrap';
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
 import { copyLookDevPreset } from '../renderer/lookDev';
-import { Reference2DScene } from '../reference2d/Reference2DScene';
 import { StudioScene } from '../renderer/StudioScene';
 import { exportTakeVideo } from '../exporter/offlineVideoExporter';
 import type { StyleSpec } from '../domain/types';
 import { consecutiveTake } from '../domain/publicFixtures';
+import { blockPlacementCaptureSuite, packetForStill } from '../games/block-placement/capture/suite';
+import { createBlockPlacementCinematicBackendAdapter } from '../games/block-placement/render/cinematicBackendAdapter';
+import { createBlockPlacementReferenceBackendAdapter } from '../games/block-placement/render/referenceBackendAdapter';
 import {
   CAPTURE_FPS,
   STILL_SPECS,
   VIDEO_SIZE,
-  VIDEO_SPECS,
   captureRhythm,
   presentationForSpec,
   resolveTakeAnchor,
@@ -24,7 +26,8 @@ import {
   type PlanRenderEvidence,
 } from '../integration/studioAssetCatalog';
 import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
-import { EMPTY_RUNTIME_ASSET_BINDINGS } from '../assets/runtimeAssetBindings';
+import { EMPTY_RUNTIME_ASSET_BINDINGS, createRuntimeAssetBindings } from '../assets/runtimeAssetBindings';
+import { readyRenderResources } from '../rendering/preparedRenderResources';
 import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
 import { activeShotProfile } from '../renderer/planShotAdapter';
 import { viewportPolicyForRenderer } from '../renderer/shotProfile';
@@ -69,6 +72,7 @@ document.body.append(statusEl);
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode') === 'smoke' ? 'smoke' : 'full';
 const autorun = params.get('autorun') !== '0';
+ensureDefaultHeadlessPlatform();
 
 function log(message: string): void {
   statusEl.textContent += `\n${message}`;
@@ -173,53 +177,46 @@ async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
   width: number;
   height: number;
 }> {
-  const frame = presentationForSpec(spec);
+  const packet = packetForStill(spec);
   const style = await styleFor(spec.renderer, spec.materialId, {
     ...(spec.diagnosticView ? { diagnosticView: spec.diagnosticView } : {}),
     ...(spec.enabledPasses ? { enabledPasses: spec.enabledPasses } : {}),
     ...(spec.lookDevId ? { lookDevId: spec.lookDevId } : {}),
   });
+  const backend = spec.renderer === 'reference-2d'
+    ? createBlockPlacementReferenceBackendAdapter(style)
+    : createBlockPlacementCinematicBackendAdapter(style);
   const host = document.createElement('canvas');
   host.style.position = 'fixed';
   host.style.left = '-4096px';
   document.body.append(host);
+  const stage = backend.createStage(host, readyRenderResources('capture'));
   try {
-    if (spec.renderer === 'reference-2d') {
-      const scene = new Reference2DScene(host, { quality: 'cinematic' });
-      await scene.warmup(frame, style);
-      const native = scene.captureNativeFrame({ requireAssets: true });
-      const blob = await blobPng(native);
-      scene.dispose();
-      const path = `review-package/run/frames/${spec.role}/${spec.id}.png`;
-      const posted = await postArtifact(path, blob, {
-        width: native.width,
-        height: native.height,
-        renderer: spec.renderer,
-      });
-      const sha256 = posted.sha256 ?? await sha256Hex(await blob.arrayBuffer());
-      return { id: spec.id, path, sha256, width: native.width, height: native.height };
+    if (spec.renderer === 'reference-2d' && backend.designResolution) {
+      stage.resize(backend.designResolution.width, backend.designResolution.height, 1);
+    } else {
+      host.width = VIDEO_SIZE.width;
+      host.height = VIDEO_SIZE.height;
+      stage.resize(VIDEO_SIZE.width, VIDEO_SIZE.height, 1);
     }
-    host.width = VIDEO_SIZE.width;
-    host.height = VIDEO_SIZE.height;
-    const scene = new StudioScene(host, { quality: 'cinematic' });
-    scene.resize(VIDEO_SIZE.width, VIDEO_SIZE.height, 1);
-    await scene.warmup(frame, style);
-    const blob = await blobPng(host);
-    scene.dispose();
+    await stage.warmup(packet);
+    const still = stage.captureStill?.() ?? host;
+    const blob = await blobPng(still);
     const path = `review-package/run/frames/${spec.role}/${spec.id}.png`;
     const posted = await postArtifact(path, blob, {
-      width: host.width,
-      height: host.height,
+      width: still.width,
+      height: still.height,
       renderer: spec.renderer,
     });
     const sha256 = posted.sha256 ?? await sha256Hex(await blob.arrayBuffer());
-    return { id: spec.id, path, sha256, width: host.width, height: host.height };
+    return { id: spec.id, path, sha256, width: still.width, height: still.height };
   } finally {
+    stage.dispose();
     host.remove();
   }
 }
 
-async function captureVideo(spec: (typeof VIDEO_SPECS)[number]): Promise<{
+async function captureVideo(spec: (typeof blockPlacementCaptureSuite.videos)[number]): Promise<{
   id: string;
   path: string;
   sha256: string;
@@ -228,7 +225,7 @@ async function captureVideo(spec: (typeof VIDEO_SPECS)[number]): Promise<{
   durationSeconds: number;
 }> {
   const take = consecutiveTake();
-  const style = await styleFor(spec.renderer, spec.materialId);
+  const style = await styleFor(spec.renderer, 'materialId' in spec ? spec.materialId : undefined);
   const result = await exportTakeVideo({
     take,
     rhythm: captureRhythm(),
@@ -281,22 +278,22 @@ async function runPreparedTextureTest(): Promise<{ name: string; status: 'PASS' 
     channels: 'rgb' as const,
     colorSpace: 'srgb' as const,
   };
-  const bindings = {
-    ...EMPTY_RUNTIME_ASSET_BINDINGS,
+  const bindings = createRuntimeAssetBindings({
+    revision: 'prepared-pbr-v1',
     textureMaps: [{
       slotId: 'tile.material',
-      role: 'texture-map' as const,
+      role: 'texture-map',
       contentHash: record.contentHash,
       sourceUri: record.uri,
       objectUrl,
       fileName: 'albedo.png',
       mimeType: 'image/png',
-      fit: 'contain' as const,
+      fit: 'contain',
       opacity: 1,
-      blendMode: 'source-over' as const,
+      blendMode: 'source-over',
       inset: 0,
     }],
-  };
+  });
   try {
     try {
       resolveMaterialMapFetchUrl(map, EMPTY_RUNTIME_ASSET_BINDINGS);
@@ -408,8 +405,8 @@ async function run(): Promise<CaptureReport> {
     await postJson('/__capture/progress', { message: 'initialized', consecutive });
 
     const stills = mode === 'smoke'
-      ? STILL_SPECS.filter((item) => ['2d-idle', '2d-background-only', '3d-steel-idle'].includes(item.id))
-      : STILL_SPECS;
+      ? blockPlacementCaptureSuite.stills.filter((item) => ['2d-idle', '2d-background-only', '3d-steel-idle'].includes(item.id))
+      : [...blockPlacementCaptureSuite.stills];
     for (const spec of stills) {
       log(`still ${spec.id}`);
       await postJson('/__capture/progress', { message: `still ${spec.id}` });
@@ -427,7 +424,7 @@ async function run(): Promise<CaptureReport> {
     });
 
     if (mode === 'full' && report.videoEncoder) {
-      for (const spec of VIDEO_SPECS) {
+      for (const spec of blockPlacementCaptureSuite.videos) {
         log(`video ${spec.id}`);
         await postJson('/__capture/progress', { message: `video ${spec.id}` });
         report.videos.push(await captureVideo(spec));

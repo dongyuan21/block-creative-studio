@@ -24,6 +24,8 @@ jobs:
       - uses: browser-actions/setup-chrome@v2
         id: setup-chrome
       - run: npm install --no-audit --no-fund
+      - name: Architecture import guards
+        run: npm run check:architecture
       - run: npm run check
       - run: npm test
       - run: npm run typecheck

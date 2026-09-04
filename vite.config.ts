@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
 const base = process.env.PAGES_BASE_PATH ?? '/';
@@ -17,5 +17,8 @@ export default defineConfig({
   build: {
     target: 'es2022',
     sourcemap: true,
+  },
+  test: {
+    setupFiles: ['./tests/setupPlatform.ts'],
   },
 });

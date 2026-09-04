@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://block-creative.local/schema/creative-master-v2.json",
+  "title": "Creative master V2",
+  "type": "object",
+  "required": [
+    "contract",
+    "contractVersion",
+    "id",
+    "game",
+    "renderContractId",
+    "renderContractVersion",
+    "replay",
+    "layoutProfileRef",
+    "cameraProfileRef",
+    "baseOutput"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "contract": { "const": "bcs.creative-master-v2" },
+    "contractVersion": { "const": "2.0.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "game": {
+      "type": "object",
+      "required": ["id", "moduleVersion", "rulesetId", "rulesetVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "moduleVersion": { "type": "string" },
+        "rulesetId": { "type": "string" },
+        "rulesetVersion": { "type": "string" }
+      }
+    },
+    "renderContractId": { "type": "string" },
+    "renderContractVersion": { "type": "string" },
+    "compositionProfileId": { "type": "string" },
+    "replay": { "type": "object" },
+    "layoutProfileRef": { "type": "object" },
+    "cameraProfileRef": { "type": "object" },
+    "baseOutput": { "type": "object" }
+  }
+}

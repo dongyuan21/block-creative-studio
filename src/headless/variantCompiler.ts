@@ -17,7 +17,7 @@ import { BcsHeadlessError } from './errors.js';
 import { stableHash } from './stableHash.js';
 import { validateCreativeMaster, validateVariantRecipe } from './validation.js';
 
-function cloneValue<T>(value: T): T {
+export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
@@ -46,7 +46,7 @@ function failFromIssues(code: string, message: string, issues: ReturnType<typeof
   });
 }
 
-function resolveAsset(
+export function resolveAsset(
   registry: AssetRegistry,
   ref: AssetRef,
   renderer: HeadlessRendererId,
@@ -84,7 +84,7 @@ function resolveAsset(
   };
 }
 
-function assetKey(ref: Pick<AssetRef, 'id' | 'version'>): string {
+export function assetKey(ref: Pick<AssetRef, 'id' | 'version'>): string {
   return `${ref.id}@${ref.version}`;
 }
 
@@ -111,7 +111,7 @@ interface DependencyClosure {
   dependencyOrder: AssetRef[];
 }
 
-function resolveDependencyClosure(
+export function resolveDependencyClosure(
   registry: AssetRegistry,
   roots: Array<{ ref: AssetRef; path: string }>,
   renderer: HeadlessRendererId,

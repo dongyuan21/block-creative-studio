@@ -7,7 +7,10 @@ import type {
 import { BCS_CONTRACT_VERSION } from './contracts.js';
 import { stableHash } from './stableHash.js';
 import { DESIGN_RESOLUTION } from './coordinateMapping.js';
-import { DESIGN_BOARD_OUTER } from './coordinateMapping.js';
+import {
+  getDefaultCalibrationProfile,
+  requireCalibrationProfile,
+} from '../rendering/compositionRegistry.js';
 
 export interface GoldenSceneDefinition {
   id: string;
@@ -17,12 +20,27 @@ export interface GoldenSceneDefinition {
   purpose: string;
 }
 
-export const DEFAULT_CALIBRATION_ROIS: CalibrationRoi[] = [
-  { id: 'board', x: DESIGN_BOARD_OUTER.x, y: DESIGN_BOARD_OUTER.y, width: DESIGN_BOARD_OUTER.size, height: DESIGN_BOARD_OUTER.size },
-  { id: 'grid', x: 91, y: 321, width: 892, height: 892 },
-  { id: 'hud-score', x: 372, y: 165, width: 320, height: 96 },
-  { id: 'tray', x: 80, y: 1320, width: 904, height: 280 },
-];
+export function roisFromCalibrationProfile(profileId: string) {
+  const profile = requireCalibrationProfile(profileId);
+  return profile.rois.map((roi) => ({
+    id: roi.id,
+    x: roi.x,
+    y: roi.y,
+    width: roi.width,
+    height: roi.height,
+  }));
+}
+
+export function defaultCalibrationRois() {
+  return roisFromCalibrationProfile(getDefaultCalibrationProfile().id);
+}
+
+function resolveCalibrationProfileId(calibrationProfileId?: string): string {
+  if (calibrationProfileId) return calibrationProfileId;
+  throw new Error(
+    'createCalibrationCase requires calibrationProfileId so ROI lookup cannot silently use another game.',
+  );
+}
 
 export function calibrationCaseIdentity(input: {
   referenceMediaHash?: string;
@@ -32,8 +50,15 @@ export function calibrationCaseIdentity(input: {
   targetFrame: number;
   targetFps: number;
   planHash?: string;
+  compositionProfileId?: string;
+  calibrationProfileId?: string;
 }): string {
-  return stableHash(input);
+  const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
+  return stableHash({
+    ...input,
+    compositionProfileId: requireCalibrationProfile(calibrationProfileId).compositionProfileId,
+    calibrationProfileId,
+  });
 }
 
 export function createCalibrationCase(input: {
@@ -52,8 +77,18 @@ export function createCalibrationCase(input: {
   targetTakeHash?: string;
   isolatedFixtureHash?: string;
   roi?: CalibrationRoi[];
+  compositionProfileId?: string;
+  calibrationProfileId?: string;
 }): CalibrationCase {
   const reviewStatus = input.reviewStatus ?? 'NOT_RUN';
+  const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
+  const profile = requireCalibrationProfile(calibrationProfileId);
+  if (input.compositionProfileId !== undefined && input.compositionProfileId !== profile.compositionProfileId) {
+    throw new Error(
+      `compositionProfileId ${input.compositionProfileId} does not match calibration ${calibrationProfileId} composition ${profile.compositionProfileId}.`,
+    );
+  }
+  const compositionProfileId = profile.compositionProfileId;
   const value: CalibrationCase = {
     contract: 'bcs.calibration-case',
     contractVersion: BCS_CONTRACT_VERSION,
@@ -63,10 +98,12 @@ export function createCalibrationCase(input: {
     eventId: input.eventId,
     eventType: input.eventType,
     correspondence: input.correspondence,
-    roi: input.roi ?? DEFAULT_CALIBRATION_ROIS,
+    roi: input.roi ?? roisFromCalibrationProfile(calibrationProfileId),
     excludedRegions: [],
     reviewStatus,
     unresolvedReasons: input.unresolvedReasons ?? [],
+    compositionProfileId,
+    calibrationProfileId,
   };
   if (input.referenceMediaHash !== undefined) value.referenceMediaHash = input.referenceMediaHash;
   if (input.sourceFrameIndex !== undefined) value.sourceFrameIndex = input.sourceFrameIndex;
@@ -106,6 +143,8 @@ export function expandGoldenSceneCases(
     targetFps?: number;
     isolatedFixtureHash?: string;
     targetTakeHash?: string;
+    compositionProfileId?: string;
+    calibrationProfileId?: string;
   },
 ): CalibrationCase[] {
   if (options.correspondence === 'exact-replay' && !options.targetTakeHash) {
@@ -113,6 +152,9 @@ export function expandGoldenSceneCases(
   }
   const cases: CalibrationCase[] = [];
   const targetFps = options.targetFps ?? 30;
+  const calibrationProfileId = options.calibrationProfileId ?? getDefaultCalibrationProfile().id;
+  const compositionProfileId = options.compositionProfileId
+    ?? requireCalibrationProfile(calibrationProfileId).compositionProfileId;
   for (const scene of scenes) {
     for (const [anchor, frame] of [
       ['start', scene.startFrame],
@@ -137,6 +179,8 @@ export function expandGoldenSceneCases(
         ...(sourcePts !== undefined ? { sourcePtsSeconds: sourcePts, sourceTimeBase : `${options.sourceFps}/1` } : {}),
         ...(options.targetTakeHash !== undefined ? { targetTakeHash: options.targetTakeHash } : {}),
         ...(options.isolatedFixtureHash !== undefined ? { isolatedFixtureHash: options.isolatedFixtureHash } : {}),
+        compositionProfileId,
+        calibrationProfileId,
       }));
     }
   }

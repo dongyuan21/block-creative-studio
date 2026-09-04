@@ -21,9 +21,10 @@
     "check:imports": "node scripts/check-imports.mjs",
     "check:json": "node scripts/check-json.mjs",
     "check:syntax": "tsc -p tsconfig.app.json --noEmit --noCheck --pretty false && tsc -p tsconfig.node.json --noEmit --noCheck --pretty false",
-    "check": "npm run check:source && npm run check:core && npm run check:reference",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "check": "npm run check:source && npm run check:core && npm run check:reference && npm run check:architecture",
     "check:reference": "node scripts/check-reference-audit.mjs",
-    "build:cli": "tsc -p tsconfig.cli.json",
+    "build:cli": "mkdir -p dist-cli/cli && rolldown src/cli/bcs.ts --file dist-cli/cli/bcs.js --format esm --platform node --sourcemap",
     "cli": "node dist-cli/cli/bcs.js"
   },
   "dependencies": {
