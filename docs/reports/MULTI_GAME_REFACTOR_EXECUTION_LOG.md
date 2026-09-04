@@ -124,3 +124,5 @@
 ## Remaining
 
 R9 DEFERRED（需 Block Crush Diagnostic Slice）。本轮不删除 V1、不默认切换 V2。
+
+完整一次性交付：`docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md`。
