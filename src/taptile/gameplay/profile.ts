@@ -1,8 +1,2 @@
-import { TAPTILE_RULE_PROFILE_ID } from '../project';
-
-export const TAPTILE_MATCH3_PROFILE = Object.freeze({
-  id: TAPTILE_RULE_PROFILE_ID,
-  matchSize: 3,
-  trayCapacity: 7,
-  warningAt: 6,
-} as const);
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/gameplay/profile';

@@ -1,4 +1,2 @@
-export * from './recorder';
-export * from './replayTake';
-export * from './types';
-export * from './validateTake';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../../games/taptile-tray-match3/gameplay/take';

@@ -1,18 +1,23 @@
-import type { CompiledTapTileLevel, TapTileProjectV2 } from '../../taptile/project';
-import type { TapTileGameState, TapTileTransition } from '../../taptile/gameplay';
+import type { CompiledTapTileLevel, TapTileProjectV2 } from './project';
+import type { TapTileConfig } from './project/config';
+import type { TapTileGameState, TapTileTransition } from './gameplay';
 
 export interface TapTileRuntimeAction {
   tileId: string;
 }
 
 export interface TapTileRuntimeState {
-  project: TapTileProjectV2;
+  seed: number;
+  config: TapTileConfig;
   level: CompiledTapTileLevel;
   game: TapTileGameState;
 }
 
 export interface TapTileRuntimeResolution {
-  project: TapTileProjectV2;
+  seed: number;
+  config: TapTileConfig;
   level: CompiledTapTileLevel;
   transition: TapTileTransition;
 }
+
+export type { TapTileProjectV2, TapTileConfig };

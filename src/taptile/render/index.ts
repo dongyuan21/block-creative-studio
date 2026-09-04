@@ -1,7 +1,2 @@
-export * from './AssetCache';
-export * from './CanvasRenderer';
-export * from './frameHash';
-export * from './qualityProfiles';
-export * from './renderProof';
-export * from './TapTileRenderJob';
-export * from './regressionFrames';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/render';

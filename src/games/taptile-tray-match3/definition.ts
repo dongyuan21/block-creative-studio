@@ -1,5 +1,5 @@
 import type { GameDefinition } from '../../game-runtime/contracts';
-import type { TapTileProjectV2 } from '../../taptile/project';
+import type { TapTileConfig } from './project/config';
 import { tapTileTrayMatch3Manifest } from './manifest';
 import { tapTileTrayMatch3Runtime } from './runtime';
 import { tapTileTrayMatch3Schemas } from './schemas';
@@ -10,7 +10,7 @@ import type {
 } from './types';
 
 export const tapTileTrayMatch3Definition: GameDefinition<
-  TapTileProjectV2,
+  TapTileConfig,
   TapTileRuntimeState,
   TapTileRuntimeAction,
   TapTileRuntimeResolution

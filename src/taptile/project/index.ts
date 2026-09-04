@@ -1,7 +1,2 @@
-export * from './defaultProject';
-export * from './builtInFaceThemes';
-export * from './editorAdapter';
-export * from './migrateV1';
-export * from './schemaV2';
-export * from './stableHash';
-export * from './types';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/project';

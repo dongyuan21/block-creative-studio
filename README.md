@@ -276,7 +276,8 @@ CLI 负责 Schema、资产、Plan 和质量报告；当前 MP4 仍由浏览器 C
 src/
 ├── game-runtime/              # 多游戏 State / Action / Replay / Schema 协议
 ├── games/
-│   └── block-placement/       # 第一款完整游戏 Vertical Slice
+│   ├── block-placement/       # 第一款完整游戏 Vertical Slice
+│   └── taptile-tray-match3/   # 分层牌堆 7 槽三消，完整 GamePackage
 ├── bootstrap/                 # Game Package 与平台组装
 ├── headless/                  # Asset、Variant、Quality、Material 等无头核心
 ├── rendering/                 # Backend、Composition、资源策略与 Render Job
@@ -287,6 +288,7 @@ src/
 ```
 
 平台层禁止反向依赖具体游戏；不同游戏包之间也不能相互导入。`scripts/check-architecture.mjs` 会在 CI 中持续检查这些边界。
+`src/taptile/` 仅保留指向 `src/games/taptile-tray-match3/` 的过渡 re-export。
 
 ---
 
@@ -295,7 +297,8 @@ src/
 | 项目 | 状态 |
 |---|---|
 | 多游戏平台 R0–R8b | 已完成并合入 `main` |
-| Block Placement | 当前唯一可制作游戏 |
+| Block Placement | 固定视图方块创作，完整 Vertical Slice |
+| TapTile Match-3 | 分层牌堆、7 槽三消，已按同一套 GamePackage 接入 |
 | crash wooooood! / Vita Mahjong | 尚未实现正式模块 |
 | 商业参考 Golden | `BLOCKED`：公共仓库不包含商业源视频 |
 | 人工视觉批准 | `PENDING` |

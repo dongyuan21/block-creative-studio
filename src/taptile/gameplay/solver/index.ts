@@ -1,6 +1,2 @@
-export * from './beamSearch';
-export * from './scenarioProfiles';
-export * from './scoring';
-export * from './seededOrder';
-export * from './solveTake';
-export * from './types';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../../games/taptile-tray-match3/gameplay/solver';

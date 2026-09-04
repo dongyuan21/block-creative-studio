@@ -1,5 +1,2 @@
-export * from './blockers';
-export * from './engine';
-export * from './tray';
-export * from './types';
-
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../../games/taptile-tray-match3/gameplay/experimental';

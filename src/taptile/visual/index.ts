@@ -1,6 +1,2 @@
-export * from './AssetRegistry';
-export * from './compatibility';
-export * from './FaceAssemblyRenderer';
-export * from './StageAssembly';
-export * from './ThemeResolver';
-export * from './types';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/visual';

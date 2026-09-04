@@ -1,7 +1,2 @@
-export * from './audio';
-export * from './batch';
-export * from './cut';
-export * from './defaults';
-export * from './manifest';
-export * from './projectBundle';
-export * from './renderJob';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/production';

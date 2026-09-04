@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { createDefaultGameRegistry } from '../../bootstrap/headlessBootstrap.js';
 import { validateStudioProjectDocumentV2 } from '../../game-runtime/projectDocument.js';
 import { BcsHeadlessError } from '../../headless/errors.js';
-import { migrateUnknownProjectToV2 } from '../../games/block-placement/migrations/blockPlacementV1';
+import { migrateUnknownProjectToV2 } from '../../bootstrap/projectMigrate.js';
 
 export async function commandProjectMigrate(inputPath: string, outputPath?: string): Promise<unknown> {
   let source: unknown;

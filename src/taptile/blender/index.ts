@@ -1,5 +1,2 @@
-export * from './createTapTileBlenderExchange';
-export * from './exportTapTileBlenderBundle';
-export * from './blenderGlbRuntime';
-export * from './blenderVfxAsset';
-export * from './blenderVfxPersistence';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/blender';

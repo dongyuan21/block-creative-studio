@@ -35,4 +35,11 @@ describe('studio shell modularization', () => {
     expect(typeof StudioShell).toBe('function');
     expect(registry.get('block-crush-drop')?.Workspace).toBeUndefined();
   });
+
+  it('keeps TapTile workspace free of DOM market hacks and other-game imports', () => {
+    expect(source('src/games/taptile-tray-match3/studio/TapTileWorkspace.tsx')).not.toMatch(/game-market-card|Block Placement|onOpenBlockStudio/);
+    expect(source('src/games/taptile-tray-match3/studio/TapTileStackStudio.tsx')).not.toMatch(/onOpenBlockStudio|game-market-card/);
+    expect(source('src/games/taptile-tray-match3/package.ts')).toMatch(/presentation: tapTilePresentationAdapter/);
+    expect(source('src/games/taptile-tray-match3/package.ts')).toMatch(/renderContract: tapTileRenderContract/);
+  });
 });

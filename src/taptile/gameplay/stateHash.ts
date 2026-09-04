@@ -1,13 +1,2 @@
-import { stableHash } from '../project';
-import type { TapTileGameState } from './types';
-
-export function tapTileStateHash(state: TapTileGameState): string {
-  return stableHash({
-    status: state.status,
-    turn: state.turn,
-    boardIds: state.boardIds,
-    trayIds: state.trayIds,
-    clearedIds: [...state.clearedIds].sort(),
-    activeBlockerCount: state.activeBlockerCount,
-  }, 'state');
-}
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/gameplay/stateHash';
