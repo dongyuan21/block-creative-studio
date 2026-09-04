@@ -12,3 +12,28 @@ export { GamePlatformError, GameRegistryError, GameRuntimeError, GameSchemaError
 export { GameRegistry, gameKey } from './gameRegistry';
 export { eraseGameDefinition, GameRuntimeRegistry, type ErasedGameRuntime } from './registry';
 export { SchemaRegistry, schemaKey } from './schemaRegistry';
+export {
+  GAME_PROJECT_CONTRACT,
+  GAME_PROJECT_CONTRACT_VERSION,
+  STUDIO_PROJECT_V2_FORMAT,
+  STUDIO_PROJECT_V2_VERSION,
+  type GameProjectEnvelope,
+  type ProjectMigrationReport,
+  type StudioProjectDocumentV2,
+} from './projectEnvelope';
+export {
+  GAME_REPLAY_CONTRACT,
+  GAME_REPLAY_CONTRACT_VERSION,
+  frameReplayIdentity,
+  semanticReplayIdentity,
+  splitPointerPlacement,
+  type GameReplayEnvelope,
+  type InteractionRecord,
+} from './replayEnvelope';
+export {
+  detectStudioDocumentKind,
+  parseGameProjectEnvelope,
+  parseGameReplayEnvelope,
+  parseStudioProjectDocumentV2,
+} from './projectParser';
+

@@ -15,7 +15,8 @@ import {
   replayActions,
   replacePieceShape,
 } from '../domain/gameEngine';
-import { parseStudioBundle, type StudioBundle } from '../domain/projectValidation';
+import { type StudioBundle } from '../domain/projectValidation';
+import { importStudioDocument } from '../games/block-placement/migrations/blockPlacementV1';
 import { createRuntimeId } from '../domain/runtimeId';
 import type {
   GameSnapshot,
@@ -97,7 +98,7 @@ function loadInitialBundle(): StudioBundle {
   try {
     const stored = window.localStorage.getItem(AUTOSAVE_KEY);
     if (!stored) return makeInitialBundle();
-    return parseStudioBundle(JSON.parse(stored));
+    return importStudioDocument(JSON.parse(stored));
   } catch {
     window.localStorage.removeItem(AUTOSAVE_KEY);
     return makeInitialBundle();
@@ -599,7 +600,7 @@ export function useStudioModel() {
       if (mode === 'play' || mode === 'render' || exportState.running) {
         throw new Error('试玩录制或视频渲染期间不能导入项目。');
       }
-      const payload = parseStudioBundle(JSON.parse(await file.text()));
+      const payload = importStudioDocument(JSON.parse(await file.text()));
       const nextProject = payload.project;
       setProject(nextProject);
       setTakes(payload.takes.map(cloneTake));

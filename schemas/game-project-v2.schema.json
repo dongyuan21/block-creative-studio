@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://block-creative.local/schema/game-project-v2.json",
+  "title": "Block Creative Studio project document V2",
+  "type": "object",
+  "required": ["format", "version", "id", "name", "game", "production", "takes"],
+  "additionalProperties": false,
+  "properties": {
+    "format": { "const": "bcs-studio-project" },
+    "version": { "const": "2.0.0" },
+    "id": { "type": "string", "minLength": 1, "maxLength": 180 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 240 },
+    "game": { "$ref": "#/$defs/gameEnvelope" },
+    "production": { "$ref": "#/$defs/production" },
+    "takes": {
+      "type": "array",
+      "maxItems": 500,
+      "items": { "$ref": "https://block-creative.local/schema/game-replay-v1.json" }
+    },
+    "direction": {
+      "type": "object",
+      "required": ["rhythm"],
+      "additionalProperties": false,
+      "properties": {
+        "rhythm": { "type": "object" },
+        "style": true
+      }
+    }
+  },
+  "$defs": {
+    "assetRef": {
+      "type": "object",
+      "required": ["id", "version", "kind"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string", "minLength": 1 },
+        "contentHash": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "gameEnvelope": {
+      "type": "object",
+      "required": ["contract", "contractVersion", "game", "config", "initialState"],
+      "additionalProperties": false,
+      "properties": {
+        "contract": { "const": "bcs.game-project" },
+        "contractVersion": { "const": "1.0.0" },
+        "game": {
+          "type": "object",
+          "required": ["id", "moduleVersion", "rulesetId", "rulesetVersion"],
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "moduleVersion": { "type": "string", "minLength": 1 },
+            "rulesetId": { "type": "string", "minLength": 1 },
+            "rulesetVersion": { "type": "string", "minLength": 1 }
+          }
+        },
+        "config": {
+          "type": "object",
+          "required": ["schemaId", "data"],
+          "additionalProperties": false,
+          "properties": {
+            "schemaId": { "type": "string", "minLength": 1 },
+            "data": true
+          }
+        },
+        "initialState": {
+          "type": "object",
+          "required": ["schemaId", "data", "stateHash"],
+          "additionalProperties": false,
+          "properties": {
+            "schemaId": { "type": "string", "minLength": 1 },
+            "data": true,
+            "stateHash": { "type": "string", "minLength": 1 }
+          }
+        }
+      }
+    },
+    "production": {
+      "type": "object",
+      "required": ["layoutProfileRef", "cameraProfileRef", "lookPackRef", "output"],
+      "additionalProperties": false,
+      "properties": {
+        "layoutProfileRef": { "$ref": "#/$defs/assetRef" },
+        "cameraProfileRef": { "$ref": "#/$defs/assetRef" },
+        "lookPackRef": { "$ref": "#/$defs/assetRef" },
+        "output": {
+          "type": "object",
+          "required": ["width", "height", "fps", "quality"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "integer", "minimum": 256, "maximum": 4096 },
+            "height": { "type": "integer", "minimum": 256, "maximum": 4096 },
+            "fps": { "type": "integer", "minimum": 1, "maximum": 120 },
+            "quality": { "enum": ["preview", "standard", "cinematic"] }
+          }
+        }
+      }
+    }
+  }
+}

@@ -31,6 +31,18 @@
 - App / Capture / Exporter 未改
 - 未移动 `gameEngine.ts`
 
+## R2 — Project/Replay Envelope 与 V1 Migration
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(project): add project and replay envelopes with v1 migration`
+- 门禁：`check` / `test` 156 / `typecheck` / `build` / render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
+- CLI：`project migrate`；`rendered: false`
+- 示例 `examples/demo-cross-clear.block-creative.json` 可迁；V1/V2 完整 State Hash 相等
+- Semantic Hash 不含 pointer；Frame Hash 含 interaction 与 rhythm
+- V2 缺字段 `MISSING_FIELD`，不静默补默认
+- Studio Importer 双读 V1+V2；Autosave/默认导出仍写 V1
+- game-runtime 不 import games / domain/types；Block 迁移在 `games/block-placement/migrations`
+
 ## Remaining
 
-R2 → R8b 连续执行。R9 DEFERRED。
+R3 → R8b 连续执行。R9 DEFERRED。

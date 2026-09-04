@@ -440,6 +440,9 @@ function parseProject(value: unknown, path: string): ProjectSpec {
 
 export function parseStudioBundle(value: unknown): StudioBundle {
   const source = record(value, 'root');
+  if (source.format === 'bcs-studio-project' || source.format === 'bcs-project') {
+    fail('root', 'V2 项目请使用 importStudioDocument，而不是 parseStudioBundle。');
+  }
   if (source.format !== 'block-creative-studio-project' || source.version !== '1.0.0') {
     fail('root', '不是受支持的 Block Creative Studio 项目。');
   }

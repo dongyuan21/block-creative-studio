@@ -23,6 +23,7 @@ import {
   type ResolvedRenderPlan,
   type VariantRecipe,
 } from '../headless/index.js';
+import { commandProjectMigrate } from './commands/projectMigrate.js';
 
 interface ParsedArgs {
   positionals: string[];
@@ -270,6 +271,15 @@ async function commandGolden(args: ParsedArgs): Promise<unknown> {
   return { ok: true, rendered: false, out: out ? resolve(out) : null, html: htmlOut ? resolve(htmlOut) : null, report };
 }
 
+async function commandProject(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] !== 'migrate') {
+    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `project migrate <project.json> [--out <file>]`.', { path: 'project' });
+  }
+  const path = args.positionals[1];
+  if (!path) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Project path is required.', { path: 'project' });
+  return commandProjectMigrate(path, flagString(args, 'out'));
+}
+
 async function execute(argv: string[]): Promise<unknown> {
   const [command, ...rest] = argv;
   const args = parseArgs(rest);
@@ -280,9 +290,10 @@ async function execute(argv: string[]): Promise<unknown> {
   if (command === 'quality') return commandQuality(args);
   if (command === 'material') return commandMaterial(args);
   if (command === 'golden') return commandGolden(args);
+  if (command === 'project') return commandProject(args);
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch.',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project migrate.',
     { path: command ?? '(missing command)' },
   );
 }

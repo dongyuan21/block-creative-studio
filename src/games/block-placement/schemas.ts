@@ -1,6 +1,6 @@
 import { createEmptyBoard } from '../../domain/boardPresets';
 import { getShape, TILE_COLORS } from '../../domain/shapes';
-import type { BoardState, GameSnapshot, PieceInstance, PlacementAction, TileColor } from '../../domain/types';
+import type { BoardState, GameSnapshot, GridCell, PieceInstance, PlacementAction, TileColor } from '../../domain/types';
 import { BOARD_SIZE } from '../../domain/types';
 import type { RuntimeSchema } from '../../game-runtime/contracts';
 import { GameSchemaError } from '../../game-runtime/errors';
@@ -8,12 +8,18 @@ import {
   BLOCK_PLACEMENT_ACTION_SCHEMA_ID,
   BLOCK_PLACEMENT_CONFIG_SCHEMA_ID,
   BLOCK_PLACEMENT_SCHEMA_VERSION,
+  BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID,
   BLOCK_PLACEMENT_STATE_SCHEMA_ID,
 } from './manifest';
 
 export interface BlockPlacementConfig {
   board?: BoardState;
   pieces?: PieceInstance[];
+}
+
+export interface BlockPlacementSemanticAction {
+  pieceId: string;
+  anchor: GridCell;
 }
 
 const COLORS = new Set<string>(TILE_COLORS);
@@ -198,6 +204,21 @@ export function parseBlockPlacementAction(value: unknown, path = '$'): Placement
   };
 }
 
+export function parseBlockPlacementSemanticAction(value: unknown, path = '$'): BlockPlacementSemanticAction {
+  const source = record(value, path);
+  for (const field of ['pieceId', 'anchor'] as const) {
+    if (!(field in source)) fail(`${path}.${field}`, 'is required', 'MISSING_FIELD');
+  }
+  const anchorSource = record(source.anchor, `${path}.anchor`);
+  return {
+    pieceId: string(source.pieceId, `${path}.pieceId`, 180),
+    anchor: {
+      row: integer(anchorSource.row, `${path}.anchor.row`, 0, BOARD_SIZE - 1),
+      col: integer(anchorSource.col, `${path}.anchor.col`, 0, BOARD_SIZE - 1),
+    },
+  };
+}
+
 function serialize<T>(value: T): unknown {
   return structuredClone(value);
 }
@@ -220,6 +241,13 @@ export const blockPlacementActionSchema: RuntimeSchema<PlacementAction> = {
   id: BLOCK_PLACEMENT_ACTION_SCHEMA_ID,
   version: BLOCK_PLACEMENT_SCHEMA_VERSION,
   parse: parseBlockPlacementAction,
+  serialize,
+};
+
+export const blockPlacementSemanticActionSchema: RuntimeSchema<BlockPlacementSemanticAction> = {
+  id: BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID,
+  version: BLOCK_PLACEMENT_SCHEMA_VERSION,
+  parse: parseBlockPlacementSemanticAction,
   serialize,
 };
 
