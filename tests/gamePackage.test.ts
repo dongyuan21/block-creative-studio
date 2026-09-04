@@ -38,7 +38,7 @@ describe('atomic game package registration', () => {
     const colliding = {
       ...blockCrushDropPackage,
       compositions: [
-        ...blockCrushDropPackage.compositions,
+        ...(blockCrushDropPackage.compositions ?? []),
         {
           id: 'block-placement.composition.v1',
           version: '9.9.9',
