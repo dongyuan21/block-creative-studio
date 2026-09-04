@@ -4,7 +4,7 @@ import { evaluateTapTileFrame } from '../director';
 import { stableHash, type CompiledTapTileLevel, type TapTileProjectV2 } from '../project';
 import { resolveTileVisual, validateSkinPack } from '../visual';
 import { TapTileAssetCache, collectTapTileDrawableAssetIds, type TapTileAssetCacheLoaders } from './AssetCache';
-import { renderTapTilePresentationFrame } from './CanvasRenderer';
+import { renderPolishedTapTilePresentationFrame } from './PolishedCanvasRenderer';
 
 export interface TapTileRenderIdentity {
   projectHash: string;
@@ -91,7 +91,7 @@ export function createTapTileRenderJob(
       }
     },
     render: (frame, canvas, options) => {
-      renderTapTilePresentationFrame(canvas, frame, { project: projectSnapshot, level: levelSnapshot, assets }, options);
+      renderPolishedTapTilePresentationFrame(canvas, frame, { project: projectSnapshot, level: levelSnapshot, assets }, options);
     },
     dispose: () => assets.dispose(),
   };
