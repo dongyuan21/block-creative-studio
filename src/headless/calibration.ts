@@ -56,8 +56,7 @@ export function calibrationCaseIdentity(input: {
   const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
   return stableHash({
     ...input,
-    compositionProfileId:
-      input.compositionProfileId ?? requireCalibrationProfile(calibrationProfileId).compositionProfileId,
+    compositionProfileId: requireCalibrationProfile(calibrationProfileId).compositionProfileId,
     calibrationProfileId,
   });
 }
@@ -84,7 +83,12 @@ export function createCalibrationCase(input: {
   const reviewStatus = input.reviewStatus ?? 'NOT_RUN';
   const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
   const profile = requireCalibrationProfile(calibrationProfileId);
-  const compositionProfileId = input.compositionProfileId ?? profile.compositionProfileId;
+  if (input.compositionProfileId !== undefined && input.compositionProfileId !== profile.compositionProfileId) {
+    throw new Error(
+      `compositionProfileId ${input.compositionProfileId} does not match calibration ${calibrationProfileId} composition ${profile.compositionProfileId}.`,
+    );
+  }
+  const compositionProfileId = profile.compositionProfileId;
   const value: CalibrationCase = {
     contract: 'bcs.calibration-case',
     contractVersion: BCS_CONTRACT_VERSION,

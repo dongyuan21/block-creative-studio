@@ -20,6 +20,10 @@ export class SchemaRegistry {
     this.schemas.set(key, schema as RuntimeSchema<unknown>);
   }
 
+  unregister(id: string, version: string): void {
+    this.schemas.delete(schemaKey(id, version));
+  }
+
   get<T>(id: string, version: string): RuntimeSchema<T> {
     const key = schemaKey(id, version);
     const schema = this.schemas.get(key);

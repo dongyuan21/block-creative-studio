@@ -121,5 +121,31 @@ describe('composition profiles', () => {
       targetFrame: 0,
       correspondence: 'isolated-presentation',
     })).toThrow(/calibrationProfileId/);
+    expect(() => createCalibrationCase({
+      id: 'wrong-composition',
+      eventId: 'impact',
+      eventType: 'block-crush.impact',
+      targetFrame: 0,
+      correspondence: 'isolated-presentation',
+      calibrationProfileId: crushCalibration.id,
+      compositionProfileId: BLOCK_PLACEMENT_COMPOSITION_PROFILE_ID,
+    })).toThrow(/does not match calibration/);
+  });
+
+  it('rejects a calibration whose composition is missing or belongs to another game', () => {
+    expect(() => registerCalibrationProfile({
+      id: 'orphan.calibration',
+      version: '0.0.1',
+      gameId: 'block-crush-drop',
+      compositionProfileId: 'missing.composition',
+      rois: [{ id: 'well', x: 0, y: 0, width: 10, height: 10 }],
+    })).toThrow(/CALIBRATION_COMPOSITION_MISSING|unknown composition/);
+    expect(() => registerCalibrationProfile({
+      id: 'cross-game.calibration',
+      version: '0.0.1',
+      gameId: 'block-crush-drop',
+      compositionProfileId: BLOCK_PLACEMENT_COMPOSITION_PROFILE_ID,
+      rois: [{ id: 'well', x: 0, y: 0, width: 10, height: 10 }],
+    })).toThrow(/CALIBRATION_COMPOSITION_GAME_MISMATCH|does not match composition/);
   });
 });

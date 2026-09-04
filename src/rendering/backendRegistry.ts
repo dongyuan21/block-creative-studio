@@ -72,3 +72,7 @@ export function requireRenderBackend(id: string): RenderBackendAdapter {
   }
   return backend;
 }
+
+export function unregisterRenderBackend(id: string): void {
+  backends.delete(id);
+}

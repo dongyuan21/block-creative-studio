@@ -150,7 +150,7 @@ describe('architecture import guards', () => {
     ]);
   });
 
-  it('rejects rendering and studio imports of concrete games', () => {
+  it('rejects rendering, studio, and V2 capture imports of concrete games', () => {
     const root = scratchRepo();
     writeSource(root, 'src/games/block-placement/index.ts', 'export const gameId = "block-placement";\n');
     writeSource(
@@ -163,9 +163,15 @@ describe('architecture import guards', () => {
       'src/studio/bad.ts',
       `${importLine('gameId', '../games/block-placement/index')}\nvoid gameId;\n`,
     );
+    writeSource(
+      root,
+      'src/capture/v2/bad.ts',
+      `${importLine('gameId', '../../games/block-placement/index')}\nvoid gameId;\n`,
+    );
     const result = runGuard(root);
     expect(result.status).not.toBe(0);
     expect(result.violations.map((item) => item.code).sort()).toEqual([
+      'CAPTURE_V2_IMPORTS_GAME',
       'RENDERING_IMPORTS_GAME',
       'STUDIO_IMPORTS_GAME',
     ]);

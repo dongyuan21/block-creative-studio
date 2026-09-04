@@ -106,4 +106,14 @@ export class GameRegistry {
   list(): GameManifest[] {
     return [...this.games.values()].map((item) => item.manifest);
   }
+
+  unregister(gameId: string, moduleVersion: string): void {
+    const key = gameKey(gameId, moduleVersion);
+    const definition = this.games.get(key);
+    if (!definition) return;
+    this.games.delete(key);
+    for (const schema of definitionSchemas(definition)) {
+      this.schemas.unregister(schema.id, schema.version);
+    }
+  }
 }

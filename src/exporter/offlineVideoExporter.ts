@@ -8,7 +8,6 @@ import {
   type RenderProgress,
   type VideoRenderJobResult,
 } from '../rendering/renderJob';
-import { readyRenderResources } from '../rendering/preparedRenderResources';
 
 export type { RenderProgress };
 
@@ -34,16 +33,18 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
   const backend = options.style.renderer === 'reference-2d'
     ? createBlockPlacementReferenceBackendAdapter(options.style)
     : createBlockPlacementCinematicBackendAdapter(options.style);
+  const policy = {
+    mode: 'procedural-no-assets' as const,
+    reason: 'V1 take exporter is not bound to a Resolved Render Plan; StyleSpec drives the first-game backend directly.',
+    ...(options.runtimeAssets ? { runtimeAssets: options.runtimeAssets } : {}),
+  };
   return executeVideoRenderJob({
     frameSource,
     backend,
     output: options.render,
     projectName: options.projectName,
     takeName: options.take.name,
-    resources: readyRenderResources(
-      frameSource.frameSourceHash,
-      options.runtimeAssets ? { runtimeAssets: options.runtimeAssets } : {},
-    ),
+    resourcePolicy: policy,
     ...(options.signal ? { signal: options.signal } : {}),
     ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });

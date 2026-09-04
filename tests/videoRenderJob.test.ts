@@ -127,18 +127,14 @@ describe('video render job inputs', () => {
       output: { width: 1080, height: 1920, fps: 30, quality: 'preview' as const },
       projectName: 'dummy',
       takeName: 'take',
-      resources: readyRenderResources(frameSource.frameSourceHash),
+      resourcePolicy: {
+        mode: 'procedural-no-assets' as const,
+        reason: 'dummy identity lock does not bind a resolved render plan',
+      },
     };
     expect(() => assertVideoRenderJobContract(job)).not.toThrow();
     expect(() => assertVideoRenderJobContract({ ...job, output: { ...job.output, fps: 24 } })).toThrow(
       /OUTPUT_FPS_MISMATCH|fps/,
     );
-    expect(() => assertVideoRenderJobContract({
-      ...job,
-      resources: {
-        ...readyRenderResources(frameSource.frameSourceHash),
-        readiness: 'pending',
-      },
-    })).toThrow(/RESOURCES_NOT_READY|ready/);
   });
 });

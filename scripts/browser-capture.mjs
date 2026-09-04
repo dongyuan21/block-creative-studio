@@ -70,6 +70,9 @@ function listen(server, host, preferredPort) {
 export async function runBrowserCapture(options = {}) {
   const mode = options.mode === 'full' ? 'full' : 'smoke';
   const timeoutMs = options.timeoutMs ?? (mode === 'full' ? 25 * 60_000 : 180_000);
+  const page = options.page ?? '/tools/capture.html';
+  const wipe = options.wipe !== false;
+  const reportFile = options.reportFile ?? 'browser-e2e.json';
   const chromePath = findChrome();
   const startedAt = new Date().toISOString();
 
@@ -99,7 +102,9 @@ export async function runBrowserCapture(options = {}) {
 
   const reviewRoot = resolve(root, 'review-package');
   const runRoot = resolve(reviewRoot, 'run');
-  rmSync(runRoot, { recursive: true, force: true });
+  if (wipe) {
+    rmSync(runRoot, { recursive: true, force: true });
+  }
   mkdirSync(runRoot, { recursive: true });
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
@@ -170,7 +175,7 @@ export async function runBrowserCapture(options = {}) {
   const host = '127.0.0.1';
   const port = await listen(server, host, 4177);
   const userData = mkdtempSync(resolve(tmpdir(), 'bcs-chrome-'));
-  const captureUrl = `http://${host}:${port}/tools/capture.html?autorun=1&mode=${mode}`;
+  const captureUrl = `http://${host}:${port}${page}?autorun=1&mode=${mode}`;
   const args = [
     '--headless',
     '--no-sandbox',
@@ -241,22 +246,31 @@ export async function runBrowserCapture(options = {}) {
     }
   }
 
-  const runReportPath = resolve(runRoot, 'browser-e2e.json');
+  const runReportPath = resolve(runRoot, reportFile);
   mkdirSync(dirname(runReportPath), { recursive: true });
   writeFileSync(runReportPath, `${JSON.stringify(report, null, 2)}\n`);
   const listed = [
     ...(report.frames ?? []).map((item) => item.path),
     ...(report.videos ?? []).map((item) => item.path),
-    'review-package/run/browser-e2e.json',
+    `review-package/run/${reportFile}`,
   ];
-  writeFileSync(resolve(runRoot, 'artifact-manifest.json'), `${JSON.stringify({
+  const manifestPath = resolve(runRoot, 'artifact-manifest.json');
+  let previousFiles = [];
+  if (!wipe && existsSync(manifestPath)) {
+    try {
+      previousFiles = JSON.parse(readFileSync(manifestPath, 'utf8')).files ?? [];
+    } catch {
+      previousFiles = [];
+    }
+  }
+  writeFileSync(manifestPath, `${JSON.stringify({
     mode: report.mode,
     status: report.status,
     ...captureIdentity(),
     planHashes: report.planHashes ?? [],
-    files: listed,
+    files: [...new Set([...previousFiles, ...listed])],
   }, null, 2)}\n`);
-  if (mode === 'full' && report.status === 'PASS') {
+  if (mode === 'full' && report.status === 'PASS' && wipe && reportFile === 'browser-e2e.json') {
     const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
     mkdirSync(dirname(outPath), { recursive: true });
     writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
@@ -270,4 +284,20 @@ if (isMain) {
   const report = await runBrowserCapture({ mode });
   console.log(JSON.stringify({ status: report.status, mode: report.mode, frames: report.frames?.length ?? 0, videos: report.videos?.length ?? 0, errors: report.errors ?? [] }, null, 2));
   if (report.status === 'FAIL' || (report.status === 'NOT_RUN' && process.env.CI === 'true')) process.exit(1);
+  if (report.status !== 'NOT_RUN') {
+    const crush = await runBrowserCapture({
+      mode: 'smoke',
+      page: '/tools/crush-diag-capture.html',
+      wipe: false,
+      reportFile: 'crush-diag.json',
+      timeoutMs: 120_000,
+    });
+    console.log(JSON.stringify({
+      status: crush.status,
+      mode: crush.mode,
+      frames: crush.frames?.length ?? 0,
+      errors: crush.errors ?? [],
+    }, null, 2));
+    if (crush.status === 'FAIL' || (crush.status === 'NOT_RUN' && process.env.CI === 'true')) process.exit(1);
+  }
 }

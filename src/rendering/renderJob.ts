@@ -8,6 +8,7 @@ import {
 } from 'mediabunny';
 import type { CompiledFrameSource } from '../game-runtime/frameSource';
 import type { PresentationPacket } from '../game-runtime/presentationPacket';
+import type { GameRenderContract } from '../game-runtime/renderContract';
 import { containMapping } from './composition';
 import {
   assertBackendSupportsPacket,
@@ -15,10 +16,10 @@ import {
   type RenderBackendAdapter,
 } from './backendRegistry';
 import {
-  assertPreparedResourcesReady,
-  readyRenderResources,
-  type PreparedRenderResources,
-} from './preparedRenderResources';
+  assertRenderResourcePolicy,
+  type PlanBoundRenderPlan,
+  type RenderResourcePolicy,
+} from './resourcePolicy';
 import { safeFileName } from '../utils/download';
 
 export interface RenderProgress {
@@ -42,8 +43,9 @@ export interface VideoRenderJob {
   output: VideoRenderOutput;
   projectName: string;
   takeName: string;
-  resources?: PreparedRenderResources;
-  requiredSlotIds?: string[];
+  resourcePolicy: RenderResourcePolicy;
+  plan?: PlanBoundRenderPlan;
+  renderContract?: GameRenderContract;
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -122,8 +124,11 @@ export function assertVideoRenderJobContract(job: VideoRenderJob): void {
       '$.output.fps',
     );
   }
-  const resources = job.resources ?? readyRenderResources(job.frameSource.frameSourceHash);
-  assertPreparedResourcesReady(resources, job.requiredSlotIds ?? []);
+  assertRenderResourcePolicy(job.resourcePolicy, {
+    ...(job.plan ? { plan: job.plan } : {}),
+    ...(job.renderContract ? { renderContract: job.renderContract } : {}),
+    backend: job.backend,
+  });
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -188,7 +193,11 @@ export async function executeVideoRenderJob(job: VideoRenderJob): Promise<VideoR
   outputContext.imageSmoothingEnabled = true;
   outputContext.imageSmoothingQuality = 'high';
 
-  const resources = job.resources ?? readyRenderResources(job.frameSource.frameSourceHash);
+  const resources = assertRenderResourcePolicy(job.resourcePolicy, {
+    ...(job.plan ? { plan: job.plan } : {}),
+    ...(job.renderContract ? { renderContract: job.renderContract } : {}),
+    backend: job.backend,
+  });
   const stage = job.backend.createStage(renderCanvas, resources);
   if (job.backend.letterboxFromDesign && job.backend.designResolution) {
     stage.resize(job.backend.designResolution.width, job.backend.designResolution.height, 1);

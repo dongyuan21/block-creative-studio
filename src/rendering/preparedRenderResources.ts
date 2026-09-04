@@ -23,10 +23,20 @@ export function readyRenderResources(
 
 export function assertPreparedResourcesReady(
   resources: PreparedRenderResources,
-  requiredSlotIds: readonly string[] = [],
+  input: {
+    expectedPlanHash: string;
+    requiredSlotIds: readonly string[];
+  },
 ): void {
   if (!resources.planHash) {
     throw new RenderBackendError('RESOURCES_PLAN_HASH_MISSING', 'Prepared resources must include planHash.', '$.planHash');
+  }
+  if (resources.planHash !== input.expectedPlanHash) {
+    throw new RenderBackendError(
+      'RESOURCES_PLAN_HASH_MISMATCH',
+      `Prepared resources planHash ${resources.planHash} does not match expected ${input.expectedPlanHash}.`,
+      '$.planHash',
+    );
   }
   if (resources.readiness !== 'ready') {
     throw new RenderBackendError(
@@ -42,7 +52,7 @@ export function assertPreparedResourcesReady(
       '$.missing',
     );
   }
-  for (const slotId of requiredSlotIds) {
+  for (const slotId of input.requiredSlotIds) {
     const slot = resources.slots.find((item) => item.slotId === slotId);
     const ready: ResourceReadiness = 'ready';
     if (!slot || slot.readiness !== ready) {

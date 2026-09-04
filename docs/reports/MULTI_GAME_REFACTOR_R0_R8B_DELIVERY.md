@@ -208,3 +208,13 @@ https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 约束测试：`tests/games/block-crush-drop/platformContract.test.ts`。
 
 仍保持：R9 DEFERRED；商业 Golden BLOCKED；人工视觉 PENDING；V1 默认写入；V1 Plan Hash 不变。
+
+---
+
+## 11. Review `5110140679` 三项收口
+
+| 项 | 处理 |
+|---|---|
+| P0-A | `RenderResourcePolicy` 分为 `plan-bound` 与 `procedural-no-assets`。plan-bound 必须 `resources.planHash === plan.planHash`，Required Slots 由 Plan + Render Contract + Backend 推导。V1 Exporter 明确使用 procedural 策略，不再把 Frame Source Hash 冒充 Plan Hash。 |
+| P0-B | 保留 V1 `FrameRenderRequest`。新增 `FrameRenderRequestV2` 与 `src/capture/v2/captureStill.ts`。Fake Crush 通过 Registry 走 V2 Capture，并在浏览器中写出非空 PNG。 |
+| P0-C | `createCalibrationCase` 拒绝错误 Composition。`registerCalibrationProfile` 校验 Composition 存在且 gameId 一致。`registerGamePackage` 先 Preflight 全部 gameId / 重复 ID，提交失败则回滚。 |

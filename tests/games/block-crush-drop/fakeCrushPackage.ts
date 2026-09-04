@@ -16,6 +16,14 @@ import type { RenderBackendAdapter } from '../../../src/rendering/backendRegistr
 import { assertBackendSupportsPacket } from '../../../src/rendering/backendRegistry';
 import type { CaptureSuite } from '../../../src/capture/captureSuite';
 import type { GamePackageRegistration } from '../../../src/bootstrap/gamePackage';
+import {
+  GAME_PROJECT_CONTRACT,
+  GAME_PROJECT_CONTRACT_VERSION,
+  STUDIO_PROJECT_V2_FORMAT,
+  STUDIO_PROJECT_V2_VERSION,
+} from '../../../src/game-runtime/projectEnvelope';
+import { GAME_REPLAY_CONTRACT, GAME_REPLAY_CONTRACT_VERSION } from '../../../src/game-runtime/replayEnvelope';
+import { ref } from '../../headlessFixtures';
 
 export const CRUSH_GAME_ID = 'block-crush-drop';
 export const CRUSH_MODULE_VERSION = '0.0.1';
@@ -199,7 +207,7 @@ export const crushRenderContract: GameRenderContract = {
         { slotId: 'clear.primary', acceptedKinds: ['effect-pack'], required: true, role: 'clear-primary' },
         { slotId: 'crush.board', acceptedKinds: ['board-skin', 'background'], required: true },
       ],
-      passes: [],
+      passes: [{ id: 'crush-well', order: 0, required: true }],
     },
   },
 };
@@ -288,15 +296,29 @@ export function createCrushDiagnosticBackend(): RenderBackendAdapter {
     renderer: 'fixed-camera-cinematic',
     supportedPresentationSchemas: [CRUSH_PRESENTATION_SCHEMA_ID],
     letterboxFromDesign: false,
-    createStage() {
+    createStage(canvas) {
       return {
-        resize() {},
+        resize(width, height) {
+          if ('width' in canvas) {
+            canvas.width = width;
+            canvas.height = height;
+          }
+        },
         async warmup(packet) {
           this.renderAt(packet);
         },
         renderAt(packet) {
           assertBackendSupportsPacket(adapter, packet);
           frames.push(packet.identity.frameIndex);
+          const context = typeof canvas.getContext === 'function' ? canvas.getContext('2d') : null;
+          if (!context) return;
+          context.fillStyle = packet.identity.frameIndex === 0 ? '#e85a2a' : '#2a6ae8';
+          context.fillRect(0, 0, canvas.width || 1, canvas.height || 1);
+          context.fillStyle = '#f4f1ea';
+          context.fillRect(40, 200, 640, 640);
+        },
+        captureStill() {
+          return canvas;
         },
         dispose() {},
       };
@@ -322,4 +344,67 @@ export const fakeCrushPackage: GamePackageRegistration = {
   calibrations: [crushCalibrationProfile],
   backends: [crushDiagnosticBackend],
   captureSuite: crushCaptureSuite,
+  studioGameId: CRUSH_GAME_ID,
 };
+
+export function createCrushDiagnosticDocument() {
+  const config = { columns: 2, rows: 2 };
+  const initial = crushRuntime.createInitialState(config, 1);
+  return {
+    format: STUDIO_PROJECT_V2_FORMAT,
+    version: STUDIO_PROJECT_V2_VERSION,
+    id: 'crush.diag',
+    name: 'Crush Diagnostic',
+    game: {
+      contract: GAME_PROJECT_CONTRACT,
+      contractVersion: GAME_PROJECT_CONTRACT_VERSION,
+      game: {
+        id: CRUSH_GAME_ID,
+        moduleVersion: CRUSH_MODULE_VERSION,
+        rulesetId: 'crush-diag',
+        rulesetVersion: CRUSH_MODULE_VERSION,
+      },
+      config: { schemaId: CRUSH_CONFIG_SCHEMA_ID, data: config },
+      initialState: {
+        schemaId: CRUSH_STATE_SCHEMA_ID,
+        data: initial,
+        stateHash: hashCrushState(initial),
+      },
+    },
+    production: {
+      layoutProfileRef: ref('layout.vertical', 'ui-theme', 'd'),
+      cameraProfileRef: ref('camera.fixed', 'camera-profile', 'e'),
+      lookPackRef: ref('look.crush', 'look-pack', '8'),
+      output: { width: 1080, height: 1920, fps: 30, quality: 'preview' as const },
+    },
+    takes: [
+      {
+        contract: GAME_REPLAY_CONTRACT,
+        contractVersion: GAME_REPLAY_CONTRACT_VERSION,
+        gameId: CRUSH_GAME_ID,
+        moduleVersion: CRUSH_MODULE_VERSION,
+        takeId: 'drop-0',
+        initialStateHash: hashCrushState(initial),
+        seed: 1,
+        actions: [
+          {
+            id: 'drop-col-0',
+            actor: 'agent' as const,
+            schemaId: CRUSH_ACTION_SCHEMA_ID,
+            action: { column: 0 },
+          },
+        ],
+        interactions: [
+          {
+            id: 'tap-0',
+            modality: 'tap' as const,
+            startFrame: 0,
+            endFrame: 8,
+            committedActionId: 'drop-col-0',
+            samples: [{ frameOffset: 0, x: 0.2, y: 0.4 }],
+          },
+        ],
+      },
+    ],
+  };
+}

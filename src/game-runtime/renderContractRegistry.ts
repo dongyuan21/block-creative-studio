@@ -56,4 +56,8 @@ export class RenderContractRegistry {
   list(): GameRenderContract[] {
     return [...this.contracts.values()];
   }
+
+  unregister(id: string, version: string): void {
+    this.contracts.delete(renderContractKey(id, version));
+  }
 }

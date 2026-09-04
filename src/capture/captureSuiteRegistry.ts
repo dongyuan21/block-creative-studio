@@ -4,7 +4,8 @@ const suites = new Map<string, CaptureSuite>();
 
 export function registerCaptureSuite(suite: CaptureSuite): void {
   const existing = suites.get(suite.gameId);
-  if (existing && existing !== suite && existing.id !== suite.id) {
+  if (existing) {
+    if (existing === suite || existing.id === suite.id) return;
     throw new Error(
       `Capture suite for ${suite.gameId} is already registered as ${existing.id}.`,
     );
@@ -26,4 +27,8 @@ export function requireCaptureSuite(gameId: string): CaptureSuite {
 
 export function listCaptureSuites(): CaptureSuite[] {
   return [...suites.values()];
+}
+
+export function unregisterCaptureSuite(gameId: string): void {
+  suites.delete(gameId);
 }

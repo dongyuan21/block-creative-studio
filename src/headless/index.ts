@@ -5,6 +5,7 @@ export * from './contracts.js';
 export * from './coordinateMapping.js';
 export * from './errors.js';
 export * from './frameRequest.js';
+export * from './frameRequestV2.js';
 export * from './materialRuntime.js';
 export * from './universalClearEffect.js';
 export * from './qualityGate.js';

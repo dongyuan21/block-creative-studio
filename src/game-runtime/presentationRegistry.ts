@@ -30,4 +30,12 @@ export class PresentationRegistry {
   list(): string[] {
     return [...this.adapters.keys()];
   }
+
+  has(gameId: string): boolean {
+    return this.adapters.has(gameId);
+  }
+
+  unregister(gameId: string): void {
+    this.adapters.delete(gameId);
+  }
 }

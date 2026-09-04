@@ -164,6 +164,10 @@ export function analyzeArchitecture(repositoryRoot = root, options = {}) {
         violations.push({ code: 'STUDIO_IMPORTS_GAME', importer, target });
       }
 
+      if (importer.startsWith('src/capture/v2/') && target.startsWith('src/games/')) {
+        violations.push({ code: 'CAPTURE_V2_IMPORTS_GAME', importer, target });
+      }
+
       if (isPlatformModule(importer) && target === 'src/domain/types.ts') {
         violations.push({ code: 'PLATFORM_IMPORTS_BLOCK_TYPES', importer, target });
       }
