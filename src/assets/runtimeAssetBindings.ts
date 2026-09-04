@@ -71,25 +71,115 @@ export interface RuntimeAssetMissing {
     | 'unsupported-binding';
 }
 
+export type RuntimeAssetBinding = RuntimeImageAssetBinding | RuntimeBinaryAssetBinding;
+
 export interface RuntimeAssetBindings {
   revision: string;
-  background: RuntimeImageAssetBinding | null;
-  tileFace: RuntimeImageAssetBinding | null;
-  particleSprites: RuntimeImageAssetBinding[];
-  textureMaps: RuntimeImageAssetBinding[];
-  binary: RuntimeBinaryAssetBinding[];
+  bySlot: Record<string, RuntimeAssetBinding[]>;
   missing: RuntimeAssetMissing[];
+  readonly background: RuntimeImageAssetBinding | null;
+  readonly tileFace: RuntimeImageAssetBinding | null;
+  readonly particleSprites: RuntimeImageAssetBinding[];
+  readonly textureMaps: RuntimeImageAssetBinding[];
+  readonly binary: RuntimeBinaryAssetBinding[];
 }
 
-export const EMPTY_RUNTIME_ASSET_BINDINGS: RuntimeAssetBindings = {
-  revision: 'none',
-  background: null,
-  tileFace: null,
-  particleSprites: [],
-  textureMaps: [],
-  binary: [],
-  missing: [],
-};
+export interface RuntimeAssetBindingsInput {
+  revision?: string;
+  bySlot?: Record<string, RuntimeAssetBinding[]>;
+  missing?: RuntimeAssetMissing[];
+  background?: RuntimeImageAssetBinding | null;
+  tileFace?: RuntimeImageAssetBinding | null;
+  particleSprites?: RuntimeImageAssetBinding[];
+  textureMaps?: RuntimeImageAssetBinding[];
+  binary?: RuntimeBinaryAssetBinding[];
+}
+
+function isRuntimeImageBinding(binding: RuntimeAssetBinding): binding is RuntimeImageAssetBinding {
+  return binding.role === 'background-image'
+    || binding.role === 'tile-face-image'
+    || binding.role === 'particle-sprite'
+    || binding.role === 'texture-map';
+}
+
+function compareBindings(left: RuntimeAssetBinding, right: RuntimeAssetBinding): number {
+  return left.slotId.localeCompare(right.slotId) || left.contentHash.localeCompare(right.contentHash) || left.role.localeCompare(right.role);
+}
+
+function pushBinding(bySlot: Record<string, RuntimeAssetBinding[]>, binding: RuntimeAssetBinding | null | undefined): void {
+  if (!binding) return;
+  const list = bySlot[binding.slotId] ?? [];
+  list.push(binding);
+  bySlot[binding.slotId] = list;
+}
+
+function imagesByRole(bindings: RuntimeAssetBindings, role: RuntimeImageAssetBinding['role']): RuntimeImageAssetBinding[] {
+  return Object.values(bindings.bySlot)
+    .flat()
+    .filter((item): item is RuntimeImageAssetBinding => isRuntimeImageBinding(item) && item.role === role)
+    .sort(compareBindings);
+}
+
+export function firstImageBinding(
+  bindings: RuntimeAssetBindings,
+  slotId: string,
+): RuntimeImageAssetBinding | null {
+  const list = bindings.bySlot[slotId] ?? [];
+  for (const item of list) {
+    if (isRuntimeImageBinding(item)) return item;
+  }
+  return null;
+}
+
+export function createRuntimeAssetBindings(input: RuntimeAssetBindingsInput = {}): RuntimeAssetBindings {
+  const bySlot: Record<string, RuntimeAssetBinding[]> = {};
+  if (input.bySlot) {
+    for (const [slotId, list] of Object.entries(input.bySlot)) {
+      bySlot[slotId] = [...list].sort(compareBindings);
+    }
+  }
+  pushBinding(bySlot, input.background ?? null);
+  pushBinding(bySlot, input.tileFace ?? null);
+  for (const item of input.particleSprites ?? []) pushBinding(bySlot, item);
+  for (const item of input.textureMaps ?? []) pushBinding(bySlot, item);
+  for (const item of input.binary ?? []) pushBinding(bySlot, item);
+  for (const slotId of Object.keys(bySlot)) {
+    bySlot[slotId] = [...(bySlot[slotId] ?? [])].sort(compareBindings);
+  }
+  const missing = [...(input.missing ?? [])].sort((left, right) => (
+    left.slotId.localeCompare(right.slotId) || left.uri.localeCompare(right.uri) || left.reason.localeCompare(right.reason)
+  ));
+  const bindings: RuntimeAssetBindings = {
+    revision: input.revision ?? 'none',
+    bySlot,
+    missing,
+    get background() {
+      return firstImageBinding(bindings, 'background.base')
+        ?? imagesByRole(bindings, 'background-image')[0]
+        ?? null;
+    },
+    get tileFace() {
+      return firstImageBinding(bindings, 'tile.face')
+        ?? imagesByRole(bindings, 'tile-face-image')[0]
+        ?? null;
+    },
+    get particleSprites() {
+      return imagesByRole(bindings, 'particle-sprite');
+    },
+    get textureMaps() {
+      return imagesByRole(bindings, 'texture-map');
+    },
+    get binary() {
+      return Object.values(bindings.bySlot)
+        .flat()
+        .filter((item): item is RuntimeBinaryAssetBinding => !isRuntimeImageBinding(item))
+        .sort(compareBindings);
+    },
+  };
+  return bindings;
+}
+
+export const EMPTY_RUNTIME_ASSET_BINDINGS: RuntimeAssetBindings = createRuntimeAssetBindings({ revision: 'none' });
 
 export interface RuntimeAssetRequest {
   slotId: string;
@@ -169,6 +259,11 @@ function runtimeAssetCandidates(plan: ResolvedRenderPlan): RuntimeAssetCandidate
     candidates.push({ slotId: `asset:${key}`, manifest: resolved.manifest });
   }
   return candidates.sort((left, right) => left.slotId.localeCompare(right.slotId));
+}
+
+export function listRuntimeAssetSlotIds(plan: ResolvedRenderPlan | null): string[] {
+  if (!plan) return [];
+  return [...new Set(runtimeAssetCandidates(plan).map((item) => item.slotId))].sort();
 }
 
 export function collectRuntimeAssetReferenceIssues(

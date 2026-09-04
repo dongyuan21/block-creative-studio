@@ -10,10 +10,12 @@ import {
   EMPTY_RUNTIME_ASSET_BINDINGS,
   collectRuntimeAssetReferenceIssues,
   collectRuntimeAssetRequests,
+  createRuntimeAssetBindings,
   imageBindingDefaults,
   runtimeBindingRevision,
+  type RuntimeAssetBinding,
   type RuntimeAssetBindings,
-  type RuntimeBinaryAssetBinding,
+  type RuntimeAssetMissing,
   type RuntimeImageAssetBinding,
 } from '../assets/runtimeAssetBindings';
 
@@ -48,6 +50,29 @@ function isRuntimeImageRole(
     || role === 'tile-face-image'
     || role === 'particle-sprite'
     || role === 'texture-map';
+}
+
+function appendBinding(
+  bySlot: Record<string, RuntimeAssetBinding[]>,
+  binding: RuntimeAssetBinding,
+): void {
+  const list = bySlot[binding.slotId] ?? [];
+  list.push(binding);
+  bySlot[binding.slotId] = list;
+}
+
+function missingFromRequests(
+  referenceIssues: RuntimeAssetMissing[],
+  requests: Array<{ slotId: string; uri: string }>,
+): RuntimeAssetMissing[] {
+  return [
+    ...referenceIssues,
+    ...requests.map((request) => ({
+      slotId: request.slotId,
+      uri: request.uri,
+      reason: 'blob-missing' as const,
+    })),
+  ];
 }
 
 export function useBrowserAssetStore(
@@ -125,30 +150,18 @@ export function useBrowserAssetStore(
       return () => undefined;
     }
     if (status !== 'ready' || !storeRef.current) {
-      setRuntimeAssets({
-        ...EMPTY_RUNTIME_ASSET_BINDINGS,
+      setRuntimeAssets(createRuntimeAssetBindings({
         revision,
-        missing: [
-          ...referenceIssues,
-          ...runtimeRequests.map((request) => ({
-            slotId: request.slotId,
-            uri: request.uri,
-            reason: 'blob-missing' as const,
-          })),
-        ],
-      });
+        missing: missingFromRequests(referenceIssues, runtimeRequests),
+      }));
       return () => undefined;
     }
 
     void (async () => {
       const store = storeRef.current;
       if (!store) return;
-      const background: RuntimeImageAssetBinding[] = [];
-      const tileFace: RuntimeImageAssetBinding[] = [];
-      const particleSprites: RuntimeImageAssetBinding[] = [];
-      const textureMaps: RuntimeImageAssetBinding[] = [];
-      const binary: RuntimeBinaryAssetBinding[] = [];
-      const missing: RuntimeAssetBindings['missing'] = [...referenceIssues];
+      const bySlot: Record<string, RuntimeAssetBinding[]> = {};
+      const missing: RuntimeAssetMissing[] = [...referenceIssues];
 
       for (const request of runtimeRequests) {
         const record = await store.get(request.contentHash);
@@ -171,13 +184,9 @@ export function useBrowserAssetStore(
         const objectUrl = URL.createObjectURL(record.blob);
         objectUrls.push(objectUrl);
         if (isRuntimeImageRole(request.role)) {
-          const binding = imageBindingDefaults(request, objectUrl);
-          if (binding.role === 'background-image') background.push(binding);
-          else if (binding.role === 'tile-face-image') tileFace.push(binding);
-          else if (binding.role === 'particle-sprite') particleSprites.push(binding);
-          else textureMaps.push(binding);
+          appendBinding(bySlot, imageBindingDefaults(request, objectUrl));
         } else {
-          binary.push({
+          appendBinding(bySlot, {
             slotId: request.slotId,
             role: request.role,
             contentHash: request.contentHash,
@@ -193,30 +202,14 @@ export function useBrowserAssetStore(
         objectUrls.forEach((url) => URL.revokeObjectURL(url));
         return;
       }
-      setRuntimeAssets({
-        revision,
-        background: background.at(-1) ?? null,
-        tileFace: tileFace.at(-1) ?? null,
-        particleSprites,
-        textureMaps,
-        binary,
-        missing,
-      });
+      setRuntimeAssets(createRuntimeAssetBindings({ revision, bySlot, missing }));
       setError(null);
     })().catch((bindingError) => {
       if (canceled) return;
-      setRuntimeAssets({
-        ...EMPTY_RUNTIME_ASSET_BINDINGS,
+      setRuntimeAssets(createRuntimeAssetBindings({
         revision,
-        missing: [
-          ...referenceIssues,
-          ...runtimeRequests.map((request) => ({
-            slotId: request.slotId,
-            uri: request.uri,
-            reason: 'blob-missing' as const,
-          })),
-        ],
-      });
+        missing: missingFromRequests(referenceIssues, runtimeRequests),
+      }));
       setError(errorMessage(bindingError));
     });
 

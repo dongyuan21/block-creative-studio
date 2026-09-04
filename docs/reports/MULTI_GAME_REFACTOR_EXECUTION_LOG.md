@@ -85,6 +85,18 @@
 - Architecture allowlist 从 9 条降到 6 条（exporter 三条已退休）
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
 
+## R7 — Runtime Asset Bindings Map 化
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(assets): resolve runtime assets by semantic slot`
+- 门禁：`check` / `test` 176 / `typecheck` / `build` / render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
+- `RuntimeAssetBindings.bySlot` 为唯一写入面；`background` / `tileFace` 等为兼容 getter
+- `firstImageBinding(bindings, slotId)` 返回槽内排序后的第一张图
+- 同槽多资产按 slotId / contentHash / role 稳定排序
+- 缺失/Hash 不符记录含 `slotId`；Vita Mahjong 预留槽可被 V1 Plan 收集绑定
+- 未改 Scene 消费路径（仍读兼容 getter）；未新增第二套依赖遍历
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
+
 ## Remaining
 
-R7 → R8b 连续执行。R9 DEFERRED。
+R8 → R8b 连续执行。R9 DEFERRED。

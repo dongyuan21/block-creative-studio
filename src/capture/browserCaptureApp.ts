@@ -25,7 +25,7 @@ import {
   type PlanRenderEvidence,
 } from '../integration/studioAssetCatalog';
 import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
-import { EMPTY_RUNTIME_ASSET_BINDINGS } from '../assets/runtimeAssetBindings';
+import { EMPTY_RUNTIME_ASSET_BINDINGS, createRuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
 import { activeShotProfile } from '../renderer/planShotAdapter';
 import { viewportPolicyForRenderer } from '../renderer/shotProfile';
@@ -275,22 +275,22 @@ async function runPreparedTextureTest(): Promise<{ name: string; status: 'PASS' 
     channels: 'rgb' as const,
     colorSpace: 'srgb' as const,
   };
-  const bindings = {
-    ...EMPTY_RUNTIME_ASSET_BINDINGS,
+  const bindings = createRuntimeAssetBindings({
+    revision: 'prepared-pbr-v1',
     textureMaps: [{
       slotId: 'tile.material',
-      role: 'texture-map' as const,
+      role: 'texture-map',
       contentHash: record.contentHash,
       sourceUri: record.uri,
       objectUrl,
       fileName: 'albedo.png',
       mimeType: 'image/png',
-      fit: 'contain' as const,
+      fit: 'contain',
       opacity: 1,
-      blendMode: 'source-over' as const,
+      blendMode: 'source-over',
       inset: 0,
     }],
-  };
+  });
   try {
     try {
       resolveMaterialMapFetchUrl(map, EMPTY_RUNTIME_ASSET_BINDINGS);
