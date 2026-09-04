@@ -17,6 +17,9 @@
 
 | 项 | 状态 |
 |---|---|
+| R0–R8b 架构 Review | PASS（`5110797256`，锚定代码 `7027bad` / 证据 `b2b22cf`） |
+| PR #7 | OPEN，未合入 `main` |
+| 正式 Block Crush Slice | 未启动 |
 | 商业 Golden | BLOCKED（无源视频） |
 | 人工视觉批准 | PENDING |
 | T0–T5 视觉完成 | 未声称 |
@@ -189,7 +192,7 @@ R7 已证明上述 Mahjong Slot 能被 V1 Plan 收集并写入 `bySlot`。接入
 
 https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 
-不请求合入 `main`，除非产品明确要求。不在中间阶段请求 Review。
+Review `5110797256` 已关闭 R0–R8b 架构 Review。PR 仍为 open，**未合入 `main`**。正式 Block Crush Diagnostic Slice 未启动。
 
 ---
 
@@ -236,3 +239,23 @@ https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 | CI `capture-full` | 仍为 skipped（无 `full-capture` label / schedule / workflow_dispatch） |
 
 不得把 SwiftShader / Fixture / 契约 PASS 读成商业视觉质量已批准。R9 DEFERRED；商业 Golden BLOCKED；人工视觉 PENDING；**不请求合入 `main`。**
+
+---
+
+## 12. Review `5110797256`：R0–R8b 架构 Review 关闭
+
+结论：`5109071660` 与 `5110140679` 提出的架构 blocker 均已关闭。PR #7 在 R0–R8b 既定范围内通过最终架构 Review。
+
+| 边界 | 结果 |
+|---|---|
+| PreparedResources ↔ 真实 Render Plan | PASS |
+| Fake Crush 真实 V2 Capture（非空 PNG） | PASS |
+| Package / Calibration / Composition 一致性 | PASS |
+
+**架构 Review 通过，不等于商业视觉质量通过。** SwiftShader Capture、Fixture、PNG、MP4、Plan Hash 和 CI 证明的是确定性、兼容性、资源绑定及多游戏边界，不是对最终材质、特效、镜头和广告画质的人工批准。
+
+非阻塞后续债务（不阻塞 PR #7，也不要求在 Diagnostic Slice 前返工）：
+
+1. 让 `FrameRenderRequestV2.moduleVersion` 参与强校验，并把 Request 中的 `planId/planHash` 与捕获输入 Plan 再做一次显式绑定。
+2. 在 Block Crush 进入正式 Cinematic Backend 前，把当前静态 Backend Adapter Registry 演进为可接收 Plan、Style 与资源上下文的 Backend Factory。
+3. R9 时把 `procedural-no-assets` 收紧为明确的 Legacy-only 路径，并继续把模块级 Registry 收敛为平台实例持有。

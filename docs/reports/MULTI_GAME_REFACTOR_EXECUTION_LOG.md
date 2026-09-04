@@ -126,3 +126,12 @@
 R9 DEFERRED（需 Block Crush Diagnostic Slice）。本轮不删除 V1、不默认切换 V2。
 
 完整一次性交付：`docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md`。
+
+## Architecture Review `5110797256`
+
+- 状态：PASS（R0–R8b 既定范围）
+- 代码 Head：`7027bad`；证据 Head：`b2b22cf`
+- PR #7：OPEN，未合入 `main`
+- 正式 Block Crush Diagnostic Slice：未启动
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
+- 非阻塞债务：V2 Request 的 moduleVersion / plan 绑定；Backend Factory；R9 收紧 `procedural-no-assets` 与实例级 Registry
