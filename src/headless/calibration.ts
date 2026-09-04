@@ -9,7 +9,6 @@ import { stableHash } from './stableHash.js';
 import { DESIGN_RESOLUTION } from './coordinateMapping.js';
 import {
   getDefaultCalibrationProfile,
-  getDefaultCompositionProfile,
   requireCalibrationProfile,
 } from '../rendering/compositionRegistry.js';
 
@@ -36,6 +35,13 @@ export function defaultCalibrationRois() {
   return roisFromCalibrationProfile(getDefaultCalibrationProfile().id);
 }
 
+function resolveCalibrationProfileId(calibrationProfileId?: string): string {
+  if (calibrationProfileId) return calibrationProfileId;
+  throw new Error(
+    'createCalibrationCase requires calibrationProfileId so ROI lookup cannot silently use another game.',
+  );
+}
+
 export function calibrationCaseIdentity(input: {
   referenceMediaHash?: string;
   sourcePtsSeconds?: number;
@@ -47,10 +53,12 @@ export function calibrationCaseIdentity(input: {
   compositionProfileId?: string;
   calibrationProfileId?: string;
 }): string {
+  const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
   return stableHash({
     ...input,
-    compositionProfileId: input.compositionProfileId ?? getDefaultCompositionProfile().id,
-    calibrationProfileId: input.calibrationProfileId ?? getDefaultCalibrationProfile().id,
+    compositionProfileId:
+      input.compositionProfileId ?? requireCalibrationProfile(calibrationProfileId).compositionProfileId,
+    calibrationProfileId,
   });
 }
 
@@ -74,8 +82,9 @@ export function createCalibrationCase(input: {
   calibrationProfileId?: string;
 }): CalibrationCase {
   const reviewStatus = input.reviewStatus ?? 'NOT_RUN';
-  const compositionProfileId = input.compositionProfileId ?? getDefaultCompositionProfile().id;
-  const calibrationProfileId = input.calibrationProfileId ?? getDefaultCalibrationProfile().id;
+  const calibrationProfileId = resolveCalibrationProfileId(input.calibrationProfileId);
+  const profile = requireCalibrationProfile(calibrationProfileId);
+  const compositionProfileId = input.compositionProfileId ?? profile.compositionProfileId;
   const value: CalibrationCase = {
     contract: 'bcs.calibration-case',
     contractVersion: BCS_CONTRACT_VERSION,
@@ -139,6 +148,9 @@ export function expandGoldenSceneCases(
   }
   const cases: CalibrationCase[] = [];
   const targetFps = options.targetFps ?? 30;
+  const calibrationProfileId = options.calibrationProfileId ?? getDefaultCalibrationProfile().id;
+  const compositionProfileId = options.compositionProfileId
+    ?? requireCalibrationProfile(calibrationProfileId).compositionProfileId;
   for (const scene of scenes) {
     for (const [anchor, frame] of [
       ['start', scene.startFrame],
@@ -163,8 +175,8 @@ export function expandGoldenSceneCases(
         ...(sourcePts !== undefined ? { sourcePtsSeconds: sourcePts, sourceTimeBase : `${options.sourceFps}/1` } : {}),
         ...(options.targetTakeHash !== undefined ? { targetTakeHash: options.targetTakeHash } : {}),
         ...(options.isolatedFixtureHash !== undefined ? { isolatedFixtureHash: options.isolatedFixtureHash } : {}),
-        ...(options.compositionProfileId !== undefined ? { compositionProfileId: options.compositionProfileId } : {}),
-        ...(options.calibrationProfileId !== undefined ? { calibrationProfileId: options.calibrationProfileId } : {}),
+        compositionProfileId,
+        calibrationProfileId,
       }));
     }
   }

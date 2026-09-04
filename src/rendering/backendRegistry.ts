@@ -47,8 +47,16 @@ export function assertBackendSupportsPacket(
 const backends = new Map<string, RenderBackendAdapter>();
 
 export function registerRenderBackend(adapter: RenderBackendAdapter): void {
-  if (backends.has(adapter.id)) {
-    throw new RenderBackendError('BACKEND_DUPLICATE', `Render backend ${adapter.id} is already registered.`, '$.id');
+  const existing = backends.get(adapter.id);
+  if (existing) {
+    if (existing !== adapter) {
+      throw new RenderBackendError(
+        'BACKEND_DUPLICATE',
+        `Render backend ${adapter.id} is already registered.`,
+        '$.id',
+      );
+    }
+    return;
   }
   backends.set(adapter.id, adapter);
 }

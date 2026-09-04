@@ -153,7 +153,7 @@ R9（删 V1、默认 V2、收敛旧 Renderer）必须等该 Slice 证明 V2 架�
 ## 7. Vita Mahjong 接入条件（最小新增）
 
 ```text
-src/games/vita-mahjong/
+src/games/vita-mahjong-solitaire/
   definition.ts / manifest.ts / schemas.ts
   runtime.ts                 # layered-planar + match-pair + blocking
   render/renderContract.ts   # mahjong.tile.body / face-pack / border / selection / pair-exit
@@ -190,3 +190,21 @@ R7 已证明上述 Mahjong Slot 能被 V1 Plan 收集并写入 `bySlot`。接入
 https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 
 不请求合入 `main`，除非产品明确要求。不在中间阶段请求 Review。
+
+---
+
+## 10. Review `5109071660` 边界收口
+
+针对 PR #7 最终架构审阅的四项 P0 / 两项 P1，已在同一 PR 上收口。Fake Crush 只存在于 `tests/games/block-crush-drop/`，**不是**正式 Block Crush Diagnostic Slice。
+
+| 项 | 处理 |
+|---|---|
+| P0-1 | `variantCompilerV2` 不再含 `block-placement.*`。Legacy 事件别名由 `GameRenderContract.eventCatalog.legacyAliases` 提供。 |
+| P0-2 | `src/rendering` / `src/studio` / `src/game-runtime` 为纯 Registry。游戏组装在 `src/bootstrap/*`。`createCalibrationCase` 必须带 `calibrationProfileId`，ROI 与 composition 在调用时从该 Profile 解析。 |
+| P0-3 | 公共入口 `validateStudioProjectDocumentV2`。`GameDefinition.schemas.action` 是规则语义 Action；`replayAction` 为可选 Legacy。 |
+| P0-4 | Render Job 锁定 Packet Frame Identity，且 `output.fps === frameSource.fps`。`PreparedRenderResources` 扩展现有 `PreparedResources`。 |
+| P1 | `GameRegistry.register` 先 Preflight 再提交。第一游戏 Adapter 直接 import 包内 Scene。 |
+
+约束测试：`tests/games/block-crush-drop/platformContract.test.ts`。
+
+仍保持：R9 DEFERRED；商业 Golden BLOCKED；人工视觉 PENDING；V1 默认写入；V1 Plan Hash 不变。

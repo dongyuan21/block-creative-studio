@@ -6,6 +6,7 @@ import type { GameRenderContract } from '../game-runtime/renderContract';
 import { RenderContractRegistry } from '../game-runtime/renderContractRegistry';
 import type { CalibrationProfile } from '../game-runtime/calibrationProfile';
 import type { CaptureSuite } from '../capture/captureSuite';
+import { registerCaptureSuite } from '../capture/captureSuiteRegistry';
 import type { CompositionProfile } from '../rendering/composition';
 import {
   registerCalibrationProfile,
@@ -16,6 +17,10 @@ import {
   type RenderBackendAdapter,
 } from '../rendering/backendRegistry';
 
+/**
+ * Atomic game package. Studio workspaces stay in `platformBootstrap.ts`
+ * so the headless/CLI graph does not import React.
+ */
 export interface GamePackageRegistration {
   definition: AnyGameDefinition;
   presentation?: PresentationCompilerAdapter;
@@ -42,6 +47,7 @@ export function registerGamePackage(
   for (const composition of pkg.compositions ?? []) registerCompositionProfile(composition);
   for (const calibration of pkg.calibrations ?? []) registerCalibrationProfile(calibration);
   for (const backend of pkg.backends ?? []) registerRenderBackend(backend);
+  if (pkg.captureSuite) registerCaptureSuite(pkg.captureSuite);
 }
 
 export function createHeadlessPlatform(packages: readonly GamePackageRegistration[]): HeadlessPlatform {

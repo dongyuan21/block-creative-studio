@@ -112,6 +112,14 @@ describe('composition profiles', () => {
       calibrationProfileId: crushCalibration.id,
     });
     expect(crushCase.roi).toEqual(crushCalibration.rois);
+    expect(crushCase.compositionProfileId).toBe(crushCalibration.compositionProfileId);
     expect(getDefaultCalibrationProfile().id).toBe(BLOCK_PLACEMENT_CALIBRATION_PROFILE_ID);
+    expect(() => createCalibrationCase({
+      id: 'no-profile',
+      eventId: 'impact',
+      eventType: 'block-crush.impact',
+      targetFrame: 0,
+      correspondence: 'isolated-presentation',
+    })).toThrow(/calibrationProfileId/);
   });
 });

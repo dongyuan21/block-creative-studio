@@ -17,7 +17,9 @@ import type { EffectPackManifest, LookPackManifest } from '../../../src/headless
 import { compileVariantV2 } from '../../../src/headless/variantCompilerV2';
 import { buildCreativeMasterV2 } from '../../../src/headless/creativeMasterV2';
 import { createCalibrationCase } from '../../../src/headless/calibration';
+import { requireCaptureSuite } from '../../../src/capture/captureSuiteRegistry';
 import { getDefaultCalibrationProfile, requireCalibrationProfile } from '../../../src/rendering/compositionRegistry';
+import { assertBackendSupportsPacket, requireRenderBackend } from '../../../src/rendering/backendRegistry';
 import { assertPacketMatchesFrameSource, assertVideoRenderJobContract } from '../../../src/rendering/renderJob';
 import { readyRenderResources } from '../../../src/rendering/preparedRenderResources';
 import { makeFixture, ref } from '../../headlessFixtures';
@@ -29,6 +31,7 @@ import {
   CRUSH_MODULE_VERSION,
   CRUSH_STATE_SCHEMA_ID,
   crushCaptureSuite,
+  crushDiagnosticBackend,
   crushRenderContract,
   crushRuntime,
   fakeCrushPackage,
@@ -102,19 +105,28 @@ describe('fake block-crush-drop platform contract', () => {
     const variantSource = readFileSync(resolve(process.cwd(), 'src/headless/variantCompilerV2.ts'), 'utf8');
     const exporterSource = readFileSync(resolve(process.cwd(), 'src/exporter/offlineVideoExporter.ts'), 'utf8');
     const shellSource = readFileSync(resolve(process.cwd(), 'src/studio/StudioShell.tsx'), 'utf8');
+    const jobSource = readFileSync(resolve(process.cwd(), 'src/rendering/renderJob.ts'), 'utf8');
+    const studioRegistrySource = readFileSync(resolve(process.cwd(), 'src/studio/gameStudioRegistry.ts'), 'utf8');
     expect(variantSource).not.toMatch(/block-placement\./);
+    expect(variantSource).not.toMatch(/block-crush/);
     expect(exporterSource).not.toMatch(/block-crush/);
     expect(shellSource).not.toMatch(/block-crush/);
     expect(shellSource).not.toMatch(/vita-mahjong/);
+    expect(jobSource).not.toMatch(/block-crush|block-placement/);
+    expect(studioRegistrySource).not.toMatch(/block-crush|block-placement|vita-mahjong/);
   });
 
-  it('walks package → registry → V2 validation → frame source → contract → effect → profiles → job', () => {
+  it('walks package → registry → V2 validation → frame source → contract → effect → profiles → job', async () => {
     const platform = createHeadlessPlatform([blockPlacementPackage, fakeCrushPackage]);
     expect(platform.games.require(CRUSH_GAME_ID).manifest.gameId).toBe(CRUSH_GAME_ID);
     expect(platform.renderContracts.require(crushRenderContract.id).gameId).toBe(CRUSH_GAME_ID);
     expect(platform.presentations.require(CRUSH_GAME_ID).gameId).toBe(CRUSH_GAME_ID);
     expect(requireCalibrationProfile(CRUSH_CALIBRATION_ID).rois.map((roi) => roi.id)).toEqual(['well', 'impact']);
     expect(getDefaultCalibrationProfile().gameId).toBe('block-placement');
+    expect(requireCaptureSuite(CRUSH_GAME_ID).stills).toHaveLength(1);
+    expect(requireRenderBackend(crushDiagnosticBackend.id).supportedPresentationSchemas).toEqual(
+      crushDiagnosticBackend.supportedPresentationSchemas,
+    );
     expect(crushCaptureSuite.stills).toHaveLength(1);
 
     const document = crushDocument();
@@ -143,7 +155,15 @@ describe('fake block-crush-drop platform contract', () => {
       calibrationProfileId: CRUSH_CALIBRATION_ID,
     });
     expect(crushCase.roi.map((roi) => roi.id)).toEqual(['well', 'impact']);
+    expect(crushCase.compositionProfileId).toBe('block-crush-drop.composition.diag');
     expect(getDefaultCalibrationProfile().rois.some((roi) => roi.id === 'tray')).toBe(true);
+    expect(() => createCalibrationCase({
+      id: 'missing-profile',
+      eventId: 'impact',
+      eventType: 'block-crush.impact',
+      targetFrame: 0,
+      correspondence: 'isolated-presentation',
+    })).toThrow(/calibrationProfileId/);
 
     const fixture = makeFixture();
     const crushEffect: EffectPackManifest = {
@@ -184,27 +204,36 @@ describe('fake block-crush-drop platform contract', () => {
     expect(plan.slots['clear.primary']).toBeDefined();
     expect(plan.game.id).toBe(CRUSH_GAME_ID);
 
+    const resources = readyRenderResources(plan.planHash, {
+      slots: [
+        { slotId: 'tile.material', uri: 'mem:tile', contentHash: 'sha256:b', readiness: 'ready' },
+        { slotId: 'clear.primary', uri: 'mem:fx', contentHash: crushEffect.contentHash ?? 'sha256:c', readiness: 'ready' },
+      ],
+    });
+    const backend = requireRenderBackend(crushDiagnosticBackend.id);
     assertVideoRenderJobContract({
       frameSource,
-      backend: {
-        id: 'crush.job',
-        renderer: 'fixed-camera-cinematic',
-        supportedPresentationSchemas: [packet0.payloadSchemaId],
-        letterboxFromDesign: false,
-        createStage() {
-          return { resize() {}, async warmup() {}, renderAt() {}, dispose() {} };
-        },
-      },
+      backend,
       output: { width: 1080, height: 1920, fps: frameSource.fps, quality: 'preview' },
       projectName: 'crush',
       takeName: 'drop-0',
-      resources: readyRenderResources(plan.planHash, {
-        slots: [
-          { slotId: 'tile.material', uri: 'mem:tile', contentHash: 'sha256:b', readiness: 'ready' },
-          { slotId: 'clear.primary', uri: 'mem:fx', contentHash: crushEffect.contentHash ?? 'sha256:c', readiness: 'ready' },
-        ],
-      }),
+      resources,
       requiredSlotIds: ['tile.material', 'clear.primary'],
     });
+
+    const suite = requireCaptureSuite(CRUSH_GAME_ID);
+    const stage = backend.createStage({} as HTMLCanvasElement, resources);
+    try {
+      await stage.warmup(packet0);
+      for (const still of suite.stills) {
+        expect(still.renderer).toBe(backend.renderer);
+        const packet = frameSource.evaluate(0);
+        assertPacketMatchesFrameSource(packet, frameSource, 0);
+        assertBackendSupportsPacket(backend, packet);
+        stage.renderAt(packet);
+      }
+    } finally {
+      stage.dispose();
+    }
   });
 });

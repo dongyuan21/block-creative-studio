@@ -305,6 +305,8 @@ export function createCrushDiagnosticBackend(): RenderBackendAdapter {
   return adapter;
 }
 
+export const crushDiagnosticBackend = createCrushDiagnosticBackend();
+
 export const crushCaptureSuite: CaptureSuite = {
   id: 'block-crush-drop.diag',
   gameId: CRUSH_GAME_ID,
@@ -318,5 +320,6 @@ export const fakeCrushPackage: GamePackageRegistration = {
   renderContract: crushRenderContract,
   compositions: [crushCompositionProfile],
   calibrations: [crushCalibrationProfile],
+  backends: [crushDiagnosticBackend],
   captureSuite: crushCaptureSuite,
 };
