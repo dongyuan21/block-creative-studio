@@ -74,8 +74,8 @@ export const DEFAULT_DIRECTOR_PROFILES: Record<string, TapTileDirectorProfile> =
       flightFrames: 13,
       trayReorderFrames: 7,
       matchDelayFrames: 2,
-      matchVfxFrames: 22,
-      inputOverlapFrames: 7,
+      matchVfxFrames: 29,
+      inputOverlapFrames: 14,
     },
   },
   'tight-fast': {

@@ -11,6 +11,7 @@ import {
   compileVariant,
   expandGoldenSceneCases,
   renderGoldenReportHtml,
+  validateBlenderSceneExchange,
   runQualityGate,
   summarizeCalibrationCases,
   validateAssetManifest,
@@ -23,6 +24,10 @@ import {
   type ResolvedRenderPlan,
   type VariantRecipe,
 } from '../headless/index.js';
+import { compileBlenderScene, verifyBlenderPackage } from './blenderCompiler.js';
+import { renderBlenderVideo, type BlenderVideoQuality } from './blenderVideoRenderer.js';
+import { extractBlenderSceneBundle } from './blenderSceneBundle.js';
+import { DEFAULT_GLB_INSPECTION_LIMITS, inspectGlbArrayBuffer } from '../assets/glbInspector.js';
 
 interface ParsedArgs {
   positionals: string[];
@@ -30,10 +35,13 @@ interface ParsedArgs {
 }
 
 const SCHEMAS: Record<string, string> = {
-  'asset-manifest@1': 'asset-manifest.schema.json',
-  'creative-master@1': 'creative-master.schema.json',
-  'variant-recipe@1': 'variant-recipe.schema.json',
-  'resolved-render-plan@1': 'resolved-render-plan.schema.json',
+  'asset-manifest@1': 'headless/asset-manifest.schema.json',
+  'creative-master@1': 'headless/creative-master.schema.json',
+  'variant-recipe@1': 'headless/variant-recipe.schema.json',
+  'resolved-render-plan@1': 'headless/resolved-render-plan.schema.json',
+  'blender-scene-exchange@1': 'dcc/blender-scene-exchange.schema.json',
+  'blender-compile-report@1': 'dcc/blender-compile-report.schema.json',
+  'blender-video-render-report@1': 'dcc/blender-video-render-report.schema.json',
 };
 
 function parseArgs(values: string[]): ParsedArgs {
@@ -133,7 +141,7 @@ async function loadRegistry(root: string): Promise<AssetRegistry> {
 
 function schemaRoot(): string {
   const currentFile = fileURLToPath(import.meta.url);
-  return resolve(dirname(currentFile), '../../schemas/headless');
+  return resolve(dirname(currentFile), '../../schemas');
 }
 
 async function commandSchema(args: ParsedArgs): Promise<unknown> {
@@ -270,19 +278,164 @@ async function commandGolden(args: ParsedArgs): Promise<unknown> {
   return { ok: true, rendered: false, out: out ? resolve(out) : null, html: htmlOut ? resolve(htmlOut) : null, report };
 }
 
+async function commandDcc(args: ParsedArgs): Promise<unknown> {
+  const action = args.positionals[0];
+  const sourcePath = args.positionals[1];
+  if (action === 'validate-exchange') {
+    if (!sourcePath) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Scene exchange path is required.', { path: 'dcc' });
+    }
+    const source = await readJson<unknown>(sourcePath);
+    const issues = validateBlenderSceneExchange(source);
+    return {
+      ok: !issues.some((candidate) => candidate.severity === 'error'),
+      file: resolve(sourcePath),
+      issues,
+    };
+  }
+  if (action === 'compile-blender') {
+    if (!sourcePath) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Scene exchange path is required.', { path: 'dcc' });
+    }
+    const sourceIsBundle = sourcePath.toLowerCase().endsWith('.zip');
+    const bundle = sourceIsBundle ? await extractBlenderSceneBundle(sourcePath) : undefined;
+    try {
+    const resolvedSourcePath = bundle?.scenePath ?? sourcePath;
+    const source = await readJson<unknown>(resolvedSourcePath);
+    const issues = validateBlenderSceneExchange(source);
+    const errors = issues.filter((candidate) => candidate.severity === 'error');
+    if (errors.length > 0) {
+      throw new BcsHeadlessError('BLENDER_EXCHANGE_INVALID', 'Scene exchange failed validation.', {
+        path: resolve(sourcePath),
+        details: issues,
+      });
+    }
+    const output = flagString(args, 'output') ?? flagString(args, 'out');
+    if (!output) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', '--output is required.', { path: '--output' });
+    const engineFlag = flagString(args, 'engine') ?? 'eevee';
+    if (engineFlag !== 'eevee' && engineFlag !== 'cycles') {
+      throw new BcsHeadlessError('CLI_ARGUMENT_INVALID', '--engine must be eevee or cycles.', { path: '--engine' });
+    }
+    const blenderExecutable = flagString(args, 'blender');
+    const timeoutMs = flagNumber(args, 'timeout-ms');
+    const maxTriangleCount = flagNumber(args, 'max-triangles');
+    const assetRoot = flagString(args, 'asset-root');
+      const result = await compileBlenderScene({
+        source: resolvedSourcePath,
+        output,
+        ...(blenderExecutable !== undefined ? { blenderExecutable } : {}),
+        engine: engineFlag === 'cycles' ? 'CYCLES' : 'BLENDER_EEVEE',
+        ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+        ...(maxTriangleCount !== undefined ? { maxTriangleCount } : {}),
+        ...(bundle ? { assetRoot: bundle.directory } : assetRoot !== undefined ? { assetRoot } : {}),
+      });
+      return {
+        ok: true,
+        input: bundle ? { kind: 'bcs-blender-scene-bundle', file: resolve(sourcePath), packageId: bundle.packageId, assetCount: bundle.assetCount } : { kind: 'scene-exchange', file: resolve(sourcePath) },
+        outputDirectory: result.outputDirectory,
+        reportPath: result.reportPath,
+        elapsedMs: result.elapsedMs,
+        blender: result.report.blender,
+        render: result.report.render,
+        metrics: result.report.metrics,
+        quality: result.report.quality ?? null,
+        glb: result.glbInspection,
+        vfxGlb: result.vfxGlbInspection ?? null,
+        outputs: result.report.outputs,
+        warnings: [...issues.filter((candidate) => candidate.severity === 'warning'), ...result.report.warnings],
+        logTail: result.blenderLogTail,
+      };
+    } finally {
+      await bundle?.cleanup();
+    }
+  }
+  if (action === 'inspect-glb') {
+    if (!sourcePath) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'GLB path is required.', { path: 'dcc' });
+    }
+    const maximumTriangles = flagNumber(args, 'max-triangles') ?? DEFAULT_GLB_INSPECTION_LIMITS.maximumTriangles;
+    const inspection = inspectGlbArrayBuffer(await readFile(sourcePath), {
+      ...DEFAULT_GLB_INSPECTION_LIMITS,
+      maximumTriangles,
+    });
+    return { ok: true, file: resolve(sourcePath), inspection };
+  }
+  if (action === 'verify-blender') {
+    if (!sourcePath) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Blender compile report path is required.', { path: 'dcc' });
+    }
+    const maximumTriangles = flagNumber(args, 'max-triangles') ?? DEFAULT_GLB_INSPECTION_LIMITS.maximumTriangles;
+    const verified = await verifyBlenderPackage(sourcePath, maximumTriangles);
+    return {
+      ok: true,
+      outputDirectory: verified.outputDirectory,
+      reportPath: verified.reportPath,
+      packageId: verified.report.packageId,
+      blender: verified.report.blender,
+      render: verified.report.render,
+      metrics: verified.report.metrics,
+      quality: verified.report.quality ?? null,
+      glb: verified.glbInspection,
+      vfxGlb: verified.vfxGlbInspection ?? null,
+      outputCount: verified.report.outputs.length,
+    };
+  }
+  if (action === 'render-blender') {
+    if (!sourcePath) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Compiled Blender .blend path is required.', { path: 'dcc' });
+    }
+    const output = flagString(args, 'output') ?? flagString(args, 'out');
+    if (!output) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', '--output is required.', { path: '--output' });
+    const quality = (flagString(args, 'quality') ?? 'standard') as BlenderVideoQuality;
+    if (!['draft', 'standard', 'cinematic'].includes(quality)) {
+      throw new BcsHeadlessError('CLI_ARGUMENT_INVALID', '--quality must be draft, standard, or cinematic.', { path: '--quality' });
+    }
+    const blenderExecutable = flagString(args, 'blender');
+    const timeoutMs = flagNumber(args, 'timeout-ms');
+    const frameStart = flagNumber(args, 'frame-start');
+    const frameEnd = flagNumber(args, 'frame-end');
+    const result = await renderBlenderVideo({
+      source: sourcePath,
+      output,
+      quality,
+      ...(blenderExecutable !== undefined ? { blenderExecutable } : {}),
+      ...(timeoutMs !== undefined ? { timeoutMs } : {}),
+      ...(frameStart !== undefined ? { frameStart } : {}),
+      ...(frameEnd !== undefined ? { frameEnd } : {}),
+    });
+    return {
+      ok: true,
+      output: result.report.output,
+      reportPath: result.reportPath,
+      elapsedMs: result.elapsedMs,
+      blender: result.report.blender,
+      render: result.report.render,
+      inspection: result.inspection,
+      warnings: result.report.warnings,
+      logTail: result.blenderLogTail,
+    };
+  }
+  throw new BcsHeadlessError(
+    'CLI_COMMAND_INVALID',
+    'Use `dcc validate-exchange`, `dcc inspect-glb`, `dcc verify-blender`, `dcc compile-blender`, or `dcc render-blender`.',
+    { path: 'dcc' },
+  );
+}
+
 async function execute(argv: string[]): Promise<unknown> {
   const [command, ...rest] = argv;
   const args = parseArgs(rest);
   if (command === 'capabilities') return { ok: true, capabilities: BCS_CAPABILITIES };
   if (command === 'schema') return commandSchema(args);
   if (command === 'asset') return commandAsset(args);
+  if (command === 'dcc') return commandDcc(args);
   if (command === 'variant') return commandVariant(args);
   if (command === 'quality') return commandQuality(args);
   if (command === 'material') return commandMaterial(args);
   if (command === 'golden') return commandGolden(args);
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch.',
+    'Commands: capabilities, schema list|get, asset validate, dcc validate-exchange|inspect-glb|verify-blender|compile-blender|render-blender, variant compile, quality check, material compile, golden batch.',
     { path: command ?? '(missing command)' },
   );
 }

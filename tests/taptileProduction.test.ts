@@ -7,6 +7,7 @@ import { createDefaultTapTileProject, stableStringify, type TapTileTakeAction } 
 import {
   compileTapTileAudioMix,
   compileTapTileCut,
+  createTapTileRenderManifest,
   createTapTileProductionRenderJob,
   decodeStoredZip,
   encodeStoredZip,
@@ -14,10 +15,13 @@ import {
   exportTapTileProjectBundle,
   importTapTileProjectBundle,
   runTapTileBatch,
+  selectTapTileProductionVerificationFrames,
   validateTapTileVariantDependencies,
   type TapTileBatchTask,
   type TapTileVariantSpec,
 } from '../src/taptile/production';
+import { createTapTileBlenderVfxAsset } from '../src/taptile/blender';
+import { createMinimalGlb } from './glbFixture';
 
 const ACTION_IDS = ['hourglass-43', 'hourglass-44', 'hourglass-45', 'hourglass-46', 'hourglass-47', 'hourglass-48'];
 
@@ -133,9 +137,94 @@ describe('TapTile production timeline and semantic audio', () => {
     const changed = createTapTileProductionRenderJob(project, level, compiled, project.production.cuts['opening-six']!, project.production.audioPacks['bright-pop-v1']!);
     expect(changed.identity.combinationHash).not.toBe(first.identity.combinationHash);
   });
+
+  it('forces visual verification to sample actual match feedback beats', () => {
+    const { project, level, compiled } = productionFixture();
+    const job = createTapTileProductionRenderJob(
+      project,
+      level,
+      compiled,
+      project.production.cuts['opening-six']!,
+      project.production.audioPacks['bright-pop-v1']!,
+    );
+    const frames = selectTapTileProductionVerificationFrames(job);
+    const match = compiled.actions.find((action) => action.transition.matchedTileIds.length > 0)!;
+    const expectedSource = Math.round(match.timing.matchStartFrame
+      + (match.timing.matchVfxEndFrame - match.timing.matchStartFrame) * 0.48);
+    const expectedFinal = job.cut.sourceFrameToFinalFrame(expectedSource)!;
+    expect(frames).toContain(expectedFinal);
+    expect(frames).toEqual([...frames].sort((left, right) => left - right));
+    expect(frames[0]).toBe(0);
+    expect(frames.at(-1)).toBe(job.totalFrames - 1);
+  });
 });
 
 describe('TapTile batch matrix and manifests', () => {
+  it('freezes the isolated Blender VFX identity and exact timeline into the render manifest', async () => {
+    const { project, level, compiled } = productionFixture();
+    const matchEventIds = compiled.actions
+      .filter((action) => action.transition.matchedTileIds.length === 3)
+      .map((action) => `${action.actionId}:match`);
+    const semanticRoles = matchEventIds.flatMap(() => ['match-core', 'match-fragment']);
+    const semanticIds = matchEventIds.flatMap((id) => [`${id}::core`, `${id}::dense-shards`]);
+    const buffer = createMinimalGlb({
+      triangleCount: 2,
+      nodeInstances: semanticRoles.length,
+      semanticExtras: true,
+      semanticRoles,
+      semanticIds,
+      vfxStyle: 'shatter',
+      vfxFragmentCount: 96,
+      fixedCamera: true,
+      timeline: { frameStart: 1, frameEnd: compiled.totalFrames, frameCount: compiled.totalFrames, fps: compiled.fps },
+    });
+    const asset = await createTapTileBlenderVfxAsset(buffer, 'scene.vfx.glb');
+    const job = createTapTileProductionRenderJob(
+      project,
+      level,
+      compiled,
+      project.production.cuts['opening-six']!,
+      project.production.audioPacks['bright-pop-v1']!,
+      { blenderVfxAsset: asset },
+    );
+    const result: FixedFrameExportResult = {
+      blob: new Blob(['deterministic-mp4'], { type: 'video/mp4' }),
+      fileName: 'production.mp4',
+      frameCount: job.totalFrames,
+      durationSeconds: job.totalFrames / job.fps,
+      width: job.width,
+      height: job.height,
+      fps: job.fps,
+      renderScale: 1.5,
+      codec: 'avc',
+      audioCodec: 'aac',
+      verification: {
+        containerReadable: true,
+        videoTrackCount: 1,
+        audioTrackCount: 1,
+        width: job.width,
+        height: job.height,
+        frameCount: job.totalFrames,
+        durationSeconds: job.totalFrames / job.fps,
+        averageFrameRate: job.fps,
+        averageVideoBitrate: 14_000_000,
+        videoCodec: 'avc',
+        audioCodec: 'aac',
+      },
+    };
+    const manifest = await createTapTileRenderManifest(project, level, job, result);
+    expect(job.identity.blenderVfxHash).toBe(asset.sha256);
+    expect(manifest.source.blenderVfx).toEqual({
+      fileName: 'scene.vfx.glb',
+      sha256: asset.sha256,
+      byteLength: asset.byteLength,
+      fragmentCount: matchEventIds.length * 96,
+      matchEventIds: [...matchEventIds].sort(),
+      isolated: true,
+      timeline: { frameStart: 1, frameEnd: compiled.totalFrames, frameCount: compiled.totalFrames, fps: compiled.fps },
+    });
+  });
+
   it('expands and hash-deduplicates the full matrix while exposing invalid Cut dependencies', () => {
     const { project, level } = productionFixture();
     const skinPackCount = Object.keys(project.visuals.themes).length;
@@ -170,8 +259,22 @@ describe('TapTile batch matrix and manifests', () => {
         width: prepared.job.width,
         height: prepared.job.height,
         fps: prepared.job.fps,
+        renderScale: 1,
         codec: 'avc',
         audioCodec: 'aac',
+        verification: {
+          containerReadable: true,
+          videoTrackCount: 1,
+          audioTrackCount: 1,
+          width: prepared.job.width,
+          height: prepared.job.height,
+          frameCount: prepared.job.totalFrames,
+          durationSeconds: prepared.job.totalFrames / prepared.job.fps,
+          averageFrameRate: prepared.job.fps,
+          averageVideoBitrate: 14_000_000,
+          videoCodec: 'avc',
+          audioCodec: 'aac',
+        },
       };
       await prepared.job.dispose?.();
       return result;

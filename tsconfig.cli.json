@@ -21,6 +21,7 @@
     ]
   },
   "include": [
+    "src/assets/glbInspector.ts",
     "src/headless/**/*.ts",
     "src/cli/**/*.ts"
   ]

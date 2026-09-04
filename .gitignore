@@ -25,5 +25,4 @@ dist-pages-smoke/
 
 # Capture writes this-run evidence here. Git-tracked frames/videos are stale.
 review-package/run/
-artifacts/design-qa/
-artifacts/taptile-video-analysis/
+artifacts/

@@ -24,6 +24,43 @@ export interface SolveTapTileOptions {
   maxExpandedStates?: number;
 }
 
+export type TapTileSolveTerminationReason =
+  | 'goal'
+  | 'theoretical-maximum'
+  | 'state-budget'
+  | 'depth-limit'
+  | 'frontier-exhausted'
+  | 'canceled'
+  | 'time-budget'
+  | 'invalid-level'
+  | 'no-triples';
+
+export interface TapTileSolveProgress {
+  profile: TapTileScenarioProfileId;
+  depth: number;
+  maxDepth: number;
+  frontierSize: number;
+  expandedStates: number;
+  stateBudget: number;
+  bestClearedTileCount: number;
+  theoreticalClearableTileCount: number;
+  bestActionCount: number;
+  peakTrayOccupancy: number;
+  elapsedMs: number;
+}
+
+/**
+ * Cooperative browser search options. `yieldEvery` bounds how much work may run
+ * before control is returned to the event loop, so cancellation is real rather
+ * than a cosmetic wrapper around the synchronous solver.
+ */
+export interface SolveTapTileAnytimeOptions extends SolveTapTileOptions {
+  signal?: AbortSignal;
+  timeBudgetMs?: number;
+  yieldEvery?: number;
+  onProgress?: (progress: TapTileSolveProgress) => void | Promise<void>;
+}
+
 export interface TapTileSolveMetrics {
   clearedTileCount: number;
   theoreticalClearableTileCount: number;
@@ -39,6 +76,7 @@ export interface SolveResult {
   status: 'solved' | 'partial' | 'not-found' | 'invalid-level';
   actions?: TapTileAction[];
   expandedStates: number;
+  terminationReason?: TapTileSolveTerminationReason;
   finalStateHash?: string;
   metrics?: TapTileSolveMetrics;
   diagnostic?: string;

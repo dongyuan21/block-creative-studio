@@ -153,6 +153,8 @@ export interface PresentationEffect {
   kind: 'match' | 'warning' | 'win' | 'loss' | 'click';
   progress: number;
   tileIds: string[];
+  /** Deterministic director feedback rendered by both preview and export. */
+  praiseLabel?: string;
   implementation: DirectorEffectImplementation;
   presetId: string;
   slotIndexes?: number[];

@@ -859,3 +859,29 @@ button:disabled, input:disabled, select:disabled, .file-button.is-disabled { opa
 .lookdev-ranges {
   margin-bottom: 9px;
 }
+/* Workspace modules are split at the app boundary; keep their cold-load state
+   independent of either editor's stylesheet. */
+.workspace-loading {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  grid-auto-flow: column;
+  gap: 12px;
+  align-items: center;
+  color: #cbd7ef;
+  background: #080d17;
+  font: 600 14px/1.4 Inter, system-ui, sans-serif;
+}
+
+.workspace-loading__pulse {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #6f7bff;
+  box-shadow: 0 0 18px rgba(111, 123, 255, .75);
+  animation: workspace-loading-pulse 900ms ease-in-out infinite alternate;
+}
+
+@keyframes workspace-loading-pulse {
+  to { opacity: .35; transform: scale(.72); }
+}

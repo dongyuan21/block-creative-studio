@@ -91,6 +91,7 @@ describe('TapTile Director compiler and fixed-frame evaluation', () => {
     expect(effect.particles.some((particle) => particle.shape === 'ceramic-shard')).toBe(true);
     expect(effect.particles.some((particle) => particle.shape === 'spark')).toBe(true);
     expect(effect.particles.some((particle) => particle.opacity > 0)).toBe(true);
+    expect(effect.praiseLabel).toBe('Great');
   });
 
   it('evaluates direct seek exactly like evaluating the full sequential range', () => {

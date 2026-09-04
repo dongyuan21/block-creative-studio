@@ -17,6 +17,15 @@ export interface TapTileRenderManifest {
     cutSpecId: string;
     outroPackId?: string;
     renderSpec: TapTileProjectV2['render'];
+    blenderVfx?: {
+      fileName: string;
+      sha256: string;
+      byteLength: number;
+      fragmentCount: number;
+      matchEventIds: string[];
+      isolated: boolean;
+      timeline: { frameStart: number; frameEnd: number; frameCount: number; fps: number };
+    };
   };
   identities: TapTileProductionRenderJob['identity'];
   timeline: {
@@ -43,6 +52,8 @@ export interface TapTileRenderManifest {
     sha256: string;
     videoCodec: 'avc';
     audioCodec: 'aac';
+    renderScale: number;
+    verification: FixedFrameExportResult['verification'];
   };
 }
 
@@ -82,6 +93,19 @@ export async function createTapTileRenderManifest(
       cutSpecId: job.cut.cutSpec.id,
       ...(job.cut.outro ? { outroPackId: job.cut.outro.id } : {}),
       renderSpec: structuredClone(job.baseJob.project.render),
+      ...(job.blenderVfxAsset ? {
+        blenderVfx: {
+          fileName: job.blenderVfxAsset.fileName,
+          sha256: job.blenderVfxAsset.sha256,
+          byteLength: job.blenderVfxAsset.byteLength,
+          fragmentCount: job.blenderVfxAsset.validation.effectFragmentCount,
+          matchEventIds: (job.blenderVfxAsset.validation.inspection.entityIdsByRole['match-core'] ?? [])
+            .map((id) => id.endsWith('::core') ? id.slice(0, -'::core'.length) : id)
+            .sort(),
+          isolated: job.blenderVfxAsset.validation.tileEntityCount === 0,
+          timeline: structuredClone(job.blenderVfxAsset.validation.inspection.timeline!),
+        },
+      } : {}),
     },
     identities: structuredClone(job.identity),
     timeline: {
@@ -108,6 +132,8 @@ export async function createTapTileRenderManifest(
       sha256: await sha256Blob(result.blob),
       videoCodec: result.codec,
       audioCodec: result.audioCodec,
+      renderScale: result.renderScale,
+      verification: structuredClone(result.verification),
     },
   };
 }

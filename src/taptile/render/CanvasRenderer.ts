@@ -44,6 +44,80 @@ export interface TapTileCanvasRenderBundle {
   assets: TapTileAssetCache;
 }
 
+export interface TapTileCanvasRenderOptions {
+  pixelScale?: number;
+}
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
+
+function easeOutBack(value: number): number {
+  const t = clamp01(value) - 1;
+  return 1 + 2.70158 * t ** 3 + 1.70158 * t ** 2;
+}
+
+/**
+ * Draws praise as a screen-space feedback layer. Export with Blender calls this
+ * a second time after the transparent 3D pass, while suppressing it in the base
+ * pass, so ceramic fragments never cover the message.
+ */
+export function renderTapTilePraiseOverlay(
+  canvas: HTMLCanvasElement,
+  frame: TapTilePresentationFrame,
+  bundle: TapTileCanvasRenderBundle,
+  options: TapTileCanvasRenderOptions = {},
+): CanvasRenderTraceItem[] {
+  const context = canvas.getContext('2d', { alpha: false });
+  if (!context) throw new Error('CANVAS_2D_CONTEXT_UNAVAILABLE');
+  const pixelScale = Math.max(1, Math.min(2, options.pixelScale ?? 1));
+  const width = bundle.project.stage.exportWidth;
+  const tray = normalizeTapTileTrayBounds(bundle.project.stage.safeAreas.tray);
+  const items: CanvasRenderTraceItem[] = [];
+  context.save();
+  context.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
+  for (const effect of frame.effects.filter((candidate) => candidate.kind === 'match' && candidate.praiseLabel)) {
+    const enter = clamp01((effect.progress - 0.16) / 0.18);
+    const exit = 1 - clamp01((effect.progress - 0.72) / 0.28);
+    const opacity = Math.min(enter, exit);
+    if (opacity <= 0) continue;
+    const label = `${effect.praiseLabel!.replace(/!+$/u, '')}!`;
+    const scale = 0.7 + easeOutBack(enter) * 0.3;
+    const y = tray.bottom + 72 - (1 - enter) * 18;
+    context.save();
+    context.translate(width / 2, y);
+    context.scale(scale, scale);
+    context.globalAlpha = opacity;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = '900 70px "Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif';
+    context.lineJoin = 'round';
+    context.lineWidth = 15;
+    context.strokeStyle = 'rgba(255, 255, 255, 0.98)';
+    context.strokeText(label, 0, 0);
+    context.lineWidth = 8;
+    context.strokeStyle = '#168f45';
+    context.shadowColor = 'rgba(87, 255, 142, 0.82)';
+    context.shadowBlur = 24;
+    context.strokeText(label, 0, 0);
+    const gradient = context.createLinearGradient(0, -42, 0, 38);
+    gradient.addColorStop(0, '#f6ff9a');
+    gradient.addColorStop(0.46, '#8dff76');
+    gradient.addColorStop(1, '#35ce68');
+    context.fillStyle = gradient;
+    context.shadowBlur = 15;
+    context.fillText(label, 0, 0);
+    context.restore();
+    items.push({
+      band: TAPTILE_Z_BANDS.praiseWarning,
+      id: `praise:${effect.id}`,
+      bounds: { x: 270, y: Math.round(y - 58), width: 540, height: 116 },
+    });
+  }
+  context.restore();
+  return items;
+}
+
 function round(value: number): number {
   return Math.round(value);
 }
@@ -65,6 +139,58 @@ function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, wi
 
 function drawCover(context: CanvasRenderingContext2D, image: CanvasImageSource, x: number, y: number, width: number, height: number): void {
   context.drawImage(image, round(x), round(y), round(width), round(height));
+}
+
+function drawMatchFracture(
+  context: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  width: number,
+  height: number,
+  progress: number,
+  variant: number,
+): void {
+  const appear = clamp01((progress - 0.07) / 0.24);
+  const disappear = 1 - clamp01((progress - 0.69) / 0.31);
+  const alpha = Math.min(appear, disappear);
+  if (alpha <= 0) return;
+  context.save();
+  roundedRect(context, centerX - width * 0.48, centerY - height * 0.48, width * 0.96, height * 0.96, 15);
+  context.clip();
+  context.globalAlpha = alpha * 0.76;
+  context.fillStyle = '#fffdf5';
+  context.fillRect(centerX - width / 2, centerY - height / 2, width, height);
+  context.translate(centerX + ((variant % 3) - 1) * width * 0.035, centerY - height * 0.04);
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  const rayCount = 6;
+  for (let ray = 0; ray < rayCount; ray += 1) {
+    const angle = -Math.PI * 0.92 + ray * (Math.PI * 1.84 / (rayCount - 1)) + ((variant + ray) % 3 - 1) * 0.1;
+    const radius = width * (0.28 + ((variant * 7 + ray * 5) % 9) * 0.021);
+    const midX = Math.cos(angle) * radius * 0.52 + Math.sin(angle * 2 + variant) * 7;
+    const midY = Math.sin(angle) * radius * 0.52 + Math.cos(angle * 1.7 + variant) * 5;
+    const endX = Math.cos(angle) * radius;
+    const endY = Math.sin(angle) * radius;
+    context.beginPath();
+    context.moveTo(0, 0);
+    context.lineTo(midX, midY);
+    context.lineTo(endX, endY);
+    context.globalAlpha = alpha * 0.8;
+    context.strokeStyle = 'rgba(255, 255, 255, 0.96)';
+    context.lineWidth = 5;
+    context.stroke();
+    context.globalAlpha = alpha * 0.68;
+    context.strokeStyle = 'rgba(85, 124, 143, 0.84)';
+    context.lineWidth = 1.8;
+    context.stroke();
+    if (ray % 2 === 0) {
+      context.beginPath();
+      context.moveTo(midX, midY);
+      context.lineTo(midX + Math.cos(angle + 1.02) * radius * 0.24, midY + Math.sin(angle + 1.02) * radius * 0.24);
+      context.stroke();
+    }
+  }
+  context.restore();
 }
 
 function drawMaterialCastShadow(
@@ -248,18 +374,22 @@ export function renderTapTilePresentationFrame(
   canvas: HTMLCanvasElement,
   frame: TapTilePresentationFrame,
   bundle: TapTileCanvasRenderBundle,
+  options: TapTileCanvasRenderOptions = {},
 ): CanvasRenderTrace {
-  if (canvas.width !== bundle.project.stage.exportWidth || canvas.height !== bundle.project.stage.exportHeight) {
-    canvas.width = bundle.project.stage.exportWidth;
-    canvas.height = bundle.project.stage.exportHeight;
+  const pixelScale = Math.max(1, Math.min(2, options.pixelScale ?? 1));
+  const width = bundle.project.stage.exportWidth;
+  const height = bundle.project.stage.exportHeight;
+  const pixelWidth = Math.round(width * pixelScale);
+  const pixelHeight = Math.round(height * pixelScale);
+  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
   }
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) throw new Error('CANVAS_2D_CONTEXT_UNAVAILABLE');
-  const width = canvas.width;
-  const height = canvas.height;
   const trace: CanvasRenderTrace = { frameNumber: frame.frameNumber, width, height, items: [] };
   context.save();
-  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
   context.clearRect(0, 0, width, height);
 
   const [topColor, bottomColor] = sceneColors(bundle.project);
@@ -422,6 +552,7 @@ export function renderTapTilePresentationFrame(
         1 + pulse + dissolve * 0.2,
         1 - dissolve,
       );
+      drawMatchFracture(context, center.xPx, center.yPx, slot.width, slot.height, effect.progress, index);
     }
     for (const particle of effect.particles) {
       context.save();
@@ -459,7 +590,10 @@ export function renderTapTilePresentationFrame(
     trace.items.push({ band: TAPTILE_Z_BANDS.matchVfx, id: effect.id, bounds: { x: tray.left, y: tray.top - 80, width: tray.width, height: tray.height + 160 } });
   }
 
-  const warning = frame.gameState.status === 'playing' && frame.gameState.trayIds.length === 6;
+  const praiseItems = renderTapTilePraiseOverlay(canvas, frame, bundle, options);
+  trace.items.push(...praiseItems);
+
+  const warning = praiseItems.length === 0 && frame.gameState.status === 'playing' && frame.gameState.trayIds.length === 6;
   if (warning) {
     context.save();
     context.fillStyle = 'rgba(255, 186, 35, 0.94)';
@@ -501,15 +635,17 @@ export function renderTapTileOutroOverlay(
   outro: OutroPack,
   progress: number,
   bundle: TapTileCanvasRenderBundle,
+  options: TapTileCanvasRenderOptions = {},
 ): CanvasRenderTraceItem {
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) throw new Error('CANVAS_2D_CONTEXT_UNAVAILABLE');
-  const width = canvas.width;
-  const height = canvas.height;
+  const pixelScale = Math.max(1, Math.min(2, options.pixelScale ?? 1));
+  const width = bundle.project.stage.exportWidth;
+  const height = bundle.project.stage.exportHeight;
   const clamped = Math.max(0, Math.min(1, progress));
   const entrance = Math.min(1, clamped / 0.24);
   context.save();
-  context.setTransform(1, 0, 0, 1, 0, 0);
+  context.setTransform(pixelScale, 0, 0, pixelScale, 0, 0);
   context.globalAlpha = entrance;
   const gradient = context.createLinearGradient(0, 0, width, height);
   gradient.addColorStop(0, '#142f73');

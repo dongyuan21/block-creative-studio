@@ -1,5 +1,6 @@
 export * from './assetRegistry.js';
 export * from './calibration.js';
+export * from './blenderContracts.js';
 export * from './capabilities.js';
 export * from './contracts.js';
 export * from './coordinateMapping.js';

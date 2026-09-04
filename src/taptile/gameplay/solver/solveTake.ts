@@ -1,14 +1,14 @@
 import { stableHash, type CompiledTapTileLevel, type TapTileTakeAction } from '../../project';
 import { applyTapAction, createInitialTapTileGameState } from '../engine';
 import { createTapTileTake, validateTapTileTake } from '../take';
-import { solveTapTileLevel } from './beamSearch';
-import type { SolveTakeResult, SolveTapTileOptions } from './types';
+import { solveTapTileLevel, solveTapTileLevelAnytime } from './beamSearch';
+import type { SolveResult, SolveTakeResult, SolveTapTileAnytimeOptions, SolveTapTileOptions } from './types';
 
-export function solveTapTileTake(
+function createTakeForSolvedResult(
   level: CompiledTapTileLevel,
-  options: SolveTapTileOptions = {},
+  options: SolveTapTileOptions,
+  solved: SolveResult,
 ): SolveTakeResult {
-  const solved = solveTapTileLevel(level, options);
   if ((solved.status !== 'solved' && solved.status !== 'partial') || !solved.actions || solved.actions.length === 0) return solved;
   let state = createInitialTapTileGameState(level);
   for (const action of solved.actions) {
@@ -17,6 +17,7 @@ export function solveTapTileTake(
       return {
         status: 'not-found',
         expandedStates: solved.expandedStates,
+        ...(solved.terminationReason ? { terminationReason: solved.terminationReason } : {}),
         diagnostic: `Solver 内部重放在 ${action.tileId} 被正式引擎拒绝。`,
       };
     }
@@ -44,9 +45,26 @@ export function solveTapTileTake(
     return {
       status: 'not-found',
       expandedStates: solved.expandedStates,
+      ...(solved.terminationReason ? { terminationReason: solved.terminationReason } : {}),
       diagnostic: validation.issues[0]?.message ?? 'Agent Take 未通过正式引擎重放。',
       validation,
     };
   }
   return { ...solved, take, validation };
+}
+
+export function solveTapTileTake(
+  level: CompiledTapTileLevel,
+  options: SolveTapTileOptions = {},
+): SolveTakeResult {
+  const solved = solveTapTileLevel(level, options);
+  return createTakeForSolvedResult(level, options, solved);
+}
+
+export async function solveTapTileTakeAnytime(
+  level: CompiledTapTileLevel,
+  options: SolveTapTileAnytimeOptions = {},
+): Promise<SolveTakeResult> {
+  const solved = await solveTapTileLevelAnytime(level, options);
+  return createTakeForSolvedResult(level, options, solved);
 }

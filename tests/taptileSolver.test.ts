@@ -3,11 +3,14 @@ import {
   compileTapTileLevel,
   replayTapTileTake,
   solveTapTileLevel,
+  solveTapTileLevelAnytime,
   solveTapTileTake,
+  solveTapTileTakeAnytime,
   type TapTileScenarioProfileId,
 } from '../src/taptile/gameplay';
 import type { CompiledTapTileLevel } from '../src/taptile/project';
 import { createDefaultTapTileProject } from '../src/taptile/project';
+import { seededPathRank } from '../src/taptile/gameplay/solver/seededOrder';
 
 function flatLevelWithCopies(copiesByGroup: readonly number[]): CompiledTapTileLevel {
   const ids: string[] = [];
@@ -55,6 +58,12 @@ function flatLevel(groupCount: number, copies = 3): CompiledTapTileLevel {
 }
 
 describe('TapTile deterministic Beam Search', () => {
+  it('keeps path-derived seeded ordering stable while using incremental states internally', () => {
+    expect(seededPathRank(1, [])).toBe(814657751);
+    expect(seededPathRank(935, ['a'])).toBe(2359091889);
+    expect(seededPathRank(935, ['a', 'b'])).toBe(3205851692);
+    expect(seededPathRank(240811, ['hourglass-43', 'hourglass-44', 'hourglass-45'])).toBe(3845342074);
+  });
   it('solves every seeded production template through the same engine API', () => {
     for (const template of ['hourglass', 't-shape', 'terraces', 'free'] as const) {
       const level = compileTapTileLevel(createDefaultTapTileProject(template));
@@ -175,5 +184,60 @@ describe('TapTile deterministic Beam Search', () => {
       expect(result.status).toBe('not-found');
       expect(result.diagnostic).toContain('不等于数学上无解');
     }
+  });
+
+  it('keeps cooperative anytime search bit-for-bit aligned with the synchronous solver', async () => {
+    const level = flatLevelWithCopies([4, 4, 5, 4, 4, 2]);
+    const options = {
+      profile: 'max-clear' as const,
+      seed: 9304,
+      beamWidth: 80,
+      maxExpandedStates: 30_000,
+    };
+    const synchronous = solveTapTileTake(level, options);
+    const progress: number[] = [];
+    const anytime = await solveTapTileTakeAnytime(level, {
+      ...options,
+      yieldEvery: 256,
+      onProgress: (snapshot) => { progress.push(snapshot.expandedStates); },
+    });
+    expect(anytime.actions).toEqual(synchronous.actions);
+    expect(anytime.finalStateHash).toBe(synchronous.finalStateHash);
+    expect(anytime.metrics).toEqual(synchronous.metrics);
+    expect(progress.length).toBeGreaterThan(1);
+    expect(progress[0]).toBe(0);
+    expect(progress.every((value, index) => index === 0 || value >= progress[index - 1]!)).toBe(true);
+  });
+
+  it('cancels between bounded slices and returns the best replayable maximum-clear path', async () => {
+    const level = flatLevelWithCopies([4, 4, 5, 4, 4, 2]);
+    const controller = new AbortController();
+    const result = await solveTapTileTakeAnytime(level, {
+      profile: 'max-clear',
+      seed: 9304,
+      beamWidth: 120,
+      maxExpandedStates: 100_000,
+      yieldEvery: 128,
+      onProgress: (progress) => {
+        if (progress.bestClearedTileCount >= 3) controller.abort();
+      },
+      signal: controller.signal,
+    });
+    expect(result.status).toBe('partial');
+    expect(result.terminationReason).toBe('canceled');
+    expect(result.metrics?.clearedTileCount).toBeGreaterThanOrEqual(3);
+    expect(result.take).toBeDefined();
+    expect(result.validation?.valid).toBe(true);
+  });
+
+  it('honors a zero millisecond time budget before expanding a state', async () => {
+    const result = await solveTapTileLevelAnytime(flatLevel(8), {
+      profile: 'max-clear',
+      timeBudgetMs: 0,
+      yieldEvery: 1,
+    });
+    expect(result.status).toBe('not-found');
+    expect(result.expandedStates).toBe(0);
+    expect(result.terminationReason).toBe('time-budget');
   });
 });

@@ -1,8 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { exportFixedFrameVideo, type FixedFrameExportResult, type FrameRenderProgress } from '../../exporter/fixedFrameExporter';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { exportFixedFrameVideo, renderFixedFrameToCanvas, type FixedFrameExportResult, type FrameRenderProgress } from '../../exporter/fixedFrameExporter';
 import { downloadBlob } from '../../utils/download';
+import {
+  assertTapTileBlenderVfxCompatibility,
+  createTapTileBlenderSceneExchange,
+  createTapTileBlenderVfxAsset,
+  exportTapTileBlenderBundle,
+  forgetTapTileBlenderVfxAsset,
+  persistTapTileBlenderVfxAsset,
+  restoreTapTileBlenderVfxAsset,
+  type TapTileBlenderVfxAsset,
+} from '../blender';
 import type { CompiledTapTileLevel, TapTileProjectV2 } from '../project';
-import { hashCanvasPixels } from '../render';
+import { hashCanvasPixels, resolveTapTileVideoQualityProfile, TAPTILE_VIDEO_QUALITY_PROFILES } from '../render';
 import {
   expandTapTileBatchMatrix,
   prepareTapTileVariant,
@@ -10,11 +20,17 @@ import {
   serializeTapTileRenderManifest,
   validateTapTileVariantDependencies,
   type TapTileBatchTask,
+  type PreparedTapTileVariant,
   type TapTileVariantSpec,
 } from './index';
 import { createTapTileRenderManifest } from './manifest';
 import { exportTapTileProjectBundle, importTapTileProjectBundle } from './projectBundle';
-import { preflightTapTileProductionRenderJob } from './renderJob';
+import { preflightTapTileProductionRenderJob, selectTapTileProductionVerificationFrames } from './renderJob';
+
+const TapTileBlenderPreview = lazy(async () => {
+  const module = await import('../blender/TapTileBlenderPreview');
+  return { default: module.TapTileBlenderPreview };
+});
 
 interface TapTileProductionPanelProps {
   project: TapTileProjectV2;
@@ -70,19 +86,18 @@ function releaseArtifact(artifact: ProductionArtifact | null): void {
 }
 
 export function TapTileProductionPanel({ project, level, onChange, onImport, onNotice }: TapTileProductionPanelProps) {
+  const qualityProfile = resolveTapTileVideoQualityProfile(project.render.quality);
   const spec = useMemo(() => selectedVariant(project, level), [level, project]);
   const dependency = useMemo(
     () => spec ? validateTapTileVariantDependencies(project, level, spec) : { valid: false, reasons: ['TAKE_MISSING: 请先保存至少一条 Take。'] },
     [level, project, spec],
   );
-  const preview = useMemo(() => {
-    if (!spec || !dependency.valid) return null;
-    try { return prepareTapTileVariant(project, level, spec); }
-    catch { return null; }
-  }, [dependency.valid, level, project, spec]);
+  const [preview, setPreview] = useState<PreparedTapTileVariant | null>(null);
   const [previewFrame, setPreviewFrame] = useState(0);
   const [previewHash, setPreviewHash] = useState('pending');
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewRenderCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewRenderQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [singleProgress, setSingleProgress] = useState<FrameRenderProgress | null>(null);
   const [singleError, setSingleError] = useState('');
   const [singleArtifact, setSingleArtifact] = useState<ProductionArtifact | null>(null);
@@ -91,9 +106,84 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
   const [batchArtifacts, setBatchArtifacts] = useState<BatchArtifact[]>([]);
   const batchAbortRef = useRef<AbortController | null>(null);
   const bundleImportRef = useRef<HTMLInputElement | null>(null);
+  const blenderVfxInputRef = useRef<HTMLInputElement | null>(null);
   const [bundleResult, setBundleResult] = useState<{ url: string; fileName: string; bytes: number; projectHash: string } | null>(null);
+  const [blenderExchangeSummary, setBlenderExchangeSummary] = useState<{
+    fileName: string;
+    bytes: number;
+    entities: number;
+    tracks: number;
+    events: number;
+    frames: number;
+    assets: number;
+    checksums: number;
+  } | null>(null);
+  const [blenderExporting, setBlenderExporting] = useState(false);
+  const [blenderError, setBlenderError] = useState('');
+  const [blenderVfxAsset, setBlenderVfxAsset] = useState<TapTileBlenderVfxAsset | null>(null);
+  const [blenderVfxEnabled, setBlenderVfxEnabled] = useState(false);
+  const [blenderVfxError, setBlenderVfxError] = useState('');
+  const [blenderVfxPersistence, setBlenderVfxPersistence] = useState<'idle' | 'restoring' | 'stored' | 'session-only'>('idle');
 
-  useEffect(() => () => { void preview?.job.dispose?.(); }, [preview]);
+  useEffect(() => {
+    let active = true;
+    setBlenderVfxAsset(null);
+    setBlenderVfxEnabled(false);
+    setBlenderVfxPersistence('restoring');
+    void restoreTapTileBlenderVfxAsset(project.id).then((asset) => {
+      if (!active) return;
+      if (asset) {
+        setBlenderVfxAsset(asset);
+        setBlenderVfxEnabled(true);
+        setBlenderVfxPersistence('stored');
+      } else {
+        setBlenderVfxPersistence('idle');
+      }
+    }).catch((error: unknown) => {
+      if (!active) return;
+      try {
+        forgetTapTileBlenderVfxAsset(project.id);
+      } catch {
+        // Storage can be blocked by browser privacy settings. The imported GLB
+        // remains usable for this session even when its stale pointer cannot be removed.
+      }
+      setBlenderVfxPersistence('idle');
+      setBlenderVfxError(error instanceof Error ? error.message : String(error));
+    });
+    return () => { active = false; };
+  }, [project.id]);
+
+  useEffect(() => {
+    if (!spec || !dependency.valid) {
+      setPreview(null);
+      return undefined;
+    }
+    let prepared: PreparedTapTileVariant | null = null;
+    try {
+      prepared = prepareTapTileVariant(project, level, spec, {
+        ...(blenderVfxEnabled && blenderVfxAsset ? { blenderVfxAsset } : {}),
+      });
+      setPreview(prepared);
+      // Keep the actionable incompatibility message visible after the effect
+      // reruns with the automatically disabled asset and recovers in 2D.
+      if (blenderVfxEnabled || !blenderVfxAsset) setBlenderVfxError('');
+    } catch (error) {
+      if (blenderVfxEnabled && blenderVfxAsset) {
+        const message = error instanceof Error ? error.message : String(error);
+        setBlenderVfxEnabled(false);
+        setBlenderVfxError(`3D 特效与当前 Take 不兼容，已自动停用；2D 预览仍可继续。${message}`);
+        try {
+          prepared = prepareTapTileVariant(project, level, spec);
+          setPreview(prepared);
+        } catch {
+          setPreview(null);
+        }
+      } else {
+        setPreview(null);
+      }
+    }
+    return () => { void prepared?.job.dispose?.(); };
+  }, [blenderVfxAsset, blenderVfxEnabled, dependency.valid, level, project, spec]);
   useEffect(() => () => releaseArtifact(singleArtifact), [singleArtifact]);
   useEffect(() => () => {
     for (const artifact of batchArtifacts) {
@@ -112,15 +202,30 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
     if (!preview || !canvas) { setPreviewHash('unavailable'); return; }
     let active = true;
     setPreviewHash('pending');
-    void (async () => {
-      await preview.job.prepare?.(canvas);
-      await preview.job.render(preview.job.evaluate(previewFrame), canvas);
-      if (active) setPreviewHash(hashCanvasPixels(canvas));
-    })().catch((error: unknown) => {
-      if (active) setPreviewHash(`error:${error instanceof Error ? error.message : String(error)}`);
-    });
-    return () => { active = false; };
-  }, [preview, previewFrame]);
+    const renderCanvas = previewRenderCanvasRef.current ?? document.createElement('canvas');
+    previewRenderCanvasRef.current = renderCanvas;
+    const timer = window.setTimeout(() => {
+      const queued = previewRenderQueueRef.current.catch(() => undefined).then(async () => {
+        if (!active) return;
+        await renderFixedFrameToCanvas(preview.job, preview.job.evaluate(previewFrame), canvas, qualityProfile.renderScale, renderCanvas);
+        if (active) setPreviewHash(hashCanvasPixels(canvas));
+      }).catch((error: unknown) => {
+        if (active) setPreviewHash(`error:${error instanceof Error ? error.message : String(error)}`);
+      });
+      previewRenderQueueRef.current = queued;
+    }, 48);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [preview, previewFrame, qualityProfile.renderScale]);
+  useEffect(() => () => {
+    if (previewRenderCanvasRef.current) {
+      previewRenderCanvasRef.current.width = 1;
+      previewRenderCanvasRef.current.height = 1;
+      previewRenderCanvasRef.current = null;
+    }
+  }, []);
 
   const matrix = useMemo(() => expandTapTileBatchMatrix(project, level, {
     takeIds: project.takes.map((take) => take.id),
@@ -134,13 +239,14 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
   const validMatrix = useMemo(() => matrix.filter((task) => validateTapTileVariantDependencies(project, level, task.spec).valid), [level, matrix, project]);
   const invalidMatrix = matrix.length - validMatrix.length;
 
-  const updateSelection = (kind: 'take' | 'skin' | 'director' | 'audio' | 'cut' | 'outro', value: string): void => {
+  const updateSelection = (kind: 'take' | 'skin' | 'director' | 'audio' | 'cut' | 'outro' | 'quality', value: string): void => {
     onChange((draft) => {
       if (kind === 'take') draft.selectedTakeId = value;
       else if (kind === 'skin') draft.visuals.selectedThemeId = value;
       else if (kind === 'director') draft.director.selectedProfileId = value;
       else if (kind === 'audio') draft.production.selectedAudioPackId = value;
       else if (kind === 'cut') draft.production.selectedCutId = value;
+      else if (kind === 'quality') draft.render.quality = value as TapTileProjectV2['render']['quality'];
       else {
         const cutId = draft.production.selectedCutId;
         if (cutId && draft.production.cuts[cutId]) draft.production.cuts[cutId]!.outroPackId = value;
@@ -158,24 +264,32 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
     singleAbortRef.current = controller;
     let prepared: ReturnType<typeof prepareTapTileVariant> | undefined;
     try {
-      prepared = prepareTapTileVariant(project, level, spec);
+      prepared = prepareTapTileVariant(project, level, spec, {
+        ...(blenderVfxEnabled && blenderVfxAsset ? { blenderVfxAsset } : {}),
+      });
       const preflight = await preflightTapTileProductionRenderJob(prepared.job);
       if (!preflight.valid) throw new Error(preflight.issues.map((issue) => `${issue.code}: ${issue.message}`).join('\n'));
       const video = await exportFixedFrameVideo(prepared.job, {
-        bitrate: project.render.quality === 'cinematic' ? 20_000_000 : project.render.quality === 'preview' ? 8_000_000 : 14_000_000,
+        bitrate: qualityProfile.videoBitrate,
+        renderScale: qualityProfile.renderScale,
         fileName: prepared.fileName,
         signal: controller.signal,
         onProgress: setSingleProgress,
+        keyFrameIntervalSeconds: qualityProfile.keyFrameIntervalSeconds,
         audio: {
           data: prepared.job.audioMix.data,
           sampleRate: prepared.job.audioMix.sampleRate,
           numberOfChannels: prepared.job.audioMix.numberOfChannels,
-          bitrate: 192_000,
+          bitrate: qualityProfile.audioBitrate,
         },
         metadata: {
           title: `${prepared.project.name} · TapTile production variant`,
           artist: 'Block Creative Studio',
           comment: `${prepared.job.identity.combinationHash} · ${prepared.job.audioMix.pcmHash}`,
+        },
+        visualVerification: {
+          frameIndexes: selectTapTileProductionVerificationFrames(prepared.job),
+          renderScale: qualityProfile.renderScale,
         },
       });
       const manifest = await createTapTileRenderManifest(prepared.project, level, prepared.job, video);
@@ -196,10 +310,63 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
     } catch (error) {
       const canceled = controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError');
       setSingleError(canceled ? '成片导出已取消；工程保持不变。' : error instanceof Error ? error.message : String(error));
-      if (prepared) await prepared.job.dispose?.();
     } finally {
+      await prepared?.job.dispose?.();
       singleAbortRef.current = null;
     }
+  };
+
+  const importBlenderVfx = async (file: File): Promise<void> => {
+    setBlenderVfxError('');
+    try {
+      const asset = await createTapTileBlenderVfxAsset(await file.arrayBuffer(), file.name);
+      if (preview) {
+        assertTapTileBlenderVfxCompatibility(asset, {
+          totalFrames: preview.job.baseJob.compiledTake.totalFrames,
+          fps: preview.job.baseJob.compiledTake.fps,
+          matchEventIds: preview.job.baseJob.compiledTake.actions
+            .filter((action) => action.transition.matchedTileIds.length === 3)
+            .map((action) => `${action.actionId}:match`),
+        });
+      }
+      setBlenderVfxAsset(asset);
+      setBlenderVfxEnabled(true);
+      try {
+        await persistTapTileBlenderVfxAsset(project.id, asset);
+        setBlenderVfxPersistence('stored');
+      } catch {
+        setBlenderVfxPersistence('session-only');
+      }
+      const timeline = asset.validation.inspection.timeline!;
+      const assetKind = asset.validation.tileEntityCount === 0 ? 'VFX 专用轻量层' : '完整场景特效层';
+      const matchEvents = asset.validation.inspection.entityIdsByRole['match-core']?.length ?? 0;
+      onNotice(`Blender ${assetKind}已接入成片：${timeline.frameCount} 帧 · ${matchEvents} 个三消事件 · ${asset.validation.effectFragmentCount} 片视觉碎片`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setBlenderVfxError(message);
+      onNotice(`Blender 3D 特效层导入失败：${message}`);
+    }
+  };
+
+  const toggleBlenderVfx = (enabled: boolean): void => {
+    setBlenderVfxEnabled(enabled);
+    if (!blenderVfxAsset) return;
+    if (!enabled) {
+      try {
+        forgetTapTileBlenderVfxAsset(project.id);
+        setBlenderVfxPersistence('idle');
+        setBlenderVfxError('');
+      } catch {
+        setBlenderVfxPersistence('session-only');
+        setBlenderVfxError('3D 特效已在本次会话停用，但浏览器阻止清除自动恢复记录。');
+      }
+      return;
+    }
+    void persistTapTileBlenderVfxAsset(project.id, blenderVfxAsset).then(() => {
+      setBlenderVfxPersistence('stored');
+    }).catch(() => {
+      setBlenderVfxPersistence('session-only');
+    });
   };
 
   const startBatch = async (): Promise<void> => {
@@ -220,17 +387,23 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
       const preflight = await preflightTapTileProductionRenderJob(prepared.job);
       if (!preflight.valid) throw new Error(preflight.issues.map((issue) => `${issue.code}: ${issue.message}`).join('\n'));
       return exportFixedFrameVideo(prepared.job, {
-        bitrate: project.render.quality === 'cinematic' ? 20_000_000 : project.render.quality === 'preview' ? 8_000_000 : 14_000_000,
+        bitrate: qualityProfile.videoBitrate,
+        renderScale: qualityProfile.renderScale,
         fileName: prepared.fileName,
         ...(signal ? { signal } : {}),
         onProgress,
+        keyFrameIntervalSeconds: qualityProfile.keyFrameIntervalSeconds,
         audio: {
           data: prepared.job.audioMix.data,
           sampleRate: prepared.job.audioMix.sampleRate,
           numberOfChannels: prepared.job.audioMix.numberOfChannels,
-          bitrate: 192_000,
+          bitrate: qualityProfile.audioBitrate,
         },
         metadata: { title: prepared.fileName, artist: 'Block Creative Studio', comment: prepared.job.identity.combinationHash },
+        visualVerification: {
+          frameIndexes: selectTapTileProductionVerificationFrames(prepared.job),
+          renderScale: qualityProfile.renderScale,
+        },
       });
     }, { signal: controller.signal, onUpdate: setBatchTasks });
     const artifacts: BatchArtifact[] = [];
@@ -260,6 +433,41 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
     onNotice(`项目包已生成：${result.manifest.takeIds.length} 条 Take · ${Object.keys(result.checksums).length} 个校验项`);
   };
 
+  const exportBlenderExchange = async (): Promise<void> => {
+    if (!preview || blenderExporting) return;
+    setBlenderExporting(true);
+    setBlenderError('');
+    try {
+      const exchange = createTapTileBlenderSceneExchange(
+        preview.project,
+        level,
+        preview.job.baseJob.compiledTake,
+        { packageId: `${preview.project.id}-${preview.job.identity.combinationHash}` },
+      );
+      const result = await exportTapTileBlenderBundle(exchange, {
+        fileNameBase: `${preview.project.name}__${exchange.id}`,
+      });
+      downloadBlob(result.blob, result.fileName);
+      setBlenderExchangeSummary({
+        fileName: result.fileName,
+        bytes: result.blob.size,
+        entities: exchange.entities.length,
+        tracks: exchange.tracks.length,
+        events: exchange.events.length,
+        frames: exchange.output.frameEnd - exchange.output.frameStart + 1,
+        assets: result.manifest.assetCount,
+        checksums: Object.keys(result.checksums).length,
+      });
+      onNotice(`Blender 自包含包已生成：${result.manifest.assetCount} 个贴图 · ${exchange.events.length} 次三消 · ${Object.keys(result.checksums).length} 个校验项`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setBlenderError(message);
+      onNotice(`Blender 包生成失败：${message}`);
+    } finally {
+      setBlenderExporting(false);
+    }
+  };
+
   const selectedCut = spec ? project.production.cuts[spec.cutSpecId] : undefined;
   const batchCompleted = batchTasks.filter((task) => task.status === 'completed').length;
   const batchFailed = batchTasks.filter((task) => task.status === 'failed').length;
@@ -280,15 +488,37 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
       data-matrix-valid={validMatrix.length}
       data-matrix-invalid={invalidMatrix}
       data-single-phase={singleProgress?.phase ?? 'idle'}
+      data-single-error={singleError}
       data-single-bytes={singleArtifact?.video.blob.size ?? 0}
       data-single-frames={singleArtifact?.video.frameCount ?? 0}
       data-single-video-sha={singleArtifact?.sha256 ?? ''}
       data-single-pcm-hash={singleArtifact?.pcmHash ?? ''}
       data-single-combination-hash={singleArtifact?.combinationHash ?? ''}
+      data-single-container-verified={singleArtifact?.video.verification.containerReadable ? 'true' : 'false'}
+      data-single-actual-fps={singleArtifact?.video.verification.averageFrameRate ?? 0}
+      data-single-actual-video-bitrate={singleArtifact?.video.verification.averageVideoBitrate ?? 0}
+      data-single-minimum-psnr={singleArtifact?.video.verification.visual ? Math.min(...singleArtifact.video.verification.visual.samples.map((sample) => sample.psnrDb)) : 0}
+      data-single-visual-sample-count={singleArtifact?.video.verification.visual?.samples.length ?? 0}
+      data-single-visual-sample-frames={singleArtifact?.video.verification.visual?.samples.map((sample) => sample.frameIndex).join(',') ?? ''}
+      data-single-render-scale={singleArtifact?.video.renderScale ?? 0}
       data-batch-total={batchTasks.length}
       data-batch-completed={batchCompleted}
       data-batch-failed={batchFailed}
       data-batch-canceled={batchCanceled}
+      data-blender-exchange-bytes={blenderExchangeSummary?.bytes ?? 0}
+      data-blender-exchange-entities={blenderExchangeSummary?.entities ?? 0}
+      data-blender-exchange-tracks={blenderExchangeSummary?.tracks ?? 0}
+      data-blender-exchange-events={blenderExchangeSummary?.events ?? 0}
+      data-blender-exchange-frames={blenderExchangeSummary?.frames ?? 0}
+      data-blender-exchange-assets={blenderExchangeSummary?.assets ?? 0}
+      data-blender-exchange-checksums={blenderExchangeSummary?.checksums ?? 0}
+      data-blender-exporting={blenderExporting ? 'true' : 'false'}
+      data-blender-vfx-loaded={blenderVfxAsset ? 'true' : 'false'}
+      data-blender-vfx-enabled={blenderVfxEnabled && blenderVfxAsset ? 'true' : 'false'}
+      data-blender-vfx-sha={blenderVfxAsset?.sha256 ?? ''}
+      data-blender-vfx-events={blenderVfxAsset?.validation.inspection.entityIdsByRole['match-core']?.length ?? 0}
+      data-blender-vfx-isolated={blenderVfxAsset && blenderVfxAsset.validation.tileEntityCount === 0 ? 'true' : 'false'}
+      data-blender-vfx-persistence={blenderVfxPersistence}
     >
       <div className="tpt-production-heading">
         <div><strong>投放成片与批量矩阵</strong><small>语义音频 · Cut/TimeWarp · Outro · manifest · 项目包</small></div>
@@ -302,9 +532,10 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
           <label><span>AudioPack</span><select data-production-audio value={spec?.audioPackId ?? ''} onChange={(event) => updateSelection('audio', event.target.value)}>{Object.values(project.production.audioPacks).map((pack) => <option key={pack.id} value={pack.id}>{pack.name}</option>)}</select></label>
           <label><span>CutSpec</span><select data-production-cut value={spec?.cutSpecId ?? ''} onChange={(event) => updateSelection('cut', event.target.value)}>{Object.values(project.production.cuts).map((cut) => <option key={cut.id} value={cut.id}>{cut.name}</option>)}</select></label>
           <label><span>OutroPack</span><select data-production-outro value={selectedCut?.outroPackId ?? ''} onChange={(event) => updateSelection('outro', event.target.value)}>{Object.values(project.production.outros).map((outro) => <option key={outro.id} value={outro.id}>{outro.name} · {outro.durationFrames}f</option>)}</select></label>
+          <label><span>1080p30 画质</span><select data-production-quality value={project.render.quality} onChange={(event) => updateSelection('quality', event.target.value)}>{TAPTILE_VIDEO_QUALITY_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.label} · {profile.videoBitrate / 1_000_000} Mbps</option>)}</select><small>{qualityProfile.description}</small></label>
         </div>
         <div className="tpt-production-preview-card">
-          <canvas ref={previewCanvasRef} className="tpt-production-preview" width={1080} height={1920} data-preview-hash={previewHash} data-preview-phase={currentProductionFrame?.phase ?? 'unavailable'} />
+          <canvas ref={previewCanvasRef} className="tpt-production-preview" width={1080} height={1920} data-preview-hash={previewHash} data-preview-frame={previewFrame} data-preview-source-frame={currentProductionFrame?.sourceFrame ?? -1} data-preview-phase={currentProductionFrame?.phase ?? 'unavailable'} />
           {preview && (
             <>
               <input data-production-preview-seek type="range" min={0} max={preview.job.totalFrames - 1} value={previewFrame} onChange={(event) => setPreviewFrame(Number(event.target.value))} />
@@ -317,6 +548,7 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
       {!dependency.valid && <p className="tpt-production-error" data-production-error>{dependency.reasons.join(' · ')}</p>}
       {singleProgress && <div className="tpt-export-progress"><i style={{ width: `${singleProgress.ratio * 100}%` }} /><span>{singleProgress.message}</span></div>}
       {singleError && <p className="tpt-production-error">{singleError}</p>}
+      {singleArtifact && <div className="tpt-encode-verification" data-encode-verification="passed"><b>✓ MP4 回读验收通过</b><span>{singleArtifact.video.verification.width}×{singleArtifact.video.verification.height} · {singleArtifact.video.verification.averageFrameRate.toFixed(3)}fps · {singleArtifact.video.verification.frameCount} 帧 · {singleArtifact.video.renderScale.toFixed(2)}× 渲染 · {(singleArtifact.video.verification.averageVideoBitrate / 1_000_000).toFixed(2)} Mbps · {singleArtifact.video.verification.audioCodec ?? '无音轨'}{singleArtifact.video.verification.visual ? ` · ${singleArtifact.video.verification.visual.samples.length} 个源帧回读 · 最低 PSNR ${Math.min(...singleArtifact.video.verification.visual.samples.map((sample) => sample.psnrDb)).toFixed(2)} dB` : ''}</span></div>}
       <div className="tpt-production-actions">
         {singleAbortRef.current
           ? <button data-action="cancel-production-export" onClick={() => singleAbortRef.current?.abort()}>取消带音频导出</button>
@@ -350,6 +582,38 @@ export function TapTileProductionPanel({ project, level, onChange, onImport, onN
           event.currentTarget.value = '';
         }} />
       </div>
+      <div className="tpt-blender-row">
+        <div>
+          <strong>Blender 3D 交换包</strong>
+          <small>自包含 ZIP · 无需手动解压即可交给本地 BCS/Blender 编译 · 固定相机 · 贴图与 SHA-256</small>
+          {blenderExchangeSummary && <small data-blender-exchange-file>{blenderExchangeSummary.fileName} · {(blenderExchangeSummary.bytes / 1024).toFixed(1)} KiB</small>}
+          {blenderError && <small className="is-error" data-blender-exchange-error>{blenderError}</small>}
+        </div>
+        <button data-action="export-blender-exchange" disabled={!preview || blenderExporting} onClick={() => void exportBlenderExchange()}>{blenderExporting ? '正在打包贴图…' : '导出 Blender 自包含包'}</button>
+      </div>
+      <div className="tpt-blender-vfx-row">
+        <div>
+          <strong>Blender 3D 特效叠加</strong>
+          <small>推荐导入 Blender 生成的 scene.vfx.glb；仅含碎裂与核心闪光，2D 导演画面和最终 MP4 共用同一路径</small>
+          {blenderVfxAsset && <small data-blender-vfx-file>{blenderVfxAsset.fileName} · {(blenderVfxAsset.byteLength / 1024 / 1024).toFixed(2)} MiB · {blenderVfxAsset.sha256.slice(0, 12)}</small>}
+          {blenderVfxAsset && <small>{blenderVfxAsset.validation.tileEntityCount === 0 ? '✓ VFX 专用轻量层 · 不含牌面贴图' : '兼容完整场景 GLB；换用 scene.vfx.glb 可减少下载和解析开销'}</small>}
+          {blenderVfxAsset && <small>✓ {blenderVfxAsset.validation.inspection.entityIdsByRole['match-core']?.length ?? 0} 个三消事件已按稳定 ID 绑定当前 Take</small>}
+          {blenderVfxPersistence === 'stored' && <small>已按 SHA-256 保存在当前浏览器，刷新后自动恢复</small>}
+          {blenderVfxPersistence === 'restoring' && <small>正在恢复该工程的本地 3D 特效…</small>}
+          {blenderVfxPersistence === 'session-only' && <small className="is-error">3D 特效本次会话可用，但浏览器未能持久保存</small>}
+          {blenderVfxError && <small className="is-error" data-blender-vfx-error>{blenderVfxError}</small>}
+        </div>
+        <button type="button" data-action="import-blender-vfx" onClick={() => blenderVfxInputRef.current?.click()}>选择已编译 GLB</button>
+        <label><input data-blender-vfx-enabled type="checkbox" disabled={!blenderVfxAsset} checked={blenderVfxEnabled && Boolean(blenderVfxAsset)} onChange={(event) => toggleBlenderVfx(event.target.checked)} />叠加到预览与成片</label>
+        <input ref={blenderVfxInputRef} className="tpt-hidden-input" data-blender-vfx-input type="file" accept=".glb,model/gltf-binary" onChange={(event) => {
+          const file = event.target.files?.[0];
+          if (file) void importBlenderVfx(file);
+          event.currentTarget.value = '';
+        }} />
+      </div>
+      <Suspense fallback={<div className="tpt-blender-preview-card" data-blender-preview-loading="true"><small>正在载入 3D 审看器…</small></div>}>
+        <TapTileBlenderPreview onNotice={onNotice} />
+      </Suspense>
       {singleArtifact && <button className="tpt-hidden-repeat" data-action="download-production-direct" onClick={() => downloadBlob(singleArtifact.video.blob, singleArtifact.video.fileName)}>下载当前成片</button>}
     </section>
   );

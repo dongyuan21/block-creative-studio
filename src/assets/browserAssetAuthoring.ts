@@ -9,6 +9,7 @@ import type {
 } from '../headless/contracts';
 import { stableHash } from '../headless/stableHash';
 import type { BrowserAssetMetadata } from './browserAssetStore';
+import { DEFAULT_GLB_INSPECTION_LIMITS, inspectGlbArrayBuffer } from './glbInspector';
 import type {
   BrowserAssetBindingRole,
   BrowserAssetManifestMetadata,
@@ -20,8 +21,6 @@ const CONTRACT_VERSION = '1.0.0' as const;
 const ASSET_VERSION = '1.0.0';
 const MAX_RUNTIME_IMAGE_EDGE = 8192;
 const MAX_RUNTIME_IMAGE_PIXELS = 32 * 1024 * 1024;
-const GLB_MAGIC = 0x46546c67;
-const GLB_VERSION = 2;
 
 export type BrowserAssetImportRole = BrowserAssetBindingRole;
 
@@ -208,16 +207,10 @@ async function inspectRuntimeImageFile(file: File): Promise<void> {
 }
 
 async function validateGlbFile(file: File): Promise<void> {
-  if (file.size < 12) throw new Error('GLB 文件过小，缺少 12 字节文件头。');
-  const header = new DataView(await file.slice(0, 12).arrayBuffer());
-  const magic = header.getUint32(0, true);
-  const version = header.getUint32(4, true);
-  const declaredLength = header.getUint32(8, true);
-  if (magic !== GLB_MAGIC) throw new Error('文件不是有效的 GLB：magic 必须为 glTF。');
-  if (version !== GLB_VERSION) throw new Error(`仅支持 GLB 2.0，当前版本为 ${version}。`);
-  if (declaredLength !== file.size) {
-    throw new Error(`GLB 文件头长度 ${declaredLength} 与实际大小 ${file.size} 不一致。`);
+  if (file.size > DEFAULT_GLB_INSPECTION_LIMITS.maximumBytes) {
+    throw new Error(`GLB 文件不能超过 ${Math.round(DEFAULT_GLB_INSPECTION_LIMITS.maximumBytes / 1024 / 1024)} MiB。`);
   }
+  inspectGlbArrayBuffer(await file.arrayBuffer());
 }
 
 /**

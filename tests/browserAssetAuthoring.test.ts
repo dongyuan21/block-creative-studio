@@ -10,6 +10,7 @@ import { runQualityGate } from '../src/headless/qualityGate';
 import { validateAssetManifest } from '../src/headless/validation';
 import { compileVariant } from '../src/headless/variantCompiler';
 import { makeFixture } from './headlessFixtures';
+import { createMinimalGlb } from './glbFixture';
 
 const imageMetadata: BrowserAssetMetadata = {
   contentHash: `sha256:${'9'.repeat(64)}`,
@@ -90,14 +91,9 @@ describe('browser asset authoring', () => {
     await expect(validateBrowserAssetFile(svg, 'tile-face-image')).rejects.toThrow('暂不接受 SVG');
   });
 
-  it('accepts a structurally valid GLB 2.0 header and rejects arbitrary binary', async () => {
-    const validHeader = new ArrayBuffer(12);
-    const validView = new DataView(validHeader);
-    validView.setUint32(0, 0x46546c67, true);
-    validView.setUint32(4, 2, true);
-    validView.setUint32(8, 12, true);
+  it('accepts a complete self-contained GLB 2.0 and rejects arbitrary binary', async () => {
     await expect(validateBrowserAssetFile(
-      new File([validHeader], 'tile.glb', { type: 'model/gltf-binary' }),
+      new File([createMinimalGlb()], 'tile.glb', { type: 'model/gltf-binary' }),
       'geometry-3d',
     )).resolves.toBeUndefined();
 

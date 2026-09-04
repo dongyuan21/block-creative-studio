@@ -123,6 +123,17 @@ function matchEffect(compiled: CompiledTapTileTake, action: CompiledDirectorActi
     };
   }));
   const binding = compiled.profile.matchPresentation.particles ?? compiled.profile.matchPresentation.shatter;
+  const praise = compiled.profile.matchPresentation.praise;
+  const matchOrdinal = compiled.actions
+    .slice(0, action.index)
+    .filter((candidate) => candidate.transition.matchedTileIds.length > 0)
+    .length;
+  // A three-tile clear is already a positive beat in the reference. Start at
+  // “Great”, then escalate deterministically without making frame evaluation
+  // depend on mutable combo state or wall-clock time.
+  const praiseLabel = praise?.enabled && praise.labels.length > 0
+    ? praise.labels[Math.min(praise.labels.length - 1, matchOrdinal + 1)]
+    : undefined;
   return {
     id: `${action.actionId}:match`,
     kind: 'match',
@@ -130,6 +141,7 @@ function matchEffect(compiled: CompiledTapTileTake, action: CompiledDirectorActi
     tileIds: [...action.transition.matchedTileIds],
     implementation: binding?.implementation ?? 'web-procedural',
     presetId: binding?.presetId ?? 'default-match',
+    ...(praiseLabel ? { praiseLabel } : {}),
     slotIndexes,
     particles,
   };

@@ -5,9 +5,8 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$skinTarget = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5 |
-  Where-Object { $_.type -eq 'page' -and $_.url -eq $PageUrl } |
-  Select-Object -First 1
+$skinTargets = Invoke-RestMethod -Uri $Endpoint -TimeoutSec 5
+$skinTarget = @($skinTargets | Where-Object { $_.type -eq 'page' -and $_.url -eq $PageUrl })[0]
 if (-not $skinTarget) { throw "No CDP page target found for $PageUrl" }
 $skinSocket = [System.Net.WebSockets.ClientWebSocket]::new()
 $skinSocket.ConnectAsync([Uri]$skinTarget.webSocketDebuggerUrl, [Threading.CancellationToken]::None).GetAwaiter().GetResult() | Out-Null
@@ -94,7 +93,7 @@ JSON.stringify({
       Save-SkinScreenshot -Path $ScreenshotPath
     }
     if ($skinIndex -lt $skinMaximum) {
-      Invoke-SkinExpression -Expression "document.querySelectorAll('.tpt-replay-controls button')[1].click(); true" | Out-Null
+      Invoke-SkinExpression -Expression "[...document.querySelectorAll('.tpt-replay-controls button')].at(-1).click(); true" | Out-Null
       Wait-SkinExpression -Expression "document.querySelector('.tpt-replay-controls input')?.value === '$($skinIndex + 1)'"
     }
   }
@@ -132,6 +131,7 @@ $skinArtifactRoot = [IO.Path]::GetFullPath((Join-Path (Get-Location).Path $Artif
 [IO.Directory]::CreateDirectory($skinArtifactRoot) | Out-Null
 $skinAnimalLevelHash = [string](Invoke-SkinExpression -Expression "document.querySelector('.tpt-studio').dataset.levelHash")
 $skinAnimalCompatibility = Invoke-SkinExpression -Expression "document.querySelector('[data-skin-valid]')?.dataset.skinValid === 'true'"
+$skinAnimalPalette = Invoke-SkinExpression -Expression "JSON.stringify({ theme: document.querySelector('.tpt-face-grid')?.dataset.matchGroupTheme, faces: [...document.querySelectorAll('.tpt-face-grid [data-match-key]')].map((button) => ({ key: button.dataset.matchKey, assembly: button.dataset.previewFaceAssembly, label: button.querySelector('small')?.textContent })) })" | ConvertFrom-Json
 $skinAnimal = Get-SkinTrace -ScreenshotPath (Join-Path $skinArtifactRoot 'gate-b-animals-v1-replay.png')
 
 Invoke-SkinExpression -Expression @'
@@ -145,6 +145,7 @@ Invoke-SkinExpression -Expression @'
 Wait-SkinExpression -Expression "document.querySelector('.tpt-studio').dataset.selectedTheme === 'food-v1'"
 $skinFoodLevelHash = [string](Invoke-SkinExpression -Expression "document.querySelector('.tpt-studio').dataset.levelHash")
 $skinFoodCompatibility = Invoke-SkinExpression -Expression "document.querySelector('[data-skin-valid]')?.dataset.skinValid === 'true'"
+$skinFoodPalette = Invoke-SkinExpression -Expression "JSON.stringify({ theme: document.querySelector('.tpt-face-grid')?.dataset.matchGroupTheme, faces: [...document.querySelectorAll('.tpt-face-grid [data-match-key]')].map((button) => ({ key: button.dataset.matchKey, assembly: button.dataset.previewFaceAssembly, label: button.querySelector('small')?.textContent })) })" | ConvertFrom-Json
 $skinFood = Get-SkinTrace -ScreenshotPath (Join-Path $skinArtifactRoot 'gate-b-food-v1-replay.png')
 
 $skinAnimalTraceJson = $skinAnimal.trace | ConvertTo-Json -Depth 8 -Compress
@@ -156,6 +157,10 @@ $skinErrors = Invoke-SkinExpression -Expression "JSON.stringify(window.__tptSkin
 if ($skinAnimalLevelHash -ne $skinFoodLevelHash) { throw "levelHash changed across skins: $skinAnimalLevelHash -> $skinFoodLevelHash" }
 if ($skinAnimalTraceJson -ne $skinFoodTraceJson) { throw 'Replay state/board/tray trace changed across skins.' }
 if (-not $skinAnimalCompatibility -or -not $skinFoodCompatibility) { throw 'A SkinPack failed compatibility validation.' }
+if ($skinAnimalPalette.theme -ne 'animals-v1' -or $skinFoodPalette.theme -ne 'food-v1') { throw 'Match-group palette did not follow the selected SkinPack.' }
+if (@($skinAnimalPalette.faces).Count -ne 16 -or @($skinFoodPalette.faces).Count -ne 16) { throw 'Match-group palette must keep 16 stable gameplay keys.' }
+if (@($skinAnimalPalette.faces | Where-Object { -not $_.assembly -or -not $_.label }).Count -gt 0 -or @($skinFoodPalette.faces | Where-Object { -not $_.assembly -or -not $_.label }).Count -gt 0) { throw 'A match-group preview is missing its resolved face or label.' }
+if (($skinAnimalPalette.faces | ConvertTo-Json -Depth 5 -Compress) -eq ($skinFoodPalette.faces | ConvertTo-Json -Depth 5 -Compress)) { throw 'Match-group palette visuals stayed unchanged across SkinPacks.' }
 if (-not $skinAnimal.roleCheck.sameIdentity -or -not $skinFood.roleCheck.sameIdentity) { throw 'Board and tray did not resolve one visual identity.' }
 if ($skinAnimal.roleCheck.identity -eq $skinFood.roleCheck.identity) { throw 'The two SkinPacks resolved the same visual identity.' }
 if (@($skinErrors).Count -gt 0) { throw "Browser errors: $($skinErrors | ConvertTo-Json -Compress)" }
@@ -169,6 +174,7 @@ if (@($skinErrors).Count -gt 0) { throw "Browser errors: $($skinErrors | Convert
   foodCompatibility = [bool]$skinFoodCompatibility
   boardTrayIdentity = $true
   visualIdentityChanged = $true
+  matchGroupPaletteChanged = $true
   consoleErrors = @($skinErrors).Count
   artifactDirectory = $skinArtifactRoot
 } | ConvertTo-Json -Depth 5

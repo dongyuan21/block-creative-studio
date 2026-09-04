@@ -61,10 +61,12 @@ import {
 import {
   compileTapTileLevel,
   playableTapTileIds,
-  solveTapTileTake,
+  solveTapTileTakeAnytime,
   tapTileStateHash,
   TAPTILE_SCENARIO_PROFILES,
   type TapTileScenarioProfileId,
+  type TapTileSolveProgress,
+  type TapTileSolveTerminationReason,
 } from './gameplay';
 import { GameplayStageOverlay } from './play/GameplayStage';
 import {
@@ -84,6 +86,7 @@ import {
   resolveTileVisual,
   resolveTileVisualForMatchKey,
   validateSkinPack,
+  type ResolvedTileVisual,
 } from './visual';
 import { TileVisual } from './visual/TileVisual';
 import { compileTapTileTake, evaluateTapTileFrame } from './director';
@@ -94,6 +97,7 @@ import {
   createTapTileRenderJob,
   preflightTapTileRenderJob,
   renderTapTileFrameProof,
+  resolveTapTileVideoQualityProfile,
   selectTapTileRegressionFrames,
 } from './render';
 import { ensureTapTileProductionDefaults } from './production';
@@ -115,9 +119,9 @@ const TAPTILE_STUDIO_STYLE = {
 } as CSSProperties;
 
 const AGENT_SEARCH_STRENGTHS = [
-  { id: 'fast', label: '快速', beamScale: 0.5, maxExpandedStates: 12_000 },
-  { id: 'standard', label: '标准', beamScale: 1, maxExpandedStates: 60_000 },
-  { id: 'deep', label: '深度', beamScale: 2, maxExpandedStates: 180_000 },
+  { id: 'fast', label: '快速', beamScale: 0.5, maxExpandedStates: 12_000, timeBudgetMs: 4_000 },
+  { id: 'standard', label: '标准', beamScale: 1, maxExpandedStates: 60_000, timeBudgetMs: 12_000 },
+  { id: 'deep', label: '深度', beamScale: 2, maxExpandedStates: 180_000, timeBudgetMs: 30_000 },
 ] as const;
 
 type AgentSearchStrengthId = (typeof AGENT_SEARCH_STRENGTHS)[number]['id'];
@@ -130,6 +134,7 @@ interface AgentRunSummary {
   peakTrayOccupancy: number;
   provedMaximum: boolean;
   expandedStates: number;
+  terminationReason?: TapTileSolveTerminationReason;
 }
 
 function agentBaseBeamWidth(profile: TapTileScenarioProfileId): number {
@@ -319,6 +324,11 @@ function faceAccent(faceId: string): string {
   return FACE_LIBRARY.find((face) => face.id === faceId)?.accent ?? '#ffc946';
 }
 
+function visibleFaceName(visual: ResolvedTileVisual): string {
+  const nameParts = visual.faceAssembly.name.split(' · ').map((part) => part.trim()).filter(Boolean);
+  return nameParts.at(-1) ?? visual.faceAssembly.name;
+}
+
 export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio(): void }) {
   const [history, dispatch] = useReducer(historyReducer, undefined, () => ({
     past: [],
@@ -351,7 +361,9 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
   const [agentProfile, setAgentProfile] = useState<TapTileScenarioProfileId>('max-clear');
   const [agentSearchStrength, setAgentSearchStrength] = useState<AgentSearchStrengthId>('standard');
   const [agentBusy, setAgentBusy] = useState(false);
+  const [agentProgress, setAgentProgress] = useState<TapTileSolveProgress | null>(null);
   const [agentRunSummary, setAgentRunSummary] = useState<AgentRunSummary | null>(null);
+  const agentSearchAbortRef = useRef<AbortController | null>(null);
   const [replayAutoPlaying, setReplayAutoPlaying] = useState(false);
   const [directorFrame, setDirectorFrame] = useState(0);
   const [directorZoom, setDirectorZoom] = useState(0.7);
@@ -368,6 +380,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     verifiedFrame: number;
     verifiedPixelHash: string;
     renderIdentityHash: string;
+    containerVerified: boolean;
+    actualFps: number;
+    actualVideoBitrate: number;
+    minimumVisualPsnrDb: number;
   } | null>(null);
   const tapTileExportAbortRef = useRef<AbortController | null>(null);
   const gameplay = useGameplaySession();
@@ -414,6 +430,26 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     () => validateSkinPack(project, project.visuals.selectedThemeId),
     [project],
   );
+  const matchGroupPreviews = useMemo(() => {
+    const resolved = FACE_LIBRARY.map((face, index) => {
+      try {
+        const visual = resolveTileVisualForMatchKey(project, face.id, project.visuals.selectedThemeId, 'hud-preview');
+        return { face, index, visual, visibleName: visibleFaceName(visual) };
+      } catch {
+        return { face, index, visual: null, visibleName: face.label };
+      }
+    });
+    const visibleNameCounts = new Map<string, number>();
+    for (const preview of resolved) {
+      visibleNameCounts.set(preview.visibleName, (visibleNameCounts.get(preview.visibleName) ?? 0) + 1);
+    }
+    return resolved.map((preview) => ({
+      ...preview,
+      label: visibleNameCounts.get(preview.visibleName) === 1
+        ? preview.visibleName
+        : `分组 ${String(preview.index + 1).padStart(2, '0')}`,
+    }));
+  }, [project]);
   const displayState = workspaceMode === 'play'
     ? gameplay.gameState
     : workspaceMode === 'replay'
@@ -471,6 +507,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     tapTileExportAbortRef.current?.abort();
     if (tapTileExportResult?.url) URL.revokeObjectURL(tapTileExportResult.url);
   }, [tapTileExportResult?.url]);
+
+  useEffect(() => () => {
+    agentSearchAbortRef.current?.abort();
+  }, [compiledLevel.levelHash]);
 
   const clearLiveMatchEffects = useCallback((): void => {
     for (const timer of liveMatchTimersRef.current.values()) window.clearTimeout(timer);
@@ -969,11 +1009,15 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
       const preflight = await preflightTapTileRenderJob(job);
       if (!preflight.valid) throw new Error(preflight.issues.map((issue) => `${issue.code}: ${issue.message}`).join('\n'));
       const fileName = `${safeFileName(project.name)}-${safeFileName(selectedDirectorTake.name)}-${compiledDirector.profileId}-1080x1920.mp4`;
+      const qualityProfile = resolveTapTileVideoQualityProfile(project.render.quality);
       const result = await exportFixedFrameVideo(job, {
-        bitrate: project.render.quality === 'cinematic' ? 20_000_000 : project.render.quality === 'preview' ? 8_000_000 : 14_000_000,
+        bitrate: qualityProfile.videoBitrate,
+        renderScale: qualityProfile.renderScale,
         fileName,
         signal: controller.signal,
         onProgress: setTapTileExportProgress,
+        keyFrameIntervalSeconds: qualityProfile.keyFrameIntervalSeconds,
+        visualVerification: { frameIndexes: renderRegressionFrames.map((frame) => frame.frameNumber) },
         metadata: {
           title: `${project.name} · ${selectedDirectorTake.name}`,
           artist: 'Block Creative Studio',
@@ -990,6 +1034,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
         verifiedFrame: exportProof.frameNumber,
         verifiedPixelHash: exportProof.pixelHash,
         renderIdentityHash: exportProof.renderIdentityHash,
+        containerVerified: result.verification.containerReadable,
+        actualFps: result.verification.averageFrameRate,
+        actualVideoBitrate: result.verification.averageVideoBitrate,
+        minimumVisualPsnrDb: Math.min(...(result.verification.visual?.samples.map((sample) => sample.psnrDb) ?? [0])),
       });
       setNotice(`MP4 已完成：${result.frameCount} 帧 · ${result.durationSeconds.toFixed(2)} 秒 · 导演/导出像素校验通过`);
     } catch (error) {
@@ -1054,26 +1102,43 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
     setNotice(`Take 已保存并通过确定性重放：${take.finalStateHash}`);
   };
 
-  const generateAgentTake = (): void => {
-    if (agentBusy) return;
+  const generateAgentTake = async (): Promise<void> => {
+    if (agentBusy) {
+      agentSearchAbortRef.current?.abort();
+      setNotice('正在停止搜索；如已有三消，将直接采用当前最佳安全轨迹…');
+      return;
+    }
     if (!compiledLevel.validation.valid) {
       setWorkspaceMode('validate');
       setNotice('Agent 只接受通过关卡校验的编译结果');
       return;
     }
+    const controller = new AbortController();
+    agentSearchAbortRef.current = controller;
     setAgentBusy(true);
+    setAgentProgress(null);
     const strength = AGENT_SEARCH_STRENGTHS.find((candidate) => candidate.id === agentSearchStrength)
       ?? AGENT_SEARCH_STRENGTHS[1];
     const beamWidth = Math.max(1, Math.round(agentBaseBeamWidth(agentProfile) * strength.beamScale));
+    const searchLevelHash = compiledLevel.levelHash;
     setNotice(`Agent 正在按“${TAPTILE_SCENARIO_PROFILES.find((profile) => profile.id === agentProfile)?.name ?? agentProfile}”搜索 · ${strength.label}强度…`);
-    window.setTimeout(() => {
-      const result = solveTapTileTake(compiledLevel, {
+    try {
+      const result = await solveTapTileTakeAnytime(compiledLevel, {
         profile: agentProfile,
         seed: project.director.seed,
         beamWidth,
         maxExpandedStates: strength.maxExpandedStates,
+        timeBudgetMs: strength.timeBudgetMs,
+        yieldEvery: 256,
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (agentSearchAbortRef.current === controller) setAgentProgress(progress);
+        },
       });
-      setAgentBusy(false);
+      if (compileTapTileLevel(projectRef.current).levelHash !== searchLevelHash) {
+        setNotice('关卡在搜索期间已改变，旧轨迹已安全丢弃');
+        return;
+      }
       if ((result.status !== 'solved' && result.status !== 'partial') || !result.take || !result.validation?.valid) {
         setNotice(result.diagnostic ?? 'Agent 在当前搜索预算内未找到目标路径');
         return;
@@ -1095,14 +1160,29 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           peakTrayOccupancy: result.metrics.peakTrayOccupancy,
           provedMaximum: result.metrics.provedMaximum,
           expandedStates: result.expandedStates,
+          ...(result.terminationReason ? { terminationReason: result.terminationReason } : {}),
         });
       } else {
         setAgentRunSummary(null);
       }
+      const stoppedLabel = result.terminationReason === 'canceled'
+        ? ' · 已停止并采用当前最佳'
+        : result.terminationReason === 'time-budget'
+          ? ' · 时间预算内最佳'
+          : result.metrics?.provedMaximum
+            ? ' · 已证明达到数量上限'
+            : ' · 当前搜索预算内最佳';
       setNotice(agentProfile === 'max-clear' && result.metrics
-        ? `最大消除轨迹已生成：${result.metrics.clearedTileCount}/${compiledLevel.initialBoardIds.length} 张 · 理论上限 ${result.metrics.theoreticalClearableTileCount} · 槽位峰值 ${result.metrics.peakTrayOccupancy}/7${result.metrics.provedMaximum ? ' · 已证明达到数量上限' : ' · 当前搜索预算内最佳'}`
+        ? `最大消除轨迹已生成：${result.metrics.clearedTileCount}/${compiledLevel.initialBoardIds.length} 张 · 理论上限 ${result.metrics.theoreticalClearableTileCount} · 槽位峰值 ${result.metrics.peakTrayOccupancy}/7${stoppedLabel}`
         : `${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`);
-    }, 0);
+    } catch (error) {
+      setNotice(error instanceof Error ? `Agent 搜索失败：${error.message}` : 'Agent 搜索失败');
+    } finally {
+      if (agentSearchAbortRef.current === controller) {
+        agentSearchAbortRef.current = null;
+        setAgentBusy(false);
+      }
+    }
   };
 
   const toggleReplayAutoPlay = (): void => {
@@ -1307,19 +1387,23 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           </section>
 
           <section className="tpt-face-section">
-            <div className="tpt-section-title"><span>匹配分组</span><small>{FACE_LIBRARY.length} MATCH KEYS</small></div>
+            <div className="tpt-section-title"><span>匹配分组</span><small>{FACE_LIBRARY.length} · {project.visuals.themes[project.visuals.selectedThemeId]?.name ?? 'MATCH KEYS'}</small></div>
             <p className="tpt-helper">模板默认按固定种子安全打散；每种牌仍为 3 的倍数且通过可解校验。这里会改变玩法与 Take 有效性；纯换皮请使用右侧“牌面分组”。</p>
-            <div className="tpt-face-grid">
-              {FACE_LIBRARY.map((face) => (
+            <div className="tpt-face-grid" data-match-group-theme={project.visuals.selectedThemeId}>
+              {matchGroupPreviews.map(({ face, index, visual, visibleName, label }) => (
                 <button
                   key={face.id}
-                  title={face.label}
+                  title={`匹配分组 ${index + 1} · 当前牌面：${visibleName}`}
                   disabled={workspaceMode !== 'edit'}
+                  data-match-key={face.id}
+                  data-preview-face-assembly={visual?.faceAssembly.id}
                   style={{ '--face-accent': face.accent } as React.CSSProperties}
                   onClick={() => chooseFace(face.id)}
                 >
-                  <span>{face.glyph}</span>
-                  <small>{face.label}</small>
+                  <span className="tpt-face-preview" aria-hidden="true">
+                    {visual ? <TileVisual visual={visual} /> : <span className="tpt-face-fallback">{face.glyph}</span>}
+                  </span>
+                  <small>{label}</small>
                 </button>
               ))}
             </div>
@@ -1652,14 +1736,19 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
             <div
               className="tpt-session-bar"
               data-mode="play"
+              data-agent-busy={agentBusy ? 'true' : 'false'}
+              data-agent-expanded-states={agentProgress?.expandedStates ?? 0}
+              data-agent-best-cleared={agentProgress?.bestClearedTileCount ?? 0}
               data-match-count={gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length}
               data-unlock-count={gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)}
             >
-              <div><span className="tpt-record-dot" /><strong>正在记录 Take</strong><small>{gameplay.recordedActions.length} 个动作 · 三消 {gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 {gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 {gameplay.gameState.trayIds.length}/7</small></div>
+              <div><span className={agentBusy ? 'tpt-agent-search-dot' : 'tpt-record-dot'} /><strong>{agentBusy ? 'Agent 正在规划' : '正在记录 Take'}</strong><small data-agent-progress={agentBusy ? 'true' : undefined}>{agentBusy && agentProgress
+                ? `深度 ${agentProgress.depth}/${agentProgress.maxDepth} · 已搜索 ${agentProgress.expandedStates.toLocaleString()} 状态 · 当前最佳消除 ${agentProgress.bestClearedTileCount}/${compiledLevel.initialBoardIds.length} · 槽位峰值 ${agentProgress.peakTrayOccupancy}/7 · ${(agentProgress.elapsedMs / 1000).toFixed(1)} 秒`
+                : `${gameplay.recordedActions.length} 个动作 · 三消 ${gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 ${gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 ${gameplay.gameState.trayIds.length}/7`}</small></div>
               <div className="tpt-session-actions">
                 <label className="tpt-agent-profile"><span>Agent 剧情</span><select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)}>{TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
                 <label className="tpt-agent-profile"><span>搜索强度</span><select data-agent-search-strength value={agentSearchStrength} disabled={agentBusy} onChange={(event) => setAgentSearchStrength(event.target.value as AgentSearchStrengthId)}>{AGENT_SEARCH_STRENGTHS.map((strength) => <option key={strength.id} value={strength.id}>{strength.label}</option>)}</select></label>
-                <button data-action="generate-agent-take" onClick={generateAgentTake} disabled={agentBusy}>{agentBusy ? '搜索中…' : agentProfile === 'max-clear' ? '规划最大消除' : 'Agent 生成'}</button>
+                <button data-action={agentBusy ? 'cancel-agent-take' : 'generate-agent-take'} data-active={agentBusy ? 'true' : undefined} onClick={generateAgentTake}>{agentBusy ? '停止并采用最佳' : agentProfile === 'max-clear' ? '规划最大消除' : 'Agent 生成'}</button>
                 <button onClick={() => { clearLiveMatchEffects(); gameplay.restart(); }}>重新开始</button>
                 <button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
               </div>
@@ -1667,7 +1756,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
           )}
 
           {workspaceMode === 'replay' && gameplay.replayValidation && (
-            <div className="tpt-session-bar" data-mode="replay" data-valid={gameplay.replayValidation.valid ? 'true' : 'false'}>
+            <div className="tpt-session-bar" data-mode="replay" data-valid={gameplay.replayValidation.valid ? 'true' : 'false'} data-agent-termination={activeAgentRunSummary?.terminationReason}>
               <div><strong>{gameplay.replayValidation.valid ? '确定性回放' : 'Take 校验失败'}</strong><small data-agent-clear-summary={activeAgentRunSummary ? 'true' : undefined}>{gameplay.replayValidation.issues[0]?.message ?? (activeAgentRunSummary
                 ? `最大消除 ${activeAgentRunSummary.clearedTileCount}/${activeAgentRunSummary.totalTileCount} · 理论上限 ${activeAgentRunSummary.theoreticalClearableTileCount} · 槽位峰值 ${activeAgentRunSummary.peakTrayOccupancy}/7 · ${activeAgentRunSummary.provedMaximum ? '已达上限' : `${activeAgentRunSummary.expandedStates} 状态内最佳`} · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`
                 : `finalStateHash 一致 · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`)}</small></div>
@@ -1708,6 +1797,10 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               data-export-verified-frame={tapTileExportResult?.verifiedFrame ?? -1}
               data-export-verified-pixel-hash={tapTileExportResult?.verifiedPixelHash ?? ''}
               data-export-render-identity={tapTileExportResult?.renderIdentityHash ?? ''}
+              data-export-container-verified={tapTileExportResult?.containerVerified ? 'true' : 'false'}
+              data-export-actual-fps={tapTileExportResult?.actualFps ?? 0}
+              data-export-actual-video-bitrate={tapTileExportResult?.actualVideoBitrate ?? 0}
+              data-export-minimum-psnr={tapTileExportResult?.minimumVisualPsnrDb ?? 0}
               data-preview-parity={directorPreviewReady ? 'ready' : directorPreviewState?.status ?? 'pending'}
               data-regression-frames={JSON.stringify(renderRegressionFrames)}
             >
@@ -1721,6 +1814,7 @@ export function TapTileStackStudio({ onOpenBlockStudio }: { onOpenBlockStudio():
               <label><span>检查帧</span><input data-export-preview-seek type="range" min={0} max={compiledDirector.totalFrames - 1} value={directorPresentation?.frameNumber ?? 0} onChange={(event) => setDirectorFrame(Number(event.target.value))} /></label>
               {tapTileExportProgress && <div className="tpt-export-progress"><i style={{ width: `${tapTileExportProgress.ratio * 100}%` }} /><span>{tapTileExportProgress.message}</span></div>}
               {tapTileExportError && <p className="tpt-export-error">{tapTileExportError}</p>}
+              {tapTileExportResult?.containerVerified && <div className="tpt-encode-verification"><b>✓ MP4 回读验收通过</b><span>{tapTileExportResult.frameCount} 帧 · {tapTileExportResult.actualFps.toFixed(3)}fps · {(tapTileExportResult.actualVideoBitrate / 1_000_000).toFixed(2)} Mbps · 代表帧最低 PSNR {tapTileExportResult.minimumVisualPsnrDb.toFixed(2)} dB</span></div>}
               <div className="tpt-export-actions">
                 {tapTileExportAbortRef.current
                   ? <button data-action="cancel-taptile-export" onClick={cancelTapTileExport}>取消导出</button>

@@ -4,7 +4,7 @@ import { stableHash, type CompiledTapTileLevel, type TapTileProjectV2, type TapT
 import { safeFileName } from '../../utils/download';
 import { validateTapTileCutDependencies } from './cut';
 import { createTapTileRenderManifest, type TapTileRenderManifest } from './manifest';
-import { createTapTileProductionRenderJob, type TapTileProductionRenderJob } from './renderJob';
+import { createTapTileProductionRenderJob, type TapTileProductionRenderJob, type TapTileProductionRenderOptions } from './renderJob';
 
 export interface TapTileVariantSpec {
   levelId: string;
@@ -121,7 +121,12 @@ export function expandTapTileBatchMatrix(
   return [...unique.values()];
 }
 
-export function prepareTapTileVariant(project: TapTileProjectV2, level: CompiledTapTileLevel, spec: TapTileVariantSpec): PreparedTapTileVariant {
+export function prepareTapTileVariant(
+  project: TapTileProjectV2,
+  level: CompiledTapTileLevel,
+  spec: TapTileVariantSpec,
+  renderOptions: TapTileProductionRenderOptions = {},
+): PreparedTapTileVariant {
   const dependency = validateTapTileVariantDependencies(project, level, spec);
   if (!dependency.valid) throw new Error(dependency.reasons.join('\n'));
   const snapshot = structuredClone(project);
@@ -140,7 +145,7 @@ export function prepareTapTileVariant(project: TapTileProjectV2, level: Compiled
     seed: snapshot.director.seed,
     actionOverrides: snapshot.director.actionOverrides,
   });
-  const job = createTapTileProductionRenderJob(snapshot, level, compiled, cut, audio);
+  const job = createTapTileProductionRenderJob(snapshot, level, compiled, cut, audio, renderOptions);
   const fileName = `${safeFileName(snapshot.name)}__${safeFileName(take.name)}__${spec.skinPackId}__${spec.directorProfileId}__${spec.audioPackId}__${spec.cutSpecId}__${job.identity.combinationHash}.mp4`;
   return { project: snapshot, job, fileName };
 }

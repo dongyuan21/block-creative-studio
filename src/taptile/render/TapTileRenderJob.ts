@@ -81,16 +81,17 @@ export function createTapTileRenderJob(
     requiredAssetIds,
     identity,
     evaluate: (frameIndex) => evaluateTapTileFrame(takeSnapshot, frameIndex),
-    prepare: async (canvas) => {
-      canvas.width = projectSnapshot.stage.exportWidth;
-      canvas.height = projectSnapshot.stage.exportHeight;
+    prepare: async (canvas, options) => {
+      const pixelScale = Math.max(1, Math.min(2, options?.pixelScale ?? 1));
+      canvas.width = Math.round(projectSnapshot.stage.exportWidth * pixelScale);
+      canvas.height = Math.round(projectSnapshot.stage.exportHeight * pixelScale);
       if (!prepared) {
         await assets.preload(requiredAssetIds);
         prepared = true;
       }
     },
-    render: (frame, canvas) => {
-      renderTapTilePresentationFrame(canvas, frame, { project: projectSnapshot, level: levelSnapshot, assets });
+    render: (frame, canvas, options) => {
+      renderTapTilePresentationFrame(canvas, frame, { project: projectSnapshot, level: levelSnapshot, assets }, options);
     },
     dispose: () => assets.dispose(),
   };

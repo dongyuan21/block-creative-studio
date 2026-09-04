@@ -22,7 +22,9 @@ import {
   renderTapTilePresentationFrame,
   selectTapTileRegressionFrames,
   TapTileAssetCache,
+  TAPTILE_VIDEO_QUALITY_PROFILES,
   TAPTILE_Z_BANDS,
+  resolveTapTileVideoQualityProfile,
 } from '../src/taptile/render';
 import { tapTileTraySlotRect } from '../src/taptile/trayLayout';
 import { TAPTILE_POINTER_ASSET_ID } from '../src/taptile/presentation/assets';
@@ -84,6 +86,14 @@ describe('generic fixed-frame render jobs', () => {
     expect(evaluations).toBe(9);
     expect(validateFrameRenderJob({ ...job, width: 1079 }).errors).toContain('H.264 输出宽高必须是偶数。');
     expect(validateFrameRenderJob({ ...job, totalFrames: 0 }).valid).toBe(false);
+  });
+
+  it('defines explicit 1080p30 quality budgets without changing timeline semantics', () => {
+    expect(TAPTILE_VIDEO_QUALITY_PROFILES.map((profile) => profile.id)).toEqual(['preview', 'standard', 'cinematic']);
+    expect(resolveTapTileVideoQualityProfile('standard')).toMatchObject({ videoBitrate: 14_000_000, audioBitrate: 192_000, renderScale: 1 });
+    expect(resolveTapTileVideoQualityProfile('cinematic').videoBitrate)
+      .toBeGreaterThan(resolveTapTileVideoQualityProfile('standard').videoBitrate);
+    expect(resolveTapTileVideoQualityProfile('cinematic').renderScale).toBe(1.5);
   });
 });
 
@@ -167,6 +177,35 @@ describe('TapTile Canvas render pipeline', () => {
       expect(trace.items.find((item) => item.id === `tray-slot:${index}`)?.bounds)
         .toEqual({ x: slot.left, y: slot.top, width: slot.width, height: slot.height });
     }
+  });
+
+  it('renders deterministic praise above match VFX in the same preview/export trace', () => {
+    const { project, level, compiled } = renderFixture();
+    const cache = new TapTileAssetCache(project, { image: async () => ({} as CanvasImageSource) });
+    const match = compiled.actions.find((action) => action.transition.matchedTileIds.length === 3)!;
+    const presentation = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) })
+      .evaluate(match.timing.matchStartFrame + Math.ceil((match.timing.matchVfxEndFrame - match.timing.matchStartFrame) * 0.5));
+    const trace = renderTapTilePresentationFrame(fakeCanvas(), presentation, { project, level, assets: cache });
+    const matchIndex = trace.items.findIndex((item) => item.id === `${match.actionId}:match`);
+    const praiseIndex = trace.items.findIndex((item) => item.id === `praise:${match.actionId}:match`);
+    expect(presentation.effects.find((effect) => effect.kind === 'match')?.praiseLabel).toBe('Great');
+    expect(matchIndex).toBeGreaterThanOrEqual(0);
+    expect(praiseIndex).toBeGreaterThan(matchIndex);
+    expect(trace.items[praiseIndex]!.band).toBe(TAPTILE_Z_BANDS.praiseWarning);
+  });
+
+  it('renders cinematic frames at 1.5x physical resolution while preserving logical geometry', () => {
+    const { project, level, compiled } = renderFixture();
+    const cache = new TapTileAssetCache(project, { image: async () => ({} as CanvasImageSource) });
+    const presentation = createTapTileRenderJob(project, level, compiled, { image: async () => ({} as CanvasImageSource) }).evaluate(0);
+    const canvas = fakeCanvas();
+    const trace = renderTapTilePresentationFrame(canvas, presentation, { project, level, assets: cache }, { pixelScale: 1.5 });
+    expect(canvas.width).toBe(1620);
+    expect(canvas.height).toBe(2880);
+    expect(trace.width).toBe(1080);
+    expect(trace.height).toBe(1920);
+    const tray = project.stage.safeAreas.tray!;
+    expect(trace.items.find((item) => item.id === 'tray')?.bounds).toEqual({ x: tray.left, y: tray.top, width: tray.width, height: tray.height });
   });
 
   it('composites each board layer as one shared shadow pass followed by one surface pass', () => {
