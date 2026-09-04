@@ -1,4 +1,10 @@
+export { blockPlacementDefinition } from './definition';
 export { importStudioDocument, migrateBlockPlacementV1, migrateUnknownProjectToV2 } from './migrations/blockPlacementV1';
+export {
+  BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID,
+  blockPlacementPresentationAdapter,
+  compileBlockPlacementFrameSource,
+} from './presentation/legacyPresentationAdapter';
 export { blockPlacementLegacyRuntime, hashBlockPlacementState } from './legacyRuntime';
 export {
   BLOCK_PLACEMENT_ACTION_SCHEMA_ID,

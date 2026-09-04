@@ -43,6 +43,15 @@
 - Studio Importer 双读 V1+V2；Autosave/默认导出仍写 V1
 - game-runtime 不 import games / domain/types；Block 迁移在 `games/block-placement/migrations`
 
+## R3 — Presentation Packet 与 Compiled Frame Source
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(presentation): add presentation packet and compiled frame source`
+- 门禁：`check` / `test` 161 / `typecheck` / `build` / Smoke Capture PASS
+- 公共 Fixture：`evaluateCompiledTake` 与 packet.payload 在 board/snapshot/drag/pointer/feedback/clearing/cameraPunch/totalFrames 上相等
+- 乱序/重复 Seek 结果一致
+- 未改 Scene / Exporter / App
+
 ## Remaining
 
-R3 → R8b 连续执行。R9 DEFERRED。
+R4 → R8b 连续执行。R9 DEFERRED。

@@ -31,6 +31,15 @@ export {
   type InteractionRecord,
 } from './replayEnvelope';
 export {
+  PRESENTATION_PACKET_CONTRACT,
+  PRESENTATION_PACKET_CONTRACT_VERSION,
+  presentationHashIdentity,
+  type PresentationPacket,
+  type SemanticGameEvent,
+} from './presentationPacket';
+export type { CompiledFrameSource, PresentationCompilerAdapter } from './frameSource';
+export { PresentationRegistry } from './presentationRegistry';
+export {
   detectStudioDocumentKind,
   parseGameProjectEnvelope,
   parseGameReplayEnvelope,

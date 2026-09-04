@@ -24,7 +24,8 @@ T0–T5 **未完成**。商业 Golden **BLOCKED**。人工视觉批准 **PENDING
 | R0 基线与架构守卫 | PASS（自检） |
 | R1 Game Runtime / Registry | PASS（自检） |
 | R2 Project/Replay V2 | PASS（自检） |
-| R3–R8b | 进行中 |
+| R3 Presentation Packet / Frame Source | PASS（自检） |
+| R4–R8b | 进行中 |
 | R9 V2 默认切换 | DEFERRED |
 
 执行日志：`docs/reports/MULTI_GAME_REFACTOR_EXECUTION_LOG.md`  

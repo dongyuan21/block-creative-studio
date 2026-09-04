@@ -8,6 +8,7 @@ import {
   GAME_PROJECT_CONTRACT_VERSION,
   STUDIO_PROJECT_V2_FORMAT,
   STUDIO_PROJECT_V2_VERSION,
+  type GameProjectEnvelope,
   type ProjectMigrationReport,
   type StudioProjectDocumentV2,
 } from '../../../game-runtime/projectEnvelope';
@@ -93,6 +94,23 @@ export function replayBlockPlacementV2(replay: GameReplayEnvelope, initialState:
   });
   const transitions = replayActions(initialState, actions);
   return transitions.at(-1)?.after ?? initialState;
+}
+
+export function takeFromBlockPlacementReplay(
+  project: GameProjectEnvelope,
+  replay: GameReplayEnvelope,
+): Take {
+  const initial = parseBlockPlacementState(project.initialState.data, '$.game.initialState.data');
+  return {
+    id: replay.takeId,
+    name: replay.takeId,
+    createdAt: '1970-01-01T00:00:00.000Z',
+    initial,
+    actions: replay.actions.map((item) => {
+      const semantic = parseBlockPlacementSemanticAction(item.action, `$.actions.${item.id}.action`);
+      return placementFromReplay(replay, item.id, item.actor, semantic);
+    }),
+  };
 }
 
 export function migrateBlockPlacementTakeV1(take: Take, initialStateHash: string): GameReplayEnvelope {
