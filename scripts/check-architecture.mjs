@@ -13,44 +13,7 @@ const IMPORT_PATTERNS = [
  * Decreasing legacy debt. New edges that match a debt pattern must be added
  * here on purpose. Remove a row when the corresponding PR deletes the import.
  */
-export const LEGACY_ALLOWLIST = [
-  {
-    id: 'app-block-types',
-    importer: 'src/App.tsx',
-    target: 'src/domain/types.ts',
-    retireIn: 'R8',
-  },
-  {
-    id: 'app-three-viewport',
-    importer: 'src/App.tsx',
-    target: 'src/renderer/ThreeViewport.tsx',
-    retireIn: 'R8',
-  },
-  {
-    id: 'app-reference-viewport',
-    importer: 'src/App.tsx',
-    target: 'src/reference2d/Reference2DViewport.tsx',
-    retireIn: 'R8',
-  },
-  {
-    id: 'integration-project-types',
-    importer: 'src/integration/studioAssetCatalog.ts',
-    target: 'src/domain/types.ts',
-    retireIn: 'R8',
-  },
-  {
-    id: 'integration-bridge-project-types',
-    importer: 'src/integration/studioVariantBridge.ts',
-    target: 'src/domain/types.ts',
-    retireIn: 'R8',
-  },
-  {
-    id: 'integration-bridge-compiler',
-    importer: 'src/integration/studioVariantBridge.ts',
-    target: 'src/director/presentationCompiler.ts',
-    retireIn: 'R6',
-  },
-];
+export const LEGACY_ALLOWLIST = [];
 
 const PACKAGE_BANS = new Set(['react', 'react-dom', 'three', 'canvas']);
 

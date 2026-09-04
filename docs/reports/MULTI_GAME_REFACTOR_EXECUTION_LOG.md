@@ -97,6 +97,18 @@
 - 未改 Scene 消费路径（仍读兼容 getter）；未新增第二套依赖遍历
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
 
+## R8 — Studio Shell 分离与第一游戏正式模块化
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(studio): split studio shell from Block Placement workspace`
+- 门禁：`check` / `test` 178 / `typecheck` / `build`（183 modules）/ render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
+- App = `<StudioShell registry={studioRegistry} />`；公共 Shell/Session 无 GridCell / 8×8 / pieces / onPlace / clearSignal / domain/types
+- 默认仍创建 Block Placement；Block Crush / Vita Mahjong 为 Coming Soon
+- `useBlockPlacementModel` 承担棋盘/块/试玩/Clear Signal；Autosave 仍写 V1
+- Headless/CLI 未引入 React（CLI bundle 104.45 kB，与 R7 相同）
+- Architecture allowlist 归零（App 与 integration 边已退休；catalog/bridge 迁入第一游戏并保留旧路径 re-export）
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
+
 ## Remaining
 
-R8 → R8b 连续执行。R9 DEFERRED。
+R8b 连续执行。R9 DEFERRED。

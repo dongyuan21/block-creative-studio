@@ -52,7 +52,8 @@ describe('architecture import guards', () => {
     expect(result.debt.map((item) => item.id).sort()).toEqual(
       result.allowlist.map((item) => item.id).sort(),
     );
-    expect(result.allowlist.every((item) => item.retireIn === 'R6' || item.retireIn === 'R8')).toBe(true);
+    expect(result.allowlist).toEqual([]);
+    expect(result.debt).toEqual([]);
   });
 
   it('rejects headless imports of games, UI runtimes, and scenes', () => {

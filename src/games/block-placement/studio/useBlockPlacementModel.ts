@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createGreedyAgentTake } from '../director/botDirector';
-import { compileTake, evaluateCompiledTake } from '../director/presentationCompiler';
-import { RHYTHM_PRESETS } from '../director/rhythmPresets';
-import { BOARD_PRESETS, createCrossClearBoard } from '../domain/boardPresets';
-import { getShape } from '../domain/shapes';
+import { createGreedyAgentTake } from '../../../director/botDirector';
+import { compileTake, evaluateCompiledTake } from '../../../director/presentationCompiler';
+import { RHYTHM_PRESETS } from '../../../director/rhythmPresets';
+import { BOARD_PRESETS, createCrossClearBoard } from '../../../domain/boardPresets';
+import { getShape } from '../../../domain/shapes';
 import {
   applyPlacement,
   canPlace,
@@ -14,10 +14,10 @@ import {
   recolorBoardCell,
   replayActions,
   replacePieceShape,
-} from '../domain/gameEngine';
-import { type StudioBundle } from '../domain/projectValidation';
-import { importStudioDocument } from '../games/block-placement/migrations/blockPlacementV1';
-import { createRuntimeId } from '../domain/runtimeId';
+} from '../../../domain/gameEngine';
+import { type StudioBundle } from '../../../domain/projectValidation';
+import { importStudioDocument } from '../migrations/blockPlacementV1';
+import { createRuntimeId } from '../../../domain/runtimeId';
 import type {
   GameSnapshot,
   GridCell,
@@ -31,18 +31,18 @@ import type {
   StyleSpec,
   Take,
   TileColor,
-} from '../domain/types';
-import { exportTakeVideo, type RenderProgress } from '../exporter/offlineVideoExporter';
-import { useVariantWorkspace } from './useVariantWorkspace';
-import { DEFAULT_STYLE } from '../renderer/stylePresets';
-import { materialDescriptorKey } from '../headless/materialRuntime';
-import { runtimeTextureResourceKey } from '../renderer/runtimeTextures';
+} from '../../../domain/types';
+import { exportTakeVideo, type RenderProgress } from '../../../exporter/offlineVideoExporter';
+import { useVariantWorkspace } from '../../../state/useVariantWorkspace';
+import { DEFAULT_STYLE } from '../../../renderer/stylePresets';
+import { materialDescriptorKey } from '../../../headless/materialRuntime';
+import { runtimeTextureResourceKey } from '../../../renderer/runtimeTextures';
 import {
   IDLE_MATERIAL_RUNTIME_STATUS,
   materialRuntimeReadyFor,
   type MaterialRuntimeStatus,
-} from '../renderer/materialRuntimeStatus';
-import { downloadBlob, safeFileName } from '../utils/download';
+} from '../../../renderer/materialRuntimeStatus';
+import { downloadBlob, safeFileName } from '../../../utils/download';
 
 interface ClearSignal {
   id: number;
@@ -117,7 +117,7 @@ function cloneTake(take: Take): Take {
   };
 }
 
-export function useStudioModel() {
+export function useBlockPlacementModel() {
   const initialBundleRef = useRef<StudioBundle | null>(null);
   if (!initialBundleRef.current) initialBundleRef.current = loadInitialBundle();
   const [project, setProject] = useState<ProjectSpec>(() => structuredClone(initialBundleRef.current!.project));

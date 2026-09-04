@@ -30,5 +30,8 @@
     "src/director/**/*.ts",
     "src/bootstrap/**/*.ts",
     "src/rendering/**/*.ts"
+  ],
+  "exclude": [
+    "src/games/block-placement/studio/**"
   ]
 }
