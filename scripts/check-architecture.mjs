@@ -251,8 +251,20 @@ export function formatArchitectureReport(result) {
   return lines.join('\n');
 }
 
+function parseCli(argv) {
+  const args = argv.slice(2);
+  const rootIndex = args.indexOf('--root');
+  return {
+    json: args.includes('--json'),
+    checkStale: !args.includes('--no-stale'),
+    repositoryRoot: rootIndex >= 0 && args[rootIndex + 1] ? resolve(args[rootIndex + 1]) : root,
+  };
+}
+
 if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('check-architecture.mjs')) {
-  const result = analyzeArchitecture(root);
-  process.stdout.write(`${formatArchitectureReport(result)}\n`);
+  const cli = parseCli(process.argv);
+  const result = analyzeArchitecture(cli.repositoryRoot, { checkStale: cli.checkStale });
+  if (cli.json) process.stdout.write(`${JSON.stringify(result)}\n`);
+  else process.stdout.write(`${formatArchitectureReport(result)}\n`);
   if (!result.ok) process.exit(1);
 }

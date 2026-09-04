@@ -1,12 +1,10 @@
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import {
-  analyzeArchitecture,
-  LEGACY_ALLOWLIST,
-} from '../scripts/check-architecture.mjs';
 
+const script = resolve(process.cwd(), 'scripts/check-architecture.mjs');
 const scratchRoots: string[] = [];
 
 function scratchRepo(): string {
@@ -25,6 +23,19 @@ function importLine(names: string, specifier: string): string {
   return `import { ${names} } from ${JSON.stringify(specifier)};`;
 }
 
+function runGuard(repositoryRoot?: string, extraArgs: string[] = []) {
+  const args = [script, '--json', ...extraArgs];
+  if (repositoryRoot) args.push('--root', repositoryRoot, '--no-stale');
+  const result = spawnSync(process.execPath, args, { encoding: 'utf8' });
+  const parsed = JSON.parse(result.stdout) as {
+    ok: boolean;
+    violations: Array<{ code: string; importer: string; target: string; pattern?: string; id?: string }>;
+    debt: Array<{ id: string; retireIn: string }>;
+    allowlist: Array<{ id: string; retireIn: string }>;
+  };
+  return { status: result.status, ...parsed };
+}
+
 afterEach(() => {
   while (scratchRoots.length > 0) {
     const root = scratchRoots.pop();
@@ -34,14 +45,14 @@ afterEach(() => {
 
 describe('architecture import guards', () => {
   it('accepts the current repository and records the decreasing legacy allowlist', () => {
-    const result = analyzeArchitecture();
+    const result = runGuard();
+    expect(result.status).toBe(0);
     expect(result.ok).toBe(true);
     expect(result.violations).toEqual([]);
-    expect(result.allowlist).toEqual(LEGACY_ALLOWLIST);
     expect(result.debt.map((item) => item.id).sort()).toEqual(
-      LEGACY_ALLOWLIST.map((item) => item.id).sort(),
+      result.allowlist.map((item) => item.id).sort(),
     );
-    expect(LEGACY_ALLOWLIST.map((item) => item.retireIn).every((item) => item === 'R7' || item === 'R9')).toBe(true);
+    expect(result.allowlist.every((item) => item.retireIn === 'R7' || item.retireIn === 'R9')).toBe(true);
   });
 
   it('rejects headless imports of games, UI runtimes, and scenes', () => {
@@ -61,7 +72,8 @@ describe('architecture import guards', () => {
         '',
       ].join('\n'),
     );
-    const result = analyzeArchitecture(root, { checkStale: false });
+    const result = runGuard(root);
+    expect(result.status).not.toBe(0);
     expect(result.violations.map((item) => item.code).sort()).toEqual([
       'HEADLESS_IMPORTS_GAME',
       'HEADLESS_IMPORTS_SCENE',
@@ -86,7 +98,8 @@ describe('architecture import guards', () => {
         '',
       ].join('\n'),
     );
-    const result = analyzeArchitecture(root, { checkStale: false });
+    const result = runGuard(root);
+    expect(result.status).not.toBe(0);
     expect(result.violations.map((item) => item.code).sort()).toEqual([
       'GAME_RUNTIME_IMPORTS_GAME',
       'GAME_RUNTIME_IMPORTS_RENDERER',
@@ -102,7 +115,8 @@ describe('architecture import guards', () => {
       'src/games/block-placement/index.ts',
       `${importLine('crush', '../block-crush/index')}\nvoid crush;\n`,
     );
-    const result = analyzeArchitecture(root, { checkStale: false });
+    const result = runGuard(root);
+    expect(result.status).not.toBe(0);
     expect(result.violations).toEqual([
       {
         code: 'GAME_IMPORTS_OTHER_GAME',
@@ -120,7 +134,8 @@ describe('architecture import guards', () => {
       'src/exporter/offlineVideoExporter.ts',
       `${importLine('applyPlacement', '../domain/gameEngine')}\nvoid applyPlacement;\n`,
     );
-    const result = analyzeArchitecture(root, { allowlist: [], checkStale: false });
+    const result = runGuard(root);
+    expect(result.status).not.toBe(0);
     expect(result.violations).toEqual([
       {
         code: 'UNLISTED_LEGACY_DEBT',
