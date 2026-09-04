@@ -12,6 +12,9 @@ import {
   BLOCK_PLACEMENT_STATE_SCHEMA_ID,
 } from '../src/games/block-placement/manifest';
 import {
+  TAPTILE_ACTION_SCHEMA_ID,
+  TAPTILE_CONFIG_SCHEMA_ID,
+  TAPTILE_STATE_SCHEMA_ID,
   TAPTILE_TRAY_MATCH3_GAME_ID,
   TAPTILE_TRAY_MATCH3_MODULE_VERSION,
 } from '../src/games/taptile-tray-match3/manifest';
@@ -35,6 +38,9 @@ describe('game registry', () => {
     expect(registry.schemas.has(BLOCK_PLACEMENT_STATE_SCHEMA_ID, '1.0.0')).toBe(true);
     expect(registry.schemas.has(BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
     expect(registry.schemas.has(BLOCK_PLACEMENT_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
+    expect(registry.schemas.has(TAPTILE_CONFIG_SCHEMA_ID, '1.0.0')).toBe(true);
+    expect(registry.schemas.has(TAPTILE_STATE_SCHEMA_ID, '1.0.0')).toBe(true);
+    expect(registry.schemas.has(TAPTILE_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
   });
 
   it('erases the Block Placement definition without changing hashes', () => {

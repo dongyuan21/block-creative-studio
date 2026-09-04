@@ -5,7 +5,8 @@
   --tpt-muted: #8d9bb0;
   --tpt-text: #edf3fb;
   --tpt-accent: #6b74ff;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100%;
   background: #0a0f18;
   color: var(--tpt-text);
   font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;

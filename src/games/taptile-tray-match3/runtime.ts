@@ -6,15 +6,16 @@ import {
   createInitialTapTileGameState,
   playableTapTileIds,
   tapTileStateHash,
-} from '../../taptile/gameplay';
+} from './gameplay';
+import { tapTileProjectFromConfig, type TapTileConfig } from './project/config';
 import type {
   TapTileRuntimeAction,
   TapTileRuntimeResolution,
   TapTileRuntimeState,
 } from './types';
-import type { TapTileProjectV2 } from '../../taptile/project';
 
-function compileProject(project: TapTileProjectV2) {
+export function compileTapTileConfig(config: TapTileConfig) {
+  const project = tapTileProjectFromConfig(config, { id: 'runtime', name: 'runtime' });
   const level = compileTapTileLevel(project);
   const errors = level.validation.issues.filter((issue) => issue.severity === 'error');
   if (errors.length > 0) {
@@ -27,24 +28,27 @@ function compileProject(project: TapTileProjectV2) {
   return level;
 }
 
+export function hashTapTileRuntimeState(state: TapTileRuntimeState): string {
+  return `${state.seed}:${state.level.levelHash}:${tapTileStateHash(state.game)}`;
+}
+
 export const tapTileTrayMatch3Runtime: GameRuntime<
-  TapTileProjectV2,
+  TapTileConfig,
   TapTileRuntimeState,
   TapTileRuntimeAction,
   TapTileRuntimeResolution
 > = {
-  createInitialState(config) {
-    const project = structuredClone(config);
-    const level = compileProject(project);
+  createInitialState(config, seed) {
+    const normalized = structuredClone(config);
+    const level = compileTapTileConfig(normalized);
     return {
-      project,
+      seed,
+      config: normalized,
       level,
       game: createInitialTapTileGameState(level),
     };
   },
-  hashState(state) {
-    return `${state.level.levelHash}:${tapTileStateHash(state.game)}`;
-  },
+  hashState: hashTapTileRuntimeState,
   listLegalActions(state) {
     if (state.game.status !== 'playing') return [];
     return playableTapTileIds(state.level, state.game).map((tileId) => ({ tileId }));
@@ -65,19 +69,22 @@ export const tapTileTrayMatch3Runtime: GameRuntime<
             tileId: action.tileId,
             rejectReason: transition.rejectReason,
             blockerIds: transition.blockerIds ?? [],
+            seed: context.seed,
           },
         },
       );
     }
     return {
-      project: state.project,
+      seed: state.seed,
+      config: state.config,
       level: state.level,
       transition,
     };
   },
   stateAfter(resolution) {
     return {
-      project: resolution.project,
+      seed: resolution.seed,
+      config: resolution.config,
       level: resolution.level,
       game: resolution.transition.after,
     };

@@ -26,6 +26,7 @@
     "src/cli/**/*.ts",
     "src/game-runtime/**/*.ts",
     "src/games/block-placement/**/*.ts",
+    "src/games/taptile-tray-match3/**/*.ts",
     "src/domain/**/*.ts",
     "src/director/**/*.ts",
     "src/bootstrap/**/*.ts",
@@ -33,6 +34,22 @@
   ],
   "exclude": [
     "src/games/block-placement/studio/**",
+    "src/games/taptile-tray-match3/studio/**",
+    "src/games/taptile-tray-match3/blender/**",
+    "src/games/taptile-tray-match3/play/**",
+    "src/games/taptile-tray-match3/visual/**",
+    "src/games/taptile-tray-match3/production/batch.ts",
+    "src/games/taptile-tray-match3/production/manifest.ts",
+    "src/games/taptile-tray-match3/production/renderJob.ts",
+    "src/games/taptile-tray-match3/production/projectBundle.ts",
+    "src/games/taptile-tray-match3/production/index.ts",
+    "src/games/taptile-tray-match3/render/AssetCache.ts",
+    "src/games/taptile-tray-match3/render/CanvasRenderer.ts",
+    "src/games/taptile-tray-match3/render/PolishedCanvasRenderer.ts",
+    "src/games/taptile-tray-match3/render/TapTileRenderJob.ts",
+    "src/games/taptile-tray-match3/render/renderProof.ts",
+    "src/games/taptile-tray-match3/render/index.ts",
+    "src/games/taptile-tray-match3/render/frameHash.ts",
     "src/bootstrap/platformBootstrap.ts"
   ]
 }

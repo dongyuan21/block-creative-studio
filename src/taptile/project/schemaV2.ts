@@ -1,5 +1,2 @@
-export {
-  isTapTileProjectV2,
-  parseTapTileProjectV2,
-  TapTileProjectValidationError,
-} from './validation';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/project/schemaV2';

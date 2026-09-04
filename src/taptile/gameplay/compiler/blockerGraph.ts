@@ -1,1 +1,2 @@
-export { compileTapTileLevel } from './compileLevel';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../../games/taptile-tray-match3/gameplay/compiler/blockerGraph';

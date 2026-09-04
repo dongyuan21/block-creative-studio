@@ -1,8 +1,2 @@
-export * from './compiler';
-export * from './engine';
-export * from './profile';
-export * from './solver';
-export * from './stateHash';
-export * from './take';
-export * from './tray';
-export * from './types';
+/** @deprecated Import from src/games/taptile-tray-match3 instead. */
+export * from '../../games/taptile-tray-match3/gameplay';
