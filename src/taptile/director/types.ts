@@ -142,9 +142,33 @@ export interface PresentationMovingTile {
   tileId: string;
   xPx: number;
   yPx: number;
+  targetX: number;
+  targetY: number;
   rotationDeg: number;
   scale: number;
   progress: number;
+  liftPx: number;
+  actionIndex: number;
+}
+
+export type PresentationTrayTilePhase = 'stable' | 'inserting' | 'shifting';
+
+/**
+ * Per-tile tray positions during the short grouped-insertion beat. Keeping the
+ * logical tray immutable while exposing this presentation track lets existing
+ * tiles slide aside instead of teleporting to their new grouped index.
+ */
+export interface PresentationTrayTile {
+  tileId: string;
+  xPx: number;
+  yPx: number;
+  rotationDeg: number;
+  scale: number;
+  opacity: number;
+  progress: number;
+  fromIndex: number | null;
+  toIndex: number;
+  phase: PresentationTrayTilePhase;
   actionIndex: number;
 }
 
@@ -177,6 +201,7 @@ export interface TapTilePresentationFrame {
   gameState: TapTileGameState;
   pointer: PresentationPointer;
   movingTiles: PresentationMovingTile[];
+  trayTiles: PresentationTrayTile[];
   effects: PresentationEffect[];
   camera: { xPx: number; yPx: number; zoom: number };
   activeActionIndexes: number[];
