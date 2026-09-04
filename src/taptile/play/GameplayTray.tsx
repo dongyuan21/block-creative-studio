@@ -1,19 +1,14 @@
 import type { CSSProperties, ReactNode } from 'react';
-import type { TapTileGameplayStatus } from '../gameplay';
-import {
-  TAPTILE_REFERENCE_TRAY_BOUNDS,
-  TAPTILE_TRAY_CAPACITY,
-  tapTileTraySlotRect,
-} from '../trayLayout';
+import { TAPTILE_TRAY_CAPACITY } from '../gameplay';
+import { tapTileTraySlotRect } from '../trayLayout';
 
-function slotStyle(index: number): CSSProperties {
-  const tray = TAPTILE_REFERENCE_TRAY_BOUNDS;
-  const slot = tapTileTraySlotRect(index, tray);
+function traySlotStyle(index: number): CSSProperties {
+  const slot = tapTileTraySlotRect(index);
   return {
-    left: `${((slot.left - tray.left) / tray.width) * 100}%`,
-    top: `${((slot.top - tray.top) / tray.height) * 100}%`,
-    width: `${(slot.width / tray.width) * 100}%`,
-    height: `${(slot.height / tray.height) * 100}%`,
+    left: `${slot.left / 1080 * 100}%`,
+    top: `${slot.top / 1920 * 100}%`,
+    width: `${slot.width / 1080 * 100}%`,
+    height: `${slot.height / 1920 * 100}%`,
   };
 }
 
@@ -22,26 +17,40 @@ export function GameplayTray({
   status,
   renderTile,
 }: {
-  trayIds: readonly string[];
-  status: TapTileGameplayStatus;
+  trayIds: string[];
+  status: 'playing' | 'won' | 'lost';
   renderTile(tileId: string): ReactNode;
 }) {
   return (
-    <div className={`tpt-tray tpt-gameplay-tray status-${status}`} data-occupied={trayIds.length}>
-      {Array.from({ length: TAPTILE_TRAY_CAPACITY }, (_, index) => {
-        const tileId = trayIds[index];
-        return (
-          <i
-            key={index}
-            className={tileId ? 'is-occupied' : ''}
-            data-tray-index={index}
-            data-tile-id={tileId}
-            style={slotStyle(index)}
+    <div
+      className={`tpt-gameplay-tray status-${status}`}
+      data-tray-count={trayIds.length}
+      data-tray-order={trayIds.join('|')}
+      aria-label={`槽位 ${trayIds.length}/${TAPTILE_TRAY_CAPACITY}`}
+    >
+      {Array.from({ length: TAPTILE_TRAY_CAPACITY }, (_, index) => (
+        <i
+          key={index}
+          className={trayIds[index] ? 'is-occupied' : ''}
+          style={traySlotStyle(index)}
+          aria-hidden="true"
+        />
+      ))}
+      <div className="tpt-tray-tile-layer" aria-hidden="true">
+        {trayIds.map((tileId, index) => (
+          <span
+            key={tileId}
+            className="tpt-tray-tile"
+            data-tray-tile-id={tileId}
+            data-tray-to-index={index}
+            style={traySlotStyle(index)}
           >
-            {tileId ? renderTile(tileId) : null}
-          </i>
-        );
-      })}
+            <span className="tpt-tray-tile-card">{renderTile(tileId)}</span>
+          </span>
+        ))}
+      </div>
+      {trayIds.length === TAPTILE_TRAY_CAPACITY - 1 && status === 'playing' && <b>Only 1 Slot Left!</b>}
+      {status === 'lost' && <b>Tray Full</b>}
     </div>
   );
 }
