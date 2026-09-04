@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "mode": "full",
-  "startedAt": "2026-09-04T01:01:35.742Z",
+  "startedAt": "2026-09-04T02:56:38.376Z",
   "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
   "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
   "videoEncoder": true,
@@ -178,32 +178,32 @@
     {
       "id": "reference-2d",
       "path": "review-package/run/videos/reference-2d-1080x1920.mp4",
-      "sha256": "c15af7e179a113a1e07489c091a9d67bbef5a4044baeba3a3263e15e59399f06",
-      "bytes": 1114288,
+      "sha256": "a6a49f417dad6205f0fe5055b50da45a343e4ef50cd95cf926228a5f04b9cf02",
+      "bytes": 1118259,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-steel",
       "path": "review-package/run/videos/fixed-steel-1080x1920.mp4",
-      "sha256": "5911593bffe02bf0127be2eadf1ea6d9825e52dd4323a03c14e88f338444adc4",
-      "bytes": 1968897,
+      "sha256": "8804e264b78bcfbf1281db3aabd14c5869cab30ce56bc23ead475f4e5650130d",
+      "bytes": 1969548,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-wood",
       "path": "review-package/run/videos/fixed-wood-1080x1920.mp4",
-      "sha256": "5006456aeae51407e69ae04d79b21554949d875183ab689030b4e1f72a33643e",
-      "bytes": 1943599,
+      "sha256": "c4abb0103189b6986dbd2c1068eb0a1c2074d0710ca9f6e9f203de871b80b71e",
+      "bytes": 1942146,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-aurora",
       "path": "review-package/run/videos/fixed-aurora-1080x1920.mp4",
-      "sha256": "ae4eeee99d6e6953c15fd7148931c27c1b4dba709f34cddb238a4da99a61579c",
-      "bytes": 1751548,
+      "sha256": "9b4e897405b9b339b0980eaa7a6e0b1b9ef350bf1ca0a077877549c2018ad174",
+      "bytes": 1746996,
       "frameCount": 180,
       "durationSeconds": 6
     }
@@ -256,5 +256,5 @@
     }
   ],
   "errors": [],
-  "finishedAt": "2026-09-04T01:12:27.213Z"
+  "finishedAt": "2026-09-04T03:07:20.099Z"
 }

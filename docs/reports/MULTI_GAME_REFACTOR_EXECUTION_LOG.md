@@ -109,6 +109,18 @@
 - Architecture allowlist 归零（App 与 integration 边已退休；catalog/bridge 迁入第一游戏并保留旧路径 re-export）
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
 
+## R8b — 机械移动与命名纠正
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(layout): move Block Placement implementation behind stable exports`
+- 门禁：`check` / `test` 178 / `typecheck` / `build`（190 modules）/ render-regression / golden-batch / pbr-runtime / Smoke Capture / Full Capture PASS
+- Git rename：gameEngine / boardPresets / shapes / publicFixtures / presentationCompiler / Reference2DScene / StudioScene / ThreeViewport → `src/games/block-placement/...`
+- 旧路径保留 `export *` re-export，并标记 `@deprecated`；业务调用点未改
+- Architecture allowlist 仍为 0
+- Full Capture：20 still + 4 mp4；`prepared-pbr-maps` / `letterbox-pick` / `seek-repeat` / `cancel-export` / `webcodecs` PASS
+- 冻结 Plan Hash 未变：steel `fnv1a32:b0ca5623` / wood `7bff218a` / aurora `5c4c3c9a`；`cameraDrivesPixels=true`
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
+
 ## Remaining
 
-R8b 连续执行。R9 DEFERRED。
+R9 DEFERRED（需 Block Crush Diagnostic Slice）。本轮不删除 V1、不默认切换 V2。
