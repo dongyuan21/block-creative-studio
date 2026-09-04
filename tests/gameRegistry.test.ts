@@ -11,16 +11,27 @@ import {
   BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID,
   BLOCK_PLACEMENT_STATE_SCHEMA_ID,
 } from '../src/games/block-placement/manifest';
+import {
+  TAPTILE_TRAY_MATCH3_GAME_ID,
+  TAPTILE_TRAY_MATCH3_MODULE_VERSION,
+} from '../src/games/taptile-tray-match3/manifest';
 import type { GameDefinition } from '../src/game-runtime/contracts';
 
 describe('game registry', () => {
-  it('registers Block Placement as the first GameDefinition', () => {
+  it('registers Block Placement first and TapTile through the same GameDefinition contract', () => {
     const registry = createDefaultGameRegistry();
     const definition = registry.require(BLOCK_PLACEMENT_GAME_ID, BLOCK_PLACEMENT_MODULE_VERSION);
+    const tapTile = registry.require(TAPTILE_TRAY_MATCH3_GAME_ID, TAPTILE_TRAY_MATCH3_MODULE_VERSION);
     expect(definition.manifest.gameId).toBe(BLOCK_PLACEMENT_GAME_ID);
     expect(definition.manifest.moduleVersion).toBe(BLOCK_PLACEMENT_MODULE_VERSION);
     expect(definition.manifest.topology).toBe('grid-2d');
-    expect(registry.list()).toEqual([definition.manifest]);
+    expect(tapTile.manifest).toMatchObject({
+      gameId: TAPTILE_TRAY_MATCH3_GAME_ID,
+      moduleVersion: TAPTILE_TRAY_MATCH3_MODULE_VERSION,
+      topology: 'layered-planar',
+      rulesetId: 'taptile-tray-match3-v1',
+    });
+    expect(registry.list()).toEqual([definition.manifest, tapTile.manifest]);
     expect(registry.schemas.has(BLOCK_PLACEMENT_STATE_SCHEMA_ID, '1.0.0')).toBe(true);
     expect(registry.schemas.has(BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
     expect(registry.schemas.has(BLOCK_PLACEMENT_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
