@@ -9,12 +9,11 @@ import {
   type RenderResourcePolicy,
 } from '../src/rendering/resourcePolicy';
 import { RenderBackendError } from '../src/rendering/backendRegistry';
-import {
-  crushDiagnosticBackend,
-  crushRenderContract,
-} from './games/block-crush-drop/fakeCrushPackage';
+import { BLOCK_CRUSH_DROP_GAME_ID } from '../src/games/block-crush-drop/manifest';
+import { crushWoodCinematicBackend } from '../src/games/block-crush-drop/render/cinematicBackendAdapter';
+import { crushWoodRenderContract } from '../src/games/block-crush-drop/render/renderContract';
 
-const backend = crushDiagnosticBackend;
+const backend = crushWoodCinematicBackend;
 const plan: PlanBoundRenderPlan = {
   planHash: 'fnv1a32:crush-plan',
   renderer: 'fixed-camera-cinematic',
@@ -40,8 +39,8 @@ function resources(overrides: Partial<ReturnType<typeof readyRenderResources>> =
 
 function frameSource(): CompiledFrameSource {
   return {
-    gameId: 'block-crush-drop',
-    takeId: 'drop-0',
+    gameId: BLOCK_CRUSH_DROP_GAME_ID,
+    takeId: 'reference-take',
     fps: 30,
     totalFrames: 1,
     frameSourceHash: 'fnv1a32:source',
@@ -56,13 +55,13 @@ describe('plan-bound render resource policy', () => {
     const policy = bindPreparedResources({
       plan,
       resources: resources(),
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     });
     expect(policy.requiredSlotIds).toEqual(['tile.material', 'clear.primary', 'crush.board']);
     expect(() => assertRenderResourcePolicy(policy, {
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     })).not.toThrow();
     expect(() => assertVideoRenderJobContract({
@@ -70,10 +69,10 @@ describe('plan-bound render resource policy', () => {
       backend,
       output: { width: 1080, height: 1920, fps: 30, quality: 'preview' },
       projectName: 'crush',
-      takeName: 'drop-0',
+      takeName: 'reference-take',
       resourcePolicy: policy,
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
     })).not.toThrow();
   });
 
@@ -81,16 +80,16 @@ describe('plan-bound render resource policy', () => {
     const policy = bindPreparedResources({
       plan,
       resources: resources({ planHash: 'fnv1a32:other-plan' }),
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     });
     expect(() => assertRenderResourcePolicy(policy, {
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     })).toThrow(RenderBackendError);
     try {
-      assertRenderResourcePolicy(policy, { plan, renderContract: crushRenderContract, backend });
+      assertRenderResourcePolicy(policy, { plan, renderContract: crushWoodRenderContract, backend });
     } catch (error) {
       expect((error as RenderBackendError).code).toMatch(/PLAN_HASH_MISMATCH|RESOURCES_PLAN_HASH_MISMATCH/);
     }
@@ -104,7 +103,7 @@ describe('plan-bound render resource policy', () => {
     } as unknown as RenderResourcePolicy;
     expect(() => assertRenderResourcePolicy(policy, {
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     })).toThrow(/PREPARED_RESOURCES_MISSING|PreparedResources/);
   });
@@ -119,12 +118,12 @@ describe('plan-bound render resource policy', () => {
     const policy = bindPreparedResources({
       plan,
       resources: incomplete,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     });
     expect(() => assertRenderResourcePolicy(policy, {
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     })).toThrow(/crush\.board|not ready/);
   });
@@ -140,12 +139,12 @@ describe('plan-bound render resource policy', () => {
     const policy = bindPreparedResources({
       plan,
       resources: pending,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     });
     expect(() => assertRenderResourcePolicy(policy, {
       plan,
-      renderContract: crushRenderContract,
+      renderContract: crushWoodRenderContract,
       backend,
     })).toThrow(/not ready/);
   });
