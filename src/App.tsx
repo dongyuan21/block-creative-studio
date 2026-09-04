@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
+import './taptile/taptile-polish.css';
 
 const BlockCreativeWorkspace = lazy(async () => {
   const module = await import('./BlockCreativeWorkspace');
