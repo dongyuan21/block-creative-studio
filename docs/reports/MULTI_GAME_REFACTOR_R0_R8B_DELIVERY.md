@@ -9,7 +9,7 @@
 - 协议：`MULTI_GAME_REFACTOR_CONTINUOUS_EXECUTION_PROTOCOL_V1.md`
 - 设计：`MULTI_GAME_FIXED_VIEW_SYSTEM_DESIGN_V2.md`
 - 起点：`526aee6`，已 fast-forward 吸收 `origin/main@f1c1052`（未覆盖他人提交）
-- R9：DEFERRED（需 Block Crush Diagnostic Slice 之后才能删除 V1 / 默认切 V2）
+- R9：DEFERRED（需 crash wooooood! Diagnostic Slice 之后才能删除 V1 / 默认切 V2）
 
 阶段编号是内部工程检查点，不是人工审批门。本文件是 R0–R8b 连续执行后的统一 Review 材料。
 
@@ -19,7 +19,7 @@
 |---|---|
 | R0–R8b 架构 Review | PASS（`5110797256`，锚定代码 `7027bad` / 证据 `b2b22cf`） |
 | PR #7 | OPEN，未合入 `main` |
-| 正式 Block Crush Slice | 未启动 |
+| 正式 crash wooooood! Slice | 未启动 |
 | 商业 Golden | BLOCKED（无源视频） |
 | 人工视觉批准 | PENDING |
 | T0–T5 视觉完成 | 未声称 |
@@ -123,7 +123,7 @@ V2 Plan Hash 含 `planSchemaVersion` / renderContract / game，与 V1 哈希空�
 
 ---
 
-## 6. Block Crush 接入条件（最小新增）
+## 6. crash wooooood! 接入条件（最小新增）
 
 第一个 Diagnostic Slice PR **只应新增**，除注册与通用 bug 修复外不应改平台核心：
 
@@ -192,13 +192,13 @@ R7 已证明上述 Mahjong Slot 能被 V1 Plan 收集并写入 `bySlot`。接入
 
 https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 
-Review `5110797256` 已关闭 R0–R8b 架构 Review。PR 仍为 open，**未合入 `main`**。正式 Block Crush Diagnostic Slice 未启动。
+Review `5110797256` 已关闭 R0–R8b 架构 Review。PR 仍为 open，**未合入 `main`**。正式 crash wooooood! Diagnostic Slice 未启动。
 
 ---
 
 ## 10. Review `5109071660` 边界收口
 
-针对 PR #7 最终架构审阅的四项 P0 / 两项 P1，已在同一 PR 上收口。Fake Crush 只存在于 `tests/games/block-crush-drop/`，**不是**正式 Block Crush Diagnostic Slice。
+针对 PR #7 最终架构审阅的四项 P0 / 两项 P1，已在同一 PR 上收口。Fake Crush 只存在于 `tests/games/block-crush-drop/`，**不是**正式 crash wooooood! Diagnostic Slice。
 
 | 项 | 处理 |
 |---|---|
@@ -216,7 +216,7 @@ Review `5110797256` 已关闭 R0–R8b 架构 Review。PR 仍为 open，**未合
 
 ## 11. Review `5110140679` 三项收口
 
-代码 Head：`7027bad6867fb5d9362bfec2b889c2323028f76a`。Fake Crush 仍只存在于 `tests/games/block-crush-drop/`，**不是**正式 Block Crush Diagnostic Slice。
+代码 Head：`7027bad6867fb5d9362bfec2b889c2323028f76a`。Fake Crush 仍只存在于 `tests/games/block-crush-drop/`，**不是**正式 crash wooooood! Diagnostic Slice。
 
 | 项 | 处理 |
 |---|---|
@@ -257,5 +257,5 @@ Review `5110797256` 已关闭 R0–R8b 架构 Review。PR 仍为 open，**未合
 非阻塞后续债务（不阻塞 PR #7，也不要求在 Diagnostic Slice 前返工）：
 
 1. 让 `FrameRenderRequestV2.moduleVersion` 参与强校验，并把 Request 中的 `planId/planHash` 与捕获输入 Plan 再做一次显式绑定。
-2. 在 Block Crush 进入正式 Cinematic Backend 前，把当前静态 Backend Adapter Registry 演进为可接收 Plan、Style 与资源上下文的 Backend Factory。
+2. 在 crash wooooood! 进入正式 Cinematic Backend 前，把当前静态 Backend Adapter Registry 演进为可接收 Plan、Style 与资源上下文的 Backend Factory。
 3. R9 时把 `procedural-no-assets` 收紧为明确的 Legacy-only 路径，并继续把模块级 Registry 收敛为平台实例持有。

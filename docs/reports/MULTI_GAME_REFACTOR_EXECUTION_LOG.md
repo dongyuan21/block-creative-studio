@@ -4,7 +4,7 @@
 - 方案：`MULTI_GAME_REFACTOR_EXECUTION_PLAN_V1.md` @ `c1aadaf`
 - 协议：`MULTI_GAME_REFACTOR_CONTINUOUS_EXECUTION_PROTOCOL_V1.md`
 - 起点：`526aee6`，已 fast-forward 吸收 `origin/main@f1c1052`
-- R9：DEFERRED（需 Block Crush Diagnostic Slice）
+- R9：DEFERRED（需 crash wooooood! Diagnostic Slice）
 
 阶段编号是内部检查点，不是人工审批门。
 
@@ -103,7 +103,7 @@
 - 提交：`refactor(studio): split studio shell from Block Placement workspace`
 - 门禁：`check` / `test` 178 / `typecheck` / `build`（183 modules）/ render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
 - App = `<StudioShell registry={studioRegistry} />`；公共 Shell/Session 无 GridCell / 8×8 / pieces / onPlace / clearSignal / domain/types
-- 默认仍创建 Block Placement；Block Crush / Vita Mahjong 为 Coming Soon
+- 默认仍创建 Block Placement；crash wooooood! / Vita Mahjong 为 Coming Soon
 - `useBlockPlacementModel` 承担棋盘/块/试玩/Clear Signal；Autosave 仍写 V1
 - Headless/CLI 未引入 React（CLI bundle 104.45 kB，与 R7 相同）
 - Architecture allowlist 归零（App 与 integration 边已退休；catalog/bridge 迁入第一游戏并保留旧路径 re-export）
@@ -123,7 +123,7 @@
 
 ## Remaining
 
-R9 DEFERRED（需 Block Crush Diagnostic Slice）。本轮不删除 V1、不默认切换 V2。
+R9 DEFERRED（需 crash wooooood! Diagnostic Slice）。本轮不删除 V1、不默认切换 V2。
 
 完整一次性交付：`docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md`。
 
@@ -132,6 +132,6 @@ R9 DEFERRED（需 Block Crush Diagnostic Slice）。本轮不删除 V1、不默�
 - 状态：PASS（R0–R8b 既定范围）
 - 代码 Head：`7027bad`；证据 Head：`b2b22cf`
 - PR #7：OPEN，未合入 `main`
-- 正式 Block Crush Diagnostic Slice：未启动
+- 正式 crash wooooood! Diagnostic Slice：未启动
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
 - 非阻塞债务：V2 Request 的 moduleVersion / plan 绑定；Backend Factory；R9 收紧 `procedural-no-assets` 与实例级 Registry
