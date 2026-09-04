@@ -8,6 +8,7 @@ import type {
   CompiledTapTileTake,
   PresentationEffect,
   PresentationMovingTile,
+  PresentationTrayTile,
   TapTilePresentationFrame,
 } from './types';
 
@@ -24,6 +25,20 @@ function cloneState(state: TapTileGameState): TapTileGameState {
 
 function trayPoint(index: number): { xPx: number; yPx: number } {
   return tapTileTraySlotCenter(index);
+}
+
+function cubicBezier(
+  start: number,
+  controlA: number,
+  controlB: number,
+  end: number,
+  progress: number,
+): number {
+  const inverse = 1 - progress;
+  return inverse ** 3 * start
+    + 3 * inverse ** 2 * progress * controlA
+    + 3 * inverse * progress ** 2 * controlB
+    + progress ** 3 * end;
 }
 
 function recordedPointerPoint(
@@ -61,16 +76,78 @@ function movingTile(compiled: CompiledTapTileTake, action: CompiledDirectorActio
   const raw = frameProgress(frame, timing.flightStartFrame, timing.flightEndFrame);
   const progress = easeProgress(raw, compiled.profile.tileFlight.easing);
   const target = trayPoint(action.transition.insertedIndex ?? action.transition.trayAfterInsert.indexOf(action.tileId));
-  const arc = Math.sin(Math.PI * progress) * compiled.profile.tileFlight.arcHeightPx;
+  const startX = tile.geometry.centerXPx;
+  const startY = tile.geometry.centerYPx;
+  const arcHeight = Math.max(42, compiled.profile.tileFlight.arcHeightPx);
+  const horizontalBias = seededSigned(compiled.seed, action.index, 13) * Math.min(42, arcHeight * 0.18);
+  const controlAX = lerp(startX, target.xPx, 0.26) + horizontalBias;
+  const controlAY = startY - Math.max(64, arcHeight * 0.72);
+  const controlBX = lerp(startX, target.xPx, 0.82) - horizontalBias * 0.34;
+  // Keep the final control point below the tray. The tile therefore arrives
+  // from the viewer-facing side and settles upward into the slot instead of
+  // appearing to tunnel through the tray backplate.
+  const controlBY = target.yPx + Math.max(30, arcHeight * 0.28);
+  const landing = Math.max(0, Math.min(1, (progress - 0.76) / 0.24));
+  const liftPx = Math.sin(Math.PI * landing) * 16;
+  const pickupPulse = Math.sin(Math.PI * Math.min(1, progress / 0.38)) * 0.075;
+  const landingCompression = Math.sin(Math.PI * landing) * 0.032;
+  const horizontalTravel = target.xPx - startX;
+  const flightBank = Math.max(-8, Math.min(8, horizontalTravel / 90));
   return {
     tileId: action.tileId,
-    xPx: lerp(tile.geometry.centerXPx, target.xPx, progress),
-    yPx: lerp(tile.geometry.centerYPx, target.yPx, progress) - arc,
-    rotationDeg: tile.geometry.rotationDeg * (1 - progress) + seededSigned(compiled.seed, action.index, 1) * 5 * Math.sin(Math.PI * progress),
-    scale: lerp(1, 0.82, progress),
+    xPx: cubicBezier(startX, controlAX, controlBX, target.xPx, progress),
+    yPx: cubicBezier(startY, controlAY, controlBY, target.yPx, progress) - liftPx,
+    targetX: target.xPx,
+    targetY: target.yPx,
+    rotationDeg: tile.geometry.rotationDeg * (1 - progress)
+      + (flightBank + seededSigned(compiled.seed, action.index, 1) * 2.4) * Math.sin(Math.PI * progress),
+    scale: lerp(1, 0.92, progress) + pickupPulse - landingCompression,
     progress,
+    liftPx,
     actionIndex: action.index,
   };
+}
+
+function trayMotionTiles(
+  compiled: CompiledTapTileTake,
+  action: CompiledDirectorAction,
+  frame: number,
+): PresentationTrayTile[] {
+  const { trayReorderStartFrame, trayReorderEndFrame } = action.timing;
+  // At the exact landing frame the front-layer flight tile is still present.
+  // Start the grouped tray movement on the following frame to avoid a double
+  // exposure while preserving a seamless hand-off.
+  if (frame <= trayReorderStartFrame || frame > trayReorderEndFrame) return [];
+  const raw = frameProgress(frame, trayReorderStartFrame, trayReorderEndFrame);
+  const destination = action.transition.trayAfterInsert;
+  return destination.map((tileId, toIndex) => {
+    const fromIndex = action.transition.trayBefore.indexOf(tileId);
+    const incoming = tileId === action.tileId && fromIndex < 0;
+    const source = trayPoint(fromIndex >= 0 ? fromIndex : toIndex);
+    const target = trayPoint(toIndex);
+    const distance = fromIndex < 0 ? 0 : Math.abs(toIndex - fromIndex);
+    const stagger = incoming ? 0 : Math.min(0.16, distance * 0.045);
+    const localRaw = Math.max(0, Math.min(1, (raw - stagger) / Math.max(0.001, 1 - stagger)));
+    const progress = easeProgress(localRaw, compiled.profile.trayMotion.easing);
+    const shifted = fromIndex >= 0 && fromIndex !== toIndex;
+    const pushPulse = shifted ? Math.sin(Math.PI * progress) : 0;
+    const settlePulse = incoming ? Math.sin(Math.PI * progress) : 0;
+    return {
+      tileId,
+      xPx: lerp(source.xPx, target.xPx, progress),
+      yPx: lerp(source.yPx, target.yPx, progress) - pushPulse * 5 - settlePulse * 3,
+      rotationDeg: shifted ? Math.sign(toIndex - fromIndex) * Math.sin(Math.PI * progress) * 1.8 : 0,
+      scale: incoming
+        ? 1 + settlePulse * 0.055
+        : 1 - pushPulse * 0.035,
+      opacity: 1,
+      progress,
+      fromIndex: fromIndex >= 0 ? fromIndex : null,
+      toIndex,
+      phase: incoming ? 'inserting' : shifted ? 'shifting' : 'stable',
+      actionIndex: action.index,
+    };
+  });
 }
 
 function presentationState(compiled: CompiledTapTileTake, frame: number): TapTileGameState {
@@ -181,6 +258,8 @@ export function evaluateTapTileFrame(compiled: CompiledTapTileTake, requestedFra
   const movingTiles = compiled.actions
     .map((action) => movingTile(compiled, action, frameNumber))
     .filter((tile): tile is PresentationMovingTile => tile !== null);
+  const trayTiles = compiled.actions
+    .flatMap((action) => trayMotionTiles(compiled, action, frameNumber));
   const effects = [...compiled.actions
     .map((action) => matchEffect(compiled, action, frameNumber))
     .filter((effect): effect is PresentationEffect => effect !== null), ...semanticEffects(compiled, frameNumber)];
@@ -253,6 +332,7 @@ export function evaluateTapTileFrame(compiled: CompiledTapTileTake, requestedFra
     gameState,
     pointer,
     movingTiles,
+    trayTiles,
     effects,
     camera: {
       xPx: cameraIntensity === 0 ? 0 : Math.sin(cameraPhase * 0.86) * cameraIntensity,
