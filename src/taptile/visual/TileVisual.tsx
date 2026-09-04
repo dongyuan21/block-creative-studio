@@ -1,14 +1,23 @@
 import type { CSSProperties } from 'react';
+import { tapTileMaterialAppearance } from './materialAppearance';
 import type { ResolvedTileVisual } from './types';
 
 type VisualStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 export function TileVisual({ visual }: { visual: ResolvedTileVisual }) {
+  const material = tapTileMaterialAppearance(visual.material);
   const style: VisualStyle = {
-    '--tile-visual-fill': visual.bodyStyle.fill ?? '#fff7e7',
+    '--tile-visual-fill': visual.bodyStyle.fill ?? material.fillStops[0]?.[1] ?? '#fff7e7',
     '--tile-visual-radius': `${visual.bodyStyle.cornerRadiusPx}px`,
     '--tile-visual-border': `${visual.bodyStyle.borderWidthPx}px`,
     '--tile-role-scale': visual.roleScale,
+    '--tile-keyline-color': material.keylineColor,
+    '--tile-keyline-width': `${Math.max(0.7, visual.bodyStyle.borderWidthPx * 0.72)}px`,
+    '--tile-contact-shadow-color': material.contactShadowColor,
+    '--tile-shadow-color': material.shadowColor,
+    '--tile-shadow-blur': `${Math.max(2, visual.bodyStyle.cornerRadiusPx * 0.3)}px`,
+    '--tile-shadow-x': `${Math.max(1, visual.bodyStyle.cornerRadiusPx * 0.12)}px`,
+    '--tile-shadow-y': `${Math.max(2, visual.bodyStyle.cornerRadiusPx * 0.3)}px`,
     ...(visual.bodyAsset?.uri ? { '--tile-body-image': `url("${visual.bodyAsset.uri}")` } : {}),
   };
   return (
