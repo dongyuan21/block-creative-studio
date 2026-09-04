@@ -439,13 +439,19 @@ export function materialDescriptorKey(descriptor: MaterialRuntimeDescriptor): st
 
 export function materialCacheKey(
   descriptor: MaterialRuntimeDescriptor,
-  extras: { color?: string; opacity?: number; lookDevId?: string } = {},
+  extras: {
+    color?: string;
+    opacity?: number;
+    lookDevId?: string;
+    cell?: { row: number; col: number };
+  } = {},
 ): string {
   return stableHash({
     descriptor: materialDescriptorKey(descriptor),
     color: extras.color ?? null,
     opacity: extras.opacity ?? 1,
     lookDevId: extras.lookDevId ?? null,
+    cell: extras.cell ? { row: extras.cell.row, col: extras.cell.col } : null,
   });
 }
 

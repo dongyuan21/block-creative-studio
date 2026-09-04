@@ -29,7 +29,15 @@ import { createBlockMaterial, LIGHTING_VALUES, TILE_COLOR_HEX } from './material
 import { createPbrTileMaterial, type RuntimeTextureSet } from './pbrMaterialFactory';
 import { disposeRuntimeTextureSet, loadRuntimeTextureSet, runtimeTextureResourceKey } from './runtimeTextures';
 import { MaterialRuntimeLoadGate } from './materialRuntimeLoadGate';
-import { FIXED_SHOT_PROFILE, lockedCameraDistance, mapClientPointToComposition, viewportPolicyForRenderer, webglViewportFromCss } from './shotProfile';
+import {
+  particleCountForBehavior,
+  resolveFractureBehavior,
+  shardMotionForBehavior,
+  shardScaleForBehavior,
+  sparkBoostForBehavior,
+} from './materialFracture';
+import { activeShotProfile } from './planShotAdapter';
+import { lockedCameraDistance, mapClientPointToComposition, viewportPolicyForRenderer, webglViewportFromCss } from './shotProfile';
 import { materialCacheKey, materialDescriptorKey } from '../headless/materialRuntime';
 
 export interface StudioSceneOptions {
@@ -380,7 +388,12 @@ export class StudioScene {
   }
 
   private applyViewportPolicy(): void {
-    const policy = viewportPolicyForRenderer(this.style?.renderer ?? 'three-3d', this.width, this.height);
+    const policy = viewportPolicyForRenderer(
+      this.style?.renderer ?? 'three-3d',
+      this.width,
+      this.height,
+      activeShotProfile(this.style),
+    );
     const glViewport = webglViewportFromCss(policy.viewport, this.height);
     this.camera.aspect = policy.aspect;
     this.renderer.setViewport(glViewport.x, glViewport.y, glViewport.width, glViewport.height);
@@ -680,6 +693,7 @@ export class StudioScene {
       renderer: this.style?.renderer ?? 'three-3d',
       canvasWidth: this.width,
       canvasHeight: this.height,
+      shot: activeShotProfile(this.style),
     });
   }
 
@@ -914,14 +928,24 @@ export class StudioScene {
     this.currentBackground = backgroundKey;
   }
 
-  private getMaterial(color: TileColor, opacity = 1): THREE.MeshPhysicalMaterial {
+  private getMaterial(
+    color: TileColor,
+    opacity = 1,
+    cell?: { row: number; col: number },
+  ): THREE.MeshPhysicalMaterial {
     if (!this.style) throw new Error('Style not initialized.');
     const environmentIntensity = this.style.lookDev.environmentIntensity;
     const runtime = this.committedMaterialRuntime ?? this.style.materialRuntime;
     const diagnostic = this.style.diagnosticView ?? 'beauty';
+    const cellKey = cell ? `${cell.row}:${cell.col}` : 'shared';
     const key = runtime
-      ? `${materialCacheKey(runtime, { color, opacity, lookDevId: this.style.lookDev.id })}:${diagnostic}`
-      : `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}:${diagnostic}`;
+      ? `${materialCacheKey(runtime, {
+        color,
+        opacity,
+        lookDevId: this.style.lookDev.id,
+        ...(cell ? { cell } : {}),
+      })}:${diagnostic}`
+      : `${this.style.material}:${color}:${opacity.toFixed(2)}:${environmentIntensity.toFixed(3)}:${diagnostic}:${cellKey}`;
     let material = this.materialCache.get(key);
     if (!material) {
       material = runtime
@@ -932,6 +956,7 @@ export class StudioScene {
           environmentIntensity,
           diagnosticView: diagnostic,
           textures: this.runtimeTextures,
+          ...(cell ? { cell } : {}),
         })
         : createBlockMaterial(
           color,
@@ -979,7 +1004,7 @@ export class StudioScene {
       for (let col = 0; col < this.frame.board.cols; col += 1) {
         const color = this.frame.board.cells[row]?.[col];
         if (!color) continue;
-        const block = new THREE.Mesh(this.blockGeometry, this.getMaterial(color));
+        const block = new THREE.Mesh(this.blockGeometry, this.getMaterial(color, 1, { row, col }));
         block.position.copy(this.boardCellWorld(row, col));
         block.castShadow = true;
         block.receiveShadow = true;
@@ -1008,7 +1033,13 @@ export class StudioScene {
       group.scale.setScalar(0.62);
 
       for (const [[row, col], cellIndex] of shape.cells.map((cell, index) => [cell, index] as const)) {
-        const mesh = new THREE.Mesh(this.blockGeometry, this.getMaterial(pieceCellColor(piece, cellIndex)));
+        const mesh = new THREE.Mesh(
+          this.blockGeometry,
+          this.getMaterial(pieceCellColor(piece, cellIndex), 1, {
+            row: row + piece.slotIndex * 8,
+            col,
+          }),
+        );
         mesh.position.set(
           (col - (bounds.cols - 1) / 2) * CELL_PITCH,
           ((bounds.rows - 1) / 2 - row) * CELL_PITCH,
@@ -1051,7 +1082,11 @@ export class StudioScene {
     group.position.copy(position);
     group.scale.setScalar(0.62 + clamp01(progress) * 0.38);
     for (const [[row, col], cellIndex] of shape.cells.map((cell, index) => [cell, index] as const)) {
-      const baseMaterial = this.getMaterial(pieceCellColor(piece, cellIndex), valid ? 0.86 : 0.58);
+      const baseMaterial = this.getMaterial(
+        pieceCellColor(piece, cellIndex),
+        valid ? 0.86 : 0.58,
+        { row: row + 16, col },
+      );
       const material = valid ? baseMaterial : this.invalidPlacementMaterial;
       const mesh = new THREE.Mesh(this.blockGeometry, material);
       mesh.position.set(
@@ -1104,7 +1139,8 @@ export class StudioScene {
   private syncCamera(punch: number): void {
     if (!this.style) return;
     const locked = this.style.renderer === 'fixed-camera-cinematic';
-    const maxZoom = FIXED_SHOT_PROFILE.maximumScreenZoom;
+    const shot = activeShotProfile(this.style);
+    const maxZoom = shot.maximumScreenZoom;
     const dynamicFactor = locked ? 0.4 : this.style.camera === 'dynamic-clear' ? 1 : 0.56;
     const effectivePunch = punch * dynamicFactor;
     const frame = this.frame?.frame ?? 0;
@@ -1113,19 +1149,19 @@ export class StudioScene {
     const shakeY = Math.cos(frame * 1.71) * effectivePunch * 0.055 * shakeScale;
 
     if (locked) {
-      this.camera.fov = FIXED_SHOT_PROFILE.verticalFovDegrees;
-      this.camera.aspect = FIXED_SHOT_PROFILE.compositionAspect;
-      const distance = lockedCameraDistance(effectivePunch);
+      this.camera.fov = shot.verticalFovDegrees;
+      this.camera.aspect = shot.compositionAspect;
+      const distance = lockedCameraDistance(effectivePunch, shot);
       const zoom = Math.min(maxZoom, 1 + effectivePunch * 0.015);
       this.camera.position.set(
-        FIXED_SHOT_PROFILE.cameraOffset.x + shakeX,
-        FIXED_SHOT_PROFILE.cameraOffset.y + shakeY,
+        shot.cameraOffset.x + shakeX,
+        shot.cameraOffset.y + shakeY,
         distance,
       );
       this.camera.lookAt(
-        FIXED_SHOT_PROFILE.lookAt[0],
-        FIXED_SHOT_PROFILE.lookAt[1],
-        FIXED_SHOT_PROFILE.lookAt[2],
+        shot.lookAt[0],
+        shot.lookAt[1],
+        shot.lookAt[2],
       );
       this.camera.updateProjectionMatrix();
       void zoom;
@@ -1206,9 +1242,14 @@ export class StudioScene {
 
     const progress = clamp01(clearing.progress);
     const t = progress * 0.78;
+    const behavior = resolveFractureBehavior(this.style);
     const shardsPerCell =
       this.style?.fx === 'clean-pop' ? 3 : this.quality === 'cinematic' ? 10 : 6;
-    const particlesPerCell = this.style?.fx === 'energy-burst' ? 11 : 6;
+    const particlesPerCell = particleCountForBehavior(
+      behavior,
+      this.style?.fx === 'energy-burst' ? 11 : 6,
+    );
+    const sparkBoost = sparkBoostForBehavior(behavior);
     const dummy = new THREE.Object3D();
     const color = new THREE.Color();
     let shardIndex = 0;
@@ -1224,12 +1265,15 @@ export class StudioScene {
       for (let shard = 0; shard < shardsPerCell && shardIndex < MAX_SHARDS; shard += 1) {
         const baseIndex = cellIndex * 97 + shard * 13;
         const angle = seededFloat(clearing.seed, baseIndex) * Math.PI * 2;
-        const speed = 1.45 + seededFloat(clearing.seed, baseIndex + 1) * 2.65;
-        const lift = 1.4 + seededFloat(clearing.seed, baseIndex + 2) * 2.6;
+        const motion = shardMotionForBehavior(
+          behavior,
+          1.45 + seededFloat(clearing.seed, baseIndex + 1) * 2.65,
+          1.4 + seededFloat(clearing.seed, baseIndex + 2) * 2.6,
+        );
         dummy.position.set(
-          origin.x + Math.cos(angle) * speed * t,
-          origin.y + Math.sin(angle) * speed * t - 1.3 * t * t,
-          origin.z + 0.15 + lift * t - 3.4 * t * t,
+          origin.x + Math.cos(angle) * motion.speed * t,
+          origin.y + Math.sin(angle) * motion.speed * t - motion.gravity * t * t,
+          origin.z + 0.15 + motion.lift * t - 3.4 * motion.gravity / 1.3 * t * t,
         );
         dummy.rotation.set(
           t * (3 + seededFloat(clearing.seed, baseIndex + 3) * 8),
@@ -1239,8 +1283,12 @@ export class StudioScene {
         const scale =
           (0.7 + seededFloat(clearing.seed, baseIndex + 6) * 0.68) *
           Math.pow(1 - progress, 0.36);
-        const splinter = this.committedMaterialRuntime?.materialClass === 'wood';
-        dummy.scale.set(splinter ? scale * 0.32 : scale, splinter ? scale * 1.85 : scale, splinter ? scale * 0.28 : scale);
+        const shardScale = shardScaleForBehavior(
+          behavior,
+          scale,
+          seededFloat(clearing.seed, baseIndex + 7),
+        );
+        dummy.scale.set(shardScale.x, shardScale.y, shardScale.z);
         dummy.updateMatrix();
         this.shardMesh.setMatrixAt(shardIndex, dummy.matrix);
         color.setHex(TILE_COLOR_HEX[cell.color]);
@@ -1268,7 +1316,7 @@ export class StudioScene {
         if (this.committedMaterialRuntime?.baseColor) {
           color.lerp(new THREE.Color(this.committedMaterialRuntime.baseColor), 0.45);
         }
-        const particleLuminanceBoost = this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.12;
+        const particleLuminanceBoost = (this.style?.lookDev.id === 'neutral-lookdev' ? 1 : 1.12) * sparkBoost;
         this.particleColors[offset] = color.r * particleLuminanceBoost;
         this.particleColors[offset + 1] = color.g * particleLuminanceBoost;
         this.particleColors[offset + 2] = color.b * particleLuminanceBoost;

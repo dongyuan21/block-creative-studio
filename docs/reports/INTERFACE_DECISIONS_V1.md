@@ -11,7 +11,9 @@ These names merge into Headless Core. They are not a second type system.
 | `MaterialRuntimeDescriptor` | `src/headless/contracts.ts`, `materialRuntime.ts` | Compiled from MaterialPack; fracture remains pending |
 | `ReferencePassId` | contracts + `src/reference2d/passes.ts` | Draw order preserved |
 | `DiagnosticViewId` | contracts + Inspector + StudioScene | Reads runtime materials, not name swatches |
-| `FIXED_SHOT_PROFILE` | `src/renderer/shotProfile.ts` | Consumed by `fixed-camera-cinematic` |
+| `FIXED_SHOT_PROFILE` | `src/renderer/shotProfile.ts` | Fallback shot when Plan metadata is missing |
+| `ShotExecution` | `src/renderer/planShotAdapter.ts` | Plan camera/layout → cinematic viewport/zoom; pose/FOV still fallback |
+| `MaterialBehaviorProfile` kinematics | `src/renderer/materialFracture.ts` | Shard scale/motion only; not G-buffer fracture |
 
 Bloom remains **threshold-bloom**. Selective bloom is not claimed.
 

@@ -100,7 +100,9 @@ export function makeFixture(options: { effectMaterialClass?: 'metal' | 'wood' | 
   };
 
   const assets: AssetManifest[] = [
-    generic('layout.vertical', 'ui-theme', 'd'),
+    generic('layout.vertical', 'ui-theme', 'd', undefined, {
+      designResolution: { width: 1080, height: 1920 },
+    }),
     generic('camera.fixed', 'camera-profile', 'e', undefined, { designResolution: { width: 1080, height: 1920 }, boardScreenRect: { x: 78, y: 332, width: 924, height: 924 }, allowOrbit: false, allowTransformAnimation: false, maximumScreenZoom: 1.025, maximumScreenTranslationPx: 8, maximumScreenRotationDegrees: 0.2 }),
     generic('background.dark', 'background', 'f', { textureMemoryMiB: 8 }),
     generic('board.dark', 'board-skin', '1', { textureMemoryMiB: 12, triangleCount: 16000 }),

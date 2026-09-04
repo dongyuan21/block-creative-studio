@@ -29,7 +29,7 @@ import {
   webglViewportFromCss,
 } from '../src/renderer/shotProfile';
 import { createStudioVariantMatrix, studioPreviewStyle } from '../src/integration/studioVariantBridge';
-import { overlayPlanMaterialOnStyle, planRenderEvidence } from '../src/integration/studioAssetCatalog';
+import { overlayPlanMaterialOnStyle, planRenderEvidence, resolveStyleFromRenderPlan } from '../src/integration/studioAssetCatalog';
 import { MaterialRuntimeLoadGate } from '../src/renderer/materialRuntimeLoadGate';
 import { materialRuntimeBlocksExport, materialRuntimeReadyFor } from '../src/renderer/materialRuntimeStatus';
 import { createUniversalClearEffect } from '../src/headless/universalClearEffect';
@@ -496,6 +496,10 @@ describe('review blockers', () => {
     expect(evidence.validatedCameraId).toBeTruthy();
     expect(evidence.cameraDrivesPixels).toBe(false);
     expect(evidence.layoutDrivesPixels).toBe(false);
+    const resolved = resolveStyleFromRenderPlan(compiled.plan, structuredClone(DEFAULT_STYLE));
+    const resolvedEvidence = planRenderEvidence(compiled.plan, resolved.style);
+    expect(resolvedEvidence.cameraDrivesPixels).toBe(true);
+    expect(resolvedEvidence.layoutDrivesPixels).toBe(true);
   });
 
   it('resolves MaterialPack bcs-asset texture refs through PreparedResources', () => {

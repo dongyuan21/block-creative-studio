@@ -26,6 +26,7 @@ import {
 import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
 import { EMPTY_RUNTIME_ASSET_BINDINGS } from '../assets/runtimeAssetBindings';
 import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
+import { activeShotProfile } from '../renderer/planShotAdapter';
 import { viewportPolicyForRenderer } from '../renderer/shotProfile';
 
 interface CaptureReport {
@@ -332,7 +333,12 @@ async function runLetterboxPickTest(): Promise<{ name: string; status: 'PASS' | 
     await scene.warmup(frame, style);
     void host.offsetWidth;
     const rect = host.getBoundingClientRect();
-    const viewport = viewportPolicyForRenderer('fixed-camera-cinematic', 1920, 1080).viewport;
+    const viewport = viewportPolicyForRenderer(
+      'fixed-camera-cinematic',
+      1920,
+      1080,
+      activeShotProfile(style),
+    ).viewport;
     const scaleX = rect.width / 1920;
     const scaleY = rect.height / 1080;
     const letterboxX = rect.left + Math.max(1, viewport.x * scaleX * 0.15);

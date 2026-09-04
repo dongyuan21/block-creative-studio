@@ -1,5 +1,10 @@
-export type { DiagnosticViewId, MaterialRuntimeDescriptor, ReferencePassId } from '../headless/contracts';
-import type { DiagnosticViewId, MaterialRuntimeDescriptor, ReferencePassId } from '../headless/contracts';
+export type { DiagnosticViewId, MaterialBehaviorProfile, MaterialRuntimeDescriptor, ReferencePassId } from '../headless/contracts';
+import type {
+  DiagnosticViewId,
+  MaterialBehaviorProfile,
+  MaterialRuntimeDescriptor,
+  ReferencePassId,
+} from '../headless/contracts';
 
 export const BOARD_SIZE = 8;
 
@@ -144,6 +149,34 @@ export interface Reference2DStyleSpec {
   bestScore: number;
 }
 
+export interface ShotExecution {
+  cameraProfileId: string;
+  layoutProfileId: string;
+  designResolution: { width: number; height: number };
+  layoutDesignResolution?: { width: number; height: number };
+  compositionAspect: number;
+  boardScreenRect: { x: number; y: number; width: number; height: number };
+  maximumScreenZoom: number;
+  verticalFovDegrees: number;
+  contentWidth: number;
+  contentHeight: number;
+  widthFill: number;
+  heightFill: number;
+  baseDistance: number;
+  lookAt: readonly [number, number, number];
+  cameraOffset: { x: number; y: number };
+  poseSource: 'plan' | 'fallback-fixed-shot';
+  fovSource: 'plan' | 'fallback-fixed-shot';
+  cameraFieldsFromPlan: {
+    designResolution: boolean;
+    boardScreenRect: boolean;
+    maximumScreenZoom: boolean;
+  };
+  layoutFieldsFromPlan: {
+    designResolution: boolean;
+  };
+}
+
 export interface StyleSpec {
   renderer: RenderBackendId;
   reference2d: Reference2DStyleSpec;
@@ -158,6 +191,8 @@ export interface StyleSpec {
   diagnosticView?: DiagnosticViewId;
   enabledPasses?: ReferencePassId[];
   materialRuntime?: MaterialRuntimeDescriptor;
+  materialBehavior?: MaterialBehaviorProfile;
+  shotExecution?: ShotExecution;
 }
 
 export interface RenderSpec {

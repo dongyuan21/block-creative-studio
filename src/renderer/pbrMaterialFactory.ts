@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { DiagnosticViewId, MaterialRuntimeDescriptor, NormalYConvention } from '../headless/contracts';
 import { combineFactorAndSample } from '../headless/materialRuntime';
+import { seededFloat } from '../domain/rng';
 import type { TileColor } from '../domain/types';
 import { TILE_COLOR_HEX } from './materialPresets';
 
@@ -22,13 +23,50 @@ export function normalScaleForConvention(
   return { x: strength, y: strength * sign };
 }
 
-function applyUv(texture: THREE.Texture, descriptor: MaterialRuntimeDescriptor): void {
+export function cellUvJitter(row: number, col: number): {
+  offset: [number, number];
+  rotationRadians: number;
+} {
+  const seed = (row + 1) * 1_000_003 + (col + 1);
+  return {
+    offset: [seededFloat(seed, 1) * 0.41, seededFloat(seed, 2) * 0.41],
+    rotationRadians: (seededFloat(seed, 3) - 0.5) * 0.55,
+  };
+}
+
+function applyUv(
+  texture: THREE.Texture,
+  descriptor: MaterialRuntimeDescriptor,
+  jitter?: { offset: [number, number]; rotationRadians: number },
+): void {
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(descriptor.uv.repeat[0], descriptor.uv.repeat[1]);
-  texture.offset.set(descriptor.uv.offset[0], descriptor.uv.offset[1]);
-  texture.rotation = descriptor.uv.rotationRadians;
+  texture.offset.set(
+    descriptor.uv.offset[0] + (jitter?.offset[0] ?? 0),
+    descriptor.uv.offset[1] + (jitter?.offset[1] ?? 0),
+  );
+  texture.rotation = descriptor.uv.rotationRadians + (jitter?.rotationRadians ?? 0);
   texture.needsUpdate = true;
+}
+
+function cloneTextureSet(textures: RuntimeTextureSet): RuntimeTextureSet {
+  const next: RuntimeTextureSet = {};
+  if (textures.baseColor) next.baseColor = textures.baseColor.clone();
+  if (textures.normal) next.normal = textures.normal.clone();
+  if (textures.roughness) next.roughness = textures.roughness.clone();
+  if (textures.metallic) next.metallic = textures.metallic.clone();
+  if (textures.ao) next.ao = textures.ao.clone();
+  if (textures.emission) next.emission = textures.emission.clone();
+  return next;
+}
+
+function texturesForCell(
+  textures: RuntimeTextureSet | undefined,
+  cell?: { row: number; col: number },
+): RuntimeTextureSet | undefined {
+  if (!textures) return textures;
+  return cell ? cloneTextureSet(textures) : textures;
 }
 
 function hasMap(
@@ -85,39 +123,40 @@ function assignMaps(
   textures: RuntimeTextureSet | undefined,
   descriptor: MaterialRuntimeDescriptor,
   mode: 'beauty' | 'albedo' | 'data' = 'beauty',
+  jitter?: { offset: [number, number]; rotationRadians: number },
 ): void {
   if (!textures) return;
   if (mode === 'albedo') {
     if (textures.baseColor) {
       material.map = textures.baseColor;
-      applyUv(textures.baseColor, descriptor);
+      applyUv(textures.baseColor, descriptor, jitter);
     }
     return;
   }
   if (mode === 'data') return;
   if (textures.baseColor) {
     material.map = textures.baseColor;
-    applyUv(textures.baseColor, descriptor);
+    applyUv(textures.baseColor, descriptor, jitter);
   }
   if (textures.normal) {
     material.normalMap = textures.normal;
-    applyUv(textures.normal, descriptor);
+    applyUv(textures.normal, descriptor, jitter);
   }
   if (textures.roughness) {
     material.roughnessMap = textures.roughness;
-    applyUv(textures.roughness, descriptor);
+    applyUv(textures.roughness, descriptor, jitter);
   }
   if (textures.metallic) {
     material.metalnessMap = textures.metallic;
-    applyUv(textures.metallic, descriptor);
+    applyUv(textures.metallic, descriptor, jitter);
   }
   if (textures.ao) {
     material.aoMap = textures.ao;
-    applyUv(textures.ao, descriptor);
+    applyUv(textures.ao, descriptor, jitter);
   }
   if (textures.emission) {
     material.emissiveMap = textures.emission;
-    applyUv(textures.emission, descriptor);
+    applyUv(textures.emission, descriptor, jitter);
   }
 }
 
@@ -128,22 +167,25 @@ export function createPbrTileMaterial(options: {
   environmentIntensity?: number;
   textures?: RuntimeTextureSet;
   diagnosticView?: DiagnosticViewId;
+  cell?: { row: number; col: number };
 }): THREE.MeshPhysicalMaterial {
   const opacity = options.opacity ?? 1;
   const ghosted = opacity < 0.99;
+  const textures = texturesForCell(options.textures, options.cell);
+  const jitter = options.cell ? cellUvJitter(options.cell.row, options.cell.col) : undefined;
   const tile = new THREE.Color(TILE_COLOR_HEX[options.color]);
-  const color = beautyColor(options.descriptor, tile, options.textures);
+  const color = beautyColor(options.descriptor, tile, textures);
   const roughness = factorForMappedProperty(
     options.descriptor.roughness,
-    hasMap(options.textures, 'roughness'),
+    hasMap(textures, 'roughness'),
     options.descriptor.combine,
   );
   const metalness = factorForMappedProperty(
     options.descriptor.metalness,
-    hasMap(options.textures, 'metallic'),
+    hasMap(textures, 'metallic'),
     options.descriptor.combine,
   );
-  const emissionMapped = hasMap(options.textures, 'emission');
+  const emissionMapped = hasMap(textures, 'emission');
   const emission = emissionMultiplier(
     options.descriptor.emission,
     emissionMapped,
@@ -161,12 +203,12 @@ export function createPbrTileMaterial(options: {
       transparent: ghosted,
       opacity,
     });
-    assignMaps(material, options.textures, options.descriptor, 'albedo');
+    assignMaps(material, textures, options.descriptor, 'albedo', jitter);
     return material;
   }
   if (diagnostic === 'roughness' || diagnostic === 'metalness') {
     const value = diagnostic === 'roughness' ? roughness : metalness;
-    const dataMap = diagnostic === 'roughness' ? options.textures?.roughness : options.textures?.metallic;
+    const dataMap = diagnostic === 'roughness' ? textures?.roughness : textures?.metallic;
     const gray = dataMap ? new THREE.Color(1, 1, 1) : new THREE.Color(value, value, value);
     const material = new THREE.MeshPhysicalMaterial({
       color: gray,
@@ -176,7 +218,7 @@ export function createPbrTileMaterial(options: {
     });
     if (dataMap) {
       material.map = dataMap;
-      applyUv(dataMap, options.descriptor);
+      applyUv(dataMap, options.descriptor, jitter);
     }
     return material;
   }
@@ -221,10 +263,10 @@ export function createPbrTileMaterial(options: {
   }
   const material = new THREE.MeshPhysicalMaterial(materialParameters);
   const convention = options.descriptor.maps.find((map) => map.slot === 'normal')?.normalY;
-  if (options.textures?.normal || options.descriptor.normalStrength !== undefined) {
+  if (textures?.normal || options.descriptor.normalStrength !== undefined) {
     const scale = normalScaleForConvention(options.descriptor.normalStrength ?? 1, convention);
     material.normalScale = new THREE.Vector2(scale.x, scale.y);
   }
-  assignMaps(material, options.textures, options.descriptor);
+  assignMaps(material, textures, options.descriptor, 'beauty', jitter);
   return material;
 }
