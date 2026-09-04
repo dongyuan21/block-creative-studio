@@ -29,7 +29,7 @@ import { blockPlacementPackage } from '../../../src/games/block-placement/packag
 import { AssetRegistry } from '../../../src/headless/assetRegistry';
 import { createCalibrationCase } from '../../../src/headless/calibration';
 import { buildCreativeMasterV2 } from '../../../src/headless/creativeMasterV2';
-import type { EffectPackManifest, LookPackManifest } from '../../../src/headless/contracts';
+import type { AssetManifest, EffectPackManifest, LookPackManifest } from '../../../src/headless/contracts';
 import { createFrameRenderRequestV2, validateFrameRenderRequestV2 } from '../../../src/headless/frameRequestV2';
 import { compileVariantV2 } from '../../../src/headless/variantCompilerV2';
 import { requireRenderBackend } from '../../../src/rendering/backendRegistry';
@@ -114,6 +114,16 @@ describe('block-crush-drop platform contract', () => {
     expect(crushCase.compositionProfileId).toBe(crushWoodCompositionProfile.id);
 
     const fixture = makeFixture();
+    const layout: AssetManifest = {
+      ...(fixture.assets.find((item) => item.id === 'layout.vertical') as AssetManifest),
+      id: document.production.layoutProfileRef.id,
+      version: document.production.layoutProfileRef.version,
+    };
+    const camera: AssetManifest = {
+      ...(fixture.assets.find((item) => item.id === 'camera.fixed') as AssetManifest),
+      id: document.production.cameraProfileRef.id,
+      version: document.production.cameraProfileRef.version,
+    };
     const crushEffect: EffectPackManifest = {
       ...(fixture.assets.find((item) => item.id === 'effect.copper-clear') as EffectPackManifest),
       id: 'effect.crush-wood.fracture',
@@ -121,7 +131,8 @@ describe('block-crush-drop platform contract', () => {
     };
     const look: LookPackManifest = {
       ...(fixture.assets.find((item) => item.id === 'look.copper') as LookPackManifest),
-      id: 'look.crush-wood.golden-embossed',
+      id: document.production.lookPackRef.id,
+      version: document.production.lookPackRef.version,
       slots: {
         'tile.material': ref('material.copper', 'material-pack', 'b'),
         'clear.primary': {
@@ -133,7 +144,9 @@ describe('block-crush-drop platform contract', () => {
         'crush.board': ref('background.dark', 'background', 'f'),
       },
     };
-    const assets = fixture.assets.filter((item) => item.id !== 'look.copper').concat(look, crushEffect);
+    const assets = fixture.assets
+      .filter((item) => !['layout.vertical', 'camera.fixed', 'look.copper'].includes(item.id))
+      .concat(layout, camera, look, crushEffect);
     const master = buildCreativeMasterV2(document, platform.games, {
       id: 'master.crush-wood',
       takeId: CRUSH_WOOD_REFERENCE_TAKE_ID,
