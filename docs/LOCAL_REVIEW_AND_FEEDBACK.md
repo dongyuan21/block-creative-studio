@@ -2,7 +2,7 @@
 
 给下载代码后的人：先出一组约定好的竖屏成片，再按同一套格式写观感。后续迭代只接这类反馈，不把 SwiftShader / CI / 架构 Review 当成画面过关。
 
-当前可制作的游戏只有 **Block Placement**。不要等 Block Crush 或 Vita Mahjong 的成片，它们还没接入工作台。
+当前可制作的游戏只有 **Block Placement**。不要等 crash wooooood! 或 Vita Mahjong 的成片，它们还没接入工作台。
 
 环境：**Node.js 22.12+**、桌面 **Chrome**。导出必须在 Chrome 里完成；CLI 不会生成 MP4。
 
@@ -134,4 +134,4 @@ npm run capture:review
 
 架构 Review 已通过，不等于这些 MP4 已过审。下一轮代码会针对你点名的时间戳改 Pass、LookDev 或节奏默认值，再请你用**同一输入表**重导 1～5，做前后对比。
 
-准备开 **Block Crush Diagnostic Slice** 之前，请先把上述 Block Placement 成片的 blocker 说清楚。Crush 第一刀仍是诊断切片，不是完整坍塌影视。
+准备开 **crash wooooood! Diagnostic Slice** 之前，请先把上述 Block Placement 成片的 blocker 说清楚。Crush 第一刀仍是诊断切片，不是完整坍塌影视。

@@ -10,7 +10,7 @@ export const VITA_MAHJONG_SOLITAIRE_GAME_ID = 'vita-mahjong-solitaire';
 const comingSoon: GameStudioModule[] = [
   {
     gameId: BLOCK_CRUSH_DROP_GAME_ID,
-    displayName: 'Block Crush',
+    displayName: 'crash wooooood!',
     status: 'coming-soon',
     description: 'Diagnostic Slice 完成后接入',
   },

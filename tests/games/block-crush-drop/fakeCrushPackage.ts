@@ -175,7 +175,7 @@ export const crushDefinition: GameDefinition<CrushConfig, CrushState, CrushActio
   manifest: {
     gameId: CRUSH_GAME_ID,
     moduleVersion: CRUSH_MODULE_VERSION,
-    displayName: 'Block Crush Drop',
+    displayName: 'crash wooooood!',
     topology: 'grid-2d',
     rulesetId: 'crush-diag',
     rulesetVersion: CRUSH_MODULE_VERSION,

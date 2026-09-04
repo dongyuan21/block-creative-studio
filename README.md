@@ -8,7 +8,7 @@ Block Creative Studio（BCS）从可复现的二维玩法真值出发，把游�
 
 当前版本：`0.3.0-alpha.4`  
 当前可制作游戏：**Block Placement**  
-规划接入：**Block Crush Drop**、**Vita Mahjong Solitaire**
+规划接入：**crash wooooood!**、**Vita Mahjong Solitaire**
 
 ---
 
@@ -31,7 +31,7 @@ Semantic Replay / Rule Resolution
 这里的“二维”指玩法规则与最终状态，而不是最终画面只能是平面图形。
 
 - Block Placement 的落子、合法性、满行满列和计分在二维格阵中求解；
-- Block Crush 的落块、破坏集合和坍塌目标仍由二维规则决定；
+- crash wooooood! 的落块、破坏集合和坍塌目标仍由二维规则决定；
 - Vita Mahjong 的牌面位置、离散层级、覆盖关系、左右阻塞和配对关系属于分层二维拓扑；
 - 厚度、倒角、PBR 材质、灯光、阴影、纵深、碎片、粒子和物理次级运动都属于表现层。
 
@@ -148,7 +148,7 @@ flowchart LR
 | 游戏 | 玩法真值 | 主要动作 | Resolve / Reconfigure | 当前状态 |
 |---|---|---|---|---|
 | **Block Placement** | 8×8 二维格阵 | 从三个候选块中拖拽落子 | 满行、满列同步清除；通常不发生整体移动 | **可运行、可编辑、可导出** |
-| **Block Crush Drop** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | 平台契约已验证，正式游戏模块未实现 |
+| **crash wooooood!** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | 平台契约已验证，正式游戏模块未实现 |
 | **Vita Mahjong Solitaire** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | 架构已预留，正式游戏模块未实现 |
 
 未来的新游戏不要求共享同一种 Board 或 Action；只需要遵守统一的生产协议。
@@ -296,7 +296,7 @@ src/
 |---|---|
 | 多游戏平台 R0–R8b | 已完成并合入 `main` |
 | Block Placement | 当前唯一可制作游戏 |
-| Block Crush / Vita Mahjong | 尚未实现正式模块 |
+| crash wooooood! / Vita Mahjong | 尚未实现正式模块 |
 | 商业参考 Golden | `BLOCKED`：公共仓库不包含商业源视频 |
 | 人工视觉批准 | `PENDING` |
 | 音频、BGM、旁白 | 尚未进入当前导出链 |
