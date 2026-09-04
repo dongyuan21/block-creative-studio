@@ -1,0 +1,193 @@
+{
+  "baseSha": "f1c1052226eeaba92aff4cb4727a8fc7ee66ce74",
+  "publicFixtures": [
+    {
+      "id": "idle",
+      "snapshotHash": "fnv1a32:56eeaa38",
+      "takeHash": null,
+      "status": "playing"
+    },
+    {
+      "id": "pickup",
+      "snapshotHash": "fnv1a32:56eeaa38",
+      "takeHash": null,
+      "status": "playing"
+    },
+    {
+      "id": "legal-preview",
+      "snapshotHash": "fnv1a32:cc3a61bb",
+      "takeHash": null,
+      "status": "playing"
+    },
+    {
+      "id": "illegal-preview",
+      "snapshotHash": "fnv1a32:4c9ffa19",
+      "takeHash": null,
+      "status": "playing"
+    },
+    {
+      "id": "single-clear",
+      "snapshotHash": "fnv1a32:cc3a61bb",
+      "takeHash": "fnv1a32:05572d85",
+      "status": "playing"
+    },
+    {
+      "id": "cross-clear",
+      "snapshotHash": "fnv1a32:eac19161",
+      "takeHash": "fnv1a32:5a97ebe0",
+      "status": "playing"
+    },
+    {
+      "id": "consecutive",
+      "snapshotHash": "fnv1a32:485c16ac",
+      "takeHash": "fnv1a32:f34a84f4",
+      "status": "playing"
+    },
+    {
+      "id": "endgame",
+      "snapshotHash": "fnv1a32:d4ad67be",
+      "takeHash": null,
+      "status": "game-over"
+    }
+  ],
+  "materials": {
+    "steel": {
+      "packId": "material.stainless-steel",
+      "packContentHash": "sha256:98cb21f8697300ff94e94dc4e81bad0b9530581372f691734ef6b2b4f487c195",
+      "runtimeContentHash": "sha256:98cb21f8697300ff94e94dc4e81bad0b9530581372f691734ef6b2b4f487c195",
+      "materialDescriptorKey": "fnv1a32:936be6d7",
+      "planHash": "fnv1a32:b0ca5623",
+      "lockMode": "frame-exact",
+      "renderer": "fixed-camera-cinematic",
+      "clearPrimary": "effect.universal-clear",
+      "evidence": {
+        "planHash": "fnv1a32:b0ca5623",
+        "renderer": "fixed-camera-cinematic",
+        "materialId": "material.stainless-steel",
+        "validatedEffectId": "effect.universal-clear",
+        "renderedFxPreset": "crystal-shatter",
+        "effectDrivesPixels": true,
+        "validatedCameraId": "camera.fixed",
+        "renderedCameraProfile": "camera.fixed",
+        "cameraDrivesPixels": true,
+        "validatedLayoutId": "layout.vertical",
+        "renderedLayoutProfile": "1080x1920",
+        "layoutDrivesPixels": true
+      },
+      "shot": {
+        "cameraProfileId": "camera.fixed",
+        "layoutProfileId": "layout.vertical",
+        "designResolution": {
+          "width": 1080,
+          "height": 1920
+        },
+        "boardScreenRect": {
+          "x": 78,
+          "y": 332,
+          "width": 924,
+          "height": 924
+        },
+        "maximumScreenZoom": 1.025,
+        "poseSource": "fallback-fixed-shot",
+        "fovSource": "fallback-fixed-shot"
+      }
+    },
+    "wood": {
+      "packId": "material.oak-wood",
+      "packContentHash": "sha256:a7b83270b3ed32056539a2904948ee0145550c9ba4983b29b37acea2fd05d876",
+      "runtimeContentHash": "sha256:a7b83270b3ed32056539a2904948ee0145550c9ba4983b29b37acea2fd05d876",
+      "materialDescriptorKey": "fnv1a32:6d3e0a0e",
+      "planHash": "fnv1a32:7bff218a",
+      "lockMode": "frame-exact",
+      "renderer": "fixed-camera-cinematic",
+      "clearPrimary": "effect.universal-clear",
+      "evidence": {
+        "planHash": "fnv1a32:7bff218a",
+        "renderer": "fixed-camera-cinematic",
+        "materialId": "material.oak-wood",
+        "validatedEffectId": "effect.universal-clear",
+        "renderedFxPreset": "crystal-shatter",
+        "effectDrivesPixels": true,
+        "validatedCameraId": "camera.fixed",
+        "renderedCameraProfile": "camera.fixed",
+        "cameraDrivesPixels": true,
+        "validatedLayoutId": "layout.vertical",
+        "renderedLayoutProfile": "1080x1920",
+        "layoutDrivesPixels": true
+      },
+      "shot": {
+        "cameraProfileId": "camera.fixed",
+        "layoutProfileId": "layout.vertical",
+        "designResolution": {
+          "width": 1080,
+          "height": 1920
+        },
+        "boardScreenRect": {
+          "x": 78,
+          "y": 332,
+          "width": 924,
+          "height": 924
+        },
+        "maximumScreenZoom": 1.025,
+        "poseSource": "fallback-fixed-shot",
+        "fovSource": "fallback-fixed-shot"
+      }
+    },
+    "aurora": {
+      "packId": "material.aurora-shell",
+      "packContentHash": "sha256:e34c30ff7ac18998a22aea9582e9d1ccbc92e39075fadcc02aa95c48f51b577d",
+      "runtimeContentHash": "sha256:e34c30ff7ac18998a22aea9582e9d1ccbc92e39075fadcc02aa95c48f51b577d",
+      "materialDescriptorKey": "fnv1a32:2fbf5a79",
+      "planHash": "fnv1a32:5c4c3c9a",
+      "lockMode": "frame-exact",
+      "renderer": "fixed-camera-cinematic",
+      "clearPrimary": "effect.universal-clear",
+      "evidence": {
+        "planHash": "fnv1a32:5c4c3c9a",
+        "renderer": "fixed-camera-cinematic",
+        "materialId": "material.aurora-shell",
+        "validatedEffectId": "effect.universal-clear",
+        "renderedFxPreset": "crystal-shatter",
+        "effectDrivesPixels": true,
+        "validatedCameraId": "camera.fixed",
+        "renderedCameraProfile": "camera.fixed",
+        "cameraDrivesPixels": true,
+        "validatedLayoutId": "layout.vertical",
+        "renderedLayoutProfile": "1080x1920",
+        "layoutDrivesPixels": true
+      },
+      "shot": {
+        "cameraProfileId": "camera.fixed",
+        "layoutProfileId": "layout.vertical",
+        "designResolution": {
+          "width": 1080,
+          "height": 1920
+        },
+        "boardScreenRect": {
+          "x": 78,
+          "y": 332,
+          "width": 924,
+          "height": 924
+        },
+        "maximumScreenZoom": 1.025,
+        "poseSource": "fallback-fixed-shot",
+        "fovSource": "fallback-fixed-shot"
+      }
+    }
+  },
+  "fallbackShot": {
+    "id": "block-garden-fixed-shot-v1",
+    "designResolution": {
+      "width": 1064,
+      "height": 1788
+    },
+    "boardScreenRect": {
+      "x": 80,
+      "y": 309,
+      "width": 912,
+      "height": 912
+    },
+    "maximumScreenZoom": 1.03,
+    "compositionAspect": 0.5625
+  }
+}

@@ -1,69 +1,70 @@
-# REVIEW — T0–T5 / Next phase single-agent execution
+# REVIEW — Multi-game refactor R0 baseline
 
 ## 身份
 
 仓库：dongyuan21/block-creative-studio  
-任务 ID：T0 T1 T2 T3 T4 T5（单 Agent 顺序）  
-业务基线 SHA：`74a2fba002fe62643884759b6611af9181330964`  
-计划 SHA：`fec24de6764bb50ef082730321b167cf8a29259f`  
-实现分支：`cursor/plan-shot-uv-fracture-5d9d`  
-先前 Full Capture SHA：`5c95db168a02faab496d67eb1bdb9eaa6722fb43`  
-先前 CI 全绿 HEAD：`526aee6c6a1ab01c005f868f555cafa81b6bbdd9`（20 帧 + 4 条 MP4；Review `5102027159`）  
-本轮 P0 修复 SHA：`dda27c210f6c998784377884d711ff8526e347bb`  
-拾取补丁：构图中心射线落在格子缝时回退到棋盘平面（见随后 commit）  
-Plan shot / 每格 UV / 破碎参数接线 SHA：`05611ecba6976c8f3da0ddb18c030102c9f06521`（不宣称视觉通过）  
-依赖 PR/commit：https://github.com/dongyuan21/block-creative-studio/pull/1  
-执行环境：Linux, Node 22, Three.js 0.185.1  
+任务：多游戏重构 **R0**（冻结 `main` 基线 + 架构守卫）  
+唯一有效任务书：`docs/plans/MULTI_GAME_REFACTOR_EXECUTION_PLAN_V2.md`（PR #4，`a421a3e`）  
+Base SHA：`f1c1052226eeaba92aff4cb4727a8fc7ee66ce74`  
+实现分支：`cursor/mg-r0-baseline-guards-5d9d`  
+包版本：`0.3.0-alpha.4`  
+执行环境：Linux, Node 22.14.0, npm 10.9.7, Three.js 0.185.1, Chrome 148.0.7778.96  
 实际 Renderer：Headless Chrome + SwiftShader — **software WebGL**
+
+旧 T0–T5 / Next-phase 单 Agent 执行记录仍可在 git 历史中查看。本文件从 R0 起改为多游戏重构状态板。T0–T5 **未完成**。
 
 ## 本次完成了什么
 
-针对 GPT Pro 在精确 HEAD `526aee6` 上列出的 **4 项 P0 merge blockers** 与建议 P1。本轮只修运行时接线、证据字段与 CI 分流，**不把 T0–T5 标为完成，也不做视觉自批**。PR 保持 Draft。
+从当前 `main@f1c1052` 开工，不再等待已关闭的旧 PR，也不再从 `526aee6` 建分支。
 
-### P0
+1. **Architecture Import Guard。** `scripts/check-architecture.mjs` 立即禁止 `headless → games / React / Three / Scene`、`game-runtime → React / Three / Canvas / games / renderer`、`games/A → games/B`。Exporter / App / integration 的第一游戏耦合写入递减 allowlist，漏记新边或残留旧边都会失败。
+2. **基线身份冻结。** `docs/reports/MULTI_GAME_REFACTOR_BASELINE_V2.md` 与 `docs/reports/multi-game-refactor-baseline-identities.json` 固定 public fixture identity、三份 V1 Plan Hash、Material Runtime Hash 和 Shot 证据。`resolveStyleFromRenderPlan` 路径上 `cameraDrivesPixels` / `layoutDrivesPixels` 为 true；Pose/FOV 仍是 `fallback-fixed-shot`。
+3. **门禁。** `npm run check:architecture` 纳入 `npm run check`；CI `validate` 增加同名步骤。
+4. **Capture。** 已重跑 Full Capture（20 PNG + 4 条 1080×1920 MP4，SwiftShader）。历史 `5c95db1` / `526aee6` 与 `66b30c2` Smoke 不再作为视觉基线。Plan Hash 与冻结 identities 一致；`cameraDrivesPixels` / `layoutDrivesPixels` 为 true。实现者未视觉自批。
 
-1. **Browser Asset Store PBR 进入 GPU。** `loadRuntimeTextureSet` / `resolveMaterialMapFetchUrl` 按 `contentHash` 从 `runtimeAssets.textureMaps` 取 Object URL；`bcs-asset://` 在缺少 PreparedResources 时抛错，不再 `fetch` 自定义 scheme。`StudioScene.prepareMaterialRuntime` 与离线 Exporter 共用该 resolver。Catalog 会为导入的 MaterialPack `textureRefs` 注册 bitmap，Plan 闭包才能被 `collectRuntimeAssetRequests` 收进 IndexedDB 绑定。Capture smoke 增加 `prepared-pbr-maps`。
-2. **GitHub Pages base。** `rewriteMaterialMapUriForBrowser` 接受 `materialMapsPublicBase(import.meta.env.BASE_URL)`。CI 增加 `PAGES_BASE_PATH=/block-creative-studio/` 的 production-build smoke，检查 `index.html`、打包 JS 与 `public/materials/maps`。
-3. **plan-material 绑定到 MaterialRuntime Adapter。** PBR fixture pack 不再声明 `reference-2d`。叠加 Plan 材质时若 fallback 是 2D，切到 `fixed-camera-cinematic`。2D 工程编译 PBR Look 时对 `ASSET_RENDERER_INCOMPATIBLE` 用固定机位重试。导出门禁在三维路径上检查材质 readiness。
-4. **Plan 执行证据拆分。** Capture `styleFor` 走 `resolveStyleFromRenderPlan`（material + EffectPack `stylePatch.fx` + camera/layout → `shotExecution`）。报告字段为 `validatedEffectId` / `renderedFxPreset` / `effectDrivesPixels`，以及 `validatedCameraId` / `renderedCameraProfile`。**`resolveStyleFromRenderPlan` 路径上 `cameraDrivesPixels` / `layoutDrivesPixels` 可为 true**（消费了 Plan 的 designResolution / boardScreenRect / maximumScreenZoom / layout 宽高比）。Pose/FOV 仍回退 `FIXED_SHOT_PROFILE`。只做 material overlay 时两字段仍为 false。不得把 Plan `effectId` 单独当成已渲染证据。
-
-### P1（本轮已收敛的部分）
-
-1. 正式导出使用 `materialRuntimeReadyFor(status, { descriptorKey, resourceKey })`，避免 A→B 旧 ready 窗口。
-2. Capture smoke 增加 letterbox pick 与 IndexedDB/Memory PBR resolver 测试。完整 App 壳 E2E 仍未做。
-3. `artifact-manifest.json` 写入 `sourceHeadSha` / `checkoutMergeSha` / `workflowRunId`。
-4. 不改写 Git 历史。树内 `frames/` `videos/` 仍为 STALE。
-5. Emission `channels:'r'` 复制到 RGB；语义冻结为 factor × map（缺省 + 有 map → 1；显式 0 → 不可见）。
-6. PR/push 只跑 Smoke + Pages base；Full Capture 改为 `workflow_dispatch` / nightly / label `full-capture`。
+R0 未改 Gameplay、Compiler、Scene、PBR、Shot 参数或 Capture Spec。网页与像素路径不应变化。
 
 ## 验收矩阵
 
 | 条件 | 状态 | 证据 | 复跑 |
 |---|---|---|---|
-| 源码/类型/构建检查 | PASS（本轮实现） | `npm run check && npm run typecheck` | 同上 |
-| 单元与负向测试 | PASS（本轮 120 tests） | `npm test` | 同上 |
-| 真实浏览器捕获 | 历史 Full Capture 在 `526aee6` / `5c95db1`；本轮 PR 默认 Smoke | `review-package/run/`；CI `capture-run-smoke` | `npm run test:browser-e2e`；Full：`npm run capture:review` 或 label `full-capture` |
+| 源码/类型/构建检查 | PASS | `npm run check && npm run typecheck && npm run build` | 同上 |
+| 单元与负向测试 | PASS（137） | `npm test`；含 architecture 5 + baseline identity 1 | 同上 |
+| Architecture Guard | PASS | `npm run check:architecture`；allowlist 9 条 | 同上 |
+| R0 Smoke Capture | PASS | `fbb11f8`；3 still；steel `b0ca5623`；`cameraDrivesPixels=true` | `npm run test:browser-e2e` |
+| Full Capture | PASS（技术捕获） | 20 PNG + 4 MP4；报告 `review-package/reports/browser-e2e.json`；媒体在 `review-package/run/` | `npm run capture:review` 或 label `full-capture` |
 | Git 中旧 PNG/MP4 | stale | `review-package/frames/STALE.md` `videos/STALE.md` | 不得当作当前 HEAD 视觉证据 |
 | 13 组参考 Golden 内容 | BLOCKED | `golden-report.json` summary.BLOCKED=39 | 无源视频 |
-| 人工视觉批准 | PENDING | 实现者不得自批 | GPT Pro / 用户 |
+| 人工视觉批准 | PENDING | 实现者不得自批 | 用户 / 指定审阅者 |
 
-## 先前 Full Capture（`5c95db1` / CI `526aee6`）
+## 冻结的 Plan / Material / Shot
 
-- 状态：PASS；SwiftShader；20 张 PNG + 4 条 1080×1920 无声 MP4
-- 当时 Plan Hash（`lockMode=frame-exact`，`clear.primary=effect.universal-clear`）仅证明该 HEAD 的材质槽被采样。本轮为 EffectPack 增加了 `stylePatch.fx`，**Plan Hash 已变化，不得继续把 `d3a00f57` / `f87dd1da` / `1efc1d0c` 当作当前 HEAD。**
-- 抽查（526 媒体）：`2d-illegal-preview` 为拖拽中的红色 3×3 非法预览；`2d-endgame` 标题为 Game Over。过曝改善成立，**未视觉批准**。
+见 `docs/reports/multi-game-refactor-baseline-identities.json`。
+
+- steel planHash `fnv1a32:b0ca5623`
+- wood planHash `fnv1a32:7bff218a`
+- aurora planHash `fnv1a32:5c4c3c9a`
+- Shot 证据：camera/layout/effect 均 `*DrivesPixels=true`；pose/FOV 仍 fallback
+- Fallback shot 仍为 `block-garden-fixed-shot-v1`（1064×1788，board `{80,309,912,912}`，zoom 1.03）
+
+钢材质 planHash 数字可能与旧 Smoke 相同，但证据字段已变，旧媒体作废。
 
 ## 已知限制与未完成项
 
-见 `review-package/known-limitations.md`。
+见 `review-package/known-limitations.md` 与 V2 计划 R1–R10。
 
-契约存在 ≠ 编译可用 ≠ 资源准备 ≠ 实际渲染 ≠ 人工视觉批准。
+本轮之后仍保持：
 
-Clear FX 观感、碎片材质身份的人工批准、木材可信度、真实 GPU、正式 9:16 生产构图、独立 Pass 模块、G-buffer/HDR 诊断、39 条商业 Golden、Plan camera pose **均未完成**。实现者未视觉自批。本机验证步骤见 `docs/verification/LOCAL_VERIFY_PROMPT.md`。
+- Block Placement 仍是唯一真实游戏；App / Exporter / Scene 仍是第一游戏词汇
+- Camera Pose / FOV 仍回退全局 `FIXED_SHOT_PROFILE`
+- 碎片仍是确定性运动学，不是刚体 / G-buffer
+- 商业 Golden 保持 BLOCKED
+- T0–T5 未完成
 
 ## 质量声明
 
-技术状态：ready-for-review  
+技术状态：R0 ready-for-review  
 人工视觉批准：PENDING  
 T0–T5：未完成  
-PR：保持 Draft，不合 main
+重构：仅完成 R0 守卫与基线冻结，未完成多游戏接入  
+Full Capture：技术 PASS，不是视觉批准

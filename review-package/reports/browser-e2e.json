@@ -1,11 +1,21 @@
 {
   "status": "PASS",
   "mode": "full",
-  "startedAt": "2026-09-03T10:49:14.220Z",
+  "startedAt": "2026-09-04T01:01:35.742Z",
   "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
   "webglRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
   "videoEncoder": true,
   "tests": [
+    {
+      "name": "prepared-pbr-maps",
+      "status": "PASS",
+      "detail": "sha256:44e715f5a8492920223f01002baa079bc0b80cab3aa5bf9acd30e516356679dc"
+    },
+    {
+      "name": "letterbox-pick",
+      "status": "PASS",
+      "detail": "4,4"
+    },
     {
       "name": "seek-repeat",
       "status": "PASS",
@@ -103,14 +113,14 @@
     {
       "id": "3d-steel-idle",
       "path": "review-package/run/frames/after/3d-steel-idle.png",
-      "sha256": "b6f90068b6653286db1763f39ae69d992ceb19b6d4b472bca6042e07bc98e3ed",
+      "sha256": "398d6427878ab7804d731fbbabff6daaf8d59cec3b98d3035f8e2571810703dd",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-wood-idle",
       "path": "review-package/run/frames/after/3d-wood-idle.png",
-      "sha256": "d5df6d73ed7b9f96578118efa932b4e343cf538d42f8675e385abfd090807edb",
+      "sha256": "50f521c8d834b2a8731c704133e3fd7eae7029a93641f842f436dfd0fcefd81f",
       "width": 1080,
       "height": 1920
     },
@@ -124,42 +134,42 @@
     {
       "id": "3d-steel-peak",
       "path": "review-package/run/frames/after/3d-steel-peak.png",
-      "sha256": "055e080da2c0775d2f5dda288dd21a7567842e52a4bd218ffa09375fa4e6ce18",
+      "sha256": "39906c4ecbc38974da19e5cfcb83777b358c89adee344a039ef89b9c892e69a1",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-wood-peak",
       "path": "review-package/run/frames/after/3d-wood-peak.png",
-      "sha256": "9e3432b68f2b1fcd8c584e80fee8724a2df0bd20799afafc1bbd392e44fc9728",
+      "sha256": "ad1873e25c20c74f8c3ec8dc109be8c099f38e2d28c8926e263fc29d21d0ce06",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-aurora-peak",
       "path": "review-package/run/frames/after/3d-aurora-peak.png",
-      "sha256": "38419511c2fff20601b60d72e1d84569cef1e872361c1efcdb8fb9642ebc7797",
+      "sha256": "e3c8fab395954ce40cf21f1245d7514d90afddbf458944376687e4b692afd65d",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-albedo",
       "path": "review-package/run/frames/diagnostic/3d-steel-albedo.png",
-      "sha256": "4b152ca2870f29f3bdbd8562d3840a48e39f134e7d67ff1c7dd5df81fc23069f",
+      "sha256": "a8014e0034871e192734ddb01b3806517462501690edf9344037d01ea5dd5aef",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-roughness",
       "path": "review-package/run/frames/diagnostic/3d-steel-roughness.png",
-      "sha256": "4078220d85d688a7604fec1e39bfa075a5386110202f0cc6f40ef15028fb6b5c",
+      "sha256": "9247097bfd55a17cc8cd3708bb09c647419b62a67d5d505d2a35a8803c73e89b",
       "width": 1080,
       "height": 1920
     },
     {
       "id": "3d-steel-metalness",
       "path": "review-package/run/frames/diagnostic/3d-steel-metalness.png",
-      "sha256": "a835e797d7c7bdb28bd54dd1d159e9f08a20cce98168e56efc5e14078bcb551f",
+      "sha256": "7fb56ee417f633b38d6c46393af6a7cce2299e3df1c99e5a88dde92e6cb4135d",
       "width": 1080,
       "height": 1920
     }
@@ -168,56 +178,83 @@
     {
       "id": "reference-2d",
       "path": "review-package/run/videos/reference-2d-1080x1920.mp4",
-      "sha256": "45c4e8e9fb2fe0b9657ddebad8ffa1ccffc090ffaea9f163339debc2a80874ff",
-      "bytes": 1117742,
+      "sha256": "c15af7e179a113a1e07489c091a9d67bbef5a4044baeba3a3263e15e59399f06",
+      "bytes": 1114288,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-steel",
       "path": "review-package/run/videos/fixed-steel-1080x1920.mp4",
-      "sha256": "fd9d5a5d5ba20836b7242dcb732b20d719cf68abe1d02c48714510883857a662",
-      "bytes": 1960611,
+      "sha256": "5911593bffe02bf0127be2eadf1ea6d9825e52dd4323a03c14e88f338444adc4",
+      "bytes": 1968897,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-wood",
       "path": "review-package/run/videos/fixed-wood-1080x1920.mp4",
-      "sha256": "1675b2bad9b0c7bde7b350a3b70c938c11c74461fe00705683162a357004de87",
-      "bytes": 1932159,
+      "sha256": "5006456aeae51407e69ae04d79b21554949d875183ab689030b4e1f72a33643e",
+      "bytes": 1943599,
       "frameCount": 180,
       "durationSeconds": 6
     },
     {
       "id": "fixed-aurora",
       "path": "review-package/run/videos/fixed-aurora-1080x1920.mp4",
-      "sha256": "e42a4a1097e7a4e636b67d48e163c23a191ee2102b39aa2e5ddfb3ce90f594a4",
-      "bytes": 1755937,
+      "sha256": "ae4eeee99d6e6953c15fd7148931c27c1b4dba709f34cddb238a4da99a61579c",
+      "bytes": 1751548,
       "frameCount": 180,
       "durationSeconds": 6
     }
   ],
   "planHashes": [
     {
+      "planHash": "fnv1a32:b0ca5623",
+      "renderer": "fixed-camera-cinematic",
       "materialId": "material.stainless-steel",
-      "planHash": "fnv1a32:d3a00f57",
-      "lockMode": "frame-exact",
-      "effectId": "effect.universal-clear"
+      "validatedEffectId": "effect.universal-clear",
+      "renderedFxPreset": "crystal-shatter",
+      "effectDrivesPixels": true,
+      "validatedCameraId": "camera.fixed",
+      "renderedCameraProfile": "camera.fixed",
+      "cameraDrivesPixels": true,
+      "validatedLayoutId": "layout.vertical",
+      "renderedLayoutProfile": "1080x1920",
+      "layoutDrivesPixels": true,
+      "lockMode": "frame-exact"
     },
     {
+      "planHash": "fnv1a32:7bff218a",
+      "renderer": "fixed-camera-cinematic",
       "materialId": "material.oak-wood",
-      "planHash": "fnv1a32:f87dd1da",
-      "lockMode": "frame-exact",
-      "effectId": "effect.universal-clear"
+      "validatedEffectId": "effect.universal-clear",
+      "renderedFxPreset": "crystal-shatter",
+      "effectDrivesPixels": true,
+      "validatedCameraId": "camera.fixed",
+      "renderedCameraProfile": "camera.fixed",
+      "cameraDrivesPixels": true,
+      "validatedLayoutId": "layout.vertical",
+      "renderedLayoutProfile": "1080x1920",
+      "layoutDrivesPixels": true,
+      "lockMode": "frame-exact"
     },
     {
+      "planHash": "fnv1a32:5c4c3c9a",
+      "renderer": "fixed-camera-cinematic",
       "materialId": "material.aurora-shell",
-      "planHash": "fnv1a32:1efc1d0c",
-      "lockMode": "frame-exact",
-      "effectId": "effect.universal-clear"
+      "validatedEffectId": "effect.universal-clear",
+      "renderedFxPreset": "crystal-shatter",
+      "effectDrivesPixels": true,
+      "validatedCameraId": "camera.fixed",
+      "renderedCameraProfile": "camera.fixed",
+      "cameraDrivesPixels": true,
+      "validatedLayoutId": "layout.vertical",
+      "renderedLayoutProfile": "1080x1920",
+      "layoutDrivesPixels": true,
+      "lockMode": "frame-exact"
     }
   ],
   "errors": [],
-  "finishedAt": "2026-09-03T10:59:52.924Z"
+  "finishedAt": "2026-09-04T01:12:27.213Z"
 }
