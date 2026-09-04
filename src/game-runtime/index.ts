@@ -40,6 +40,13 @@ export {
 export type { CompiledFrameSource, PresentationCompilerAdapter } from './frameSource';
 export { PresentationRegistry } from './presentationRegistry';
 export {
+  GAME_RENDER_CONTRACT,
+  GAME_RENDER_CONTRACT_VERSION,
+  requiredSlotIds,
+  slotRequirement,
+  type GameRenderContract,
+} from './renderContract';
+export {
   detectStudioDocumentKind,
   parseGameProjectEnvelope,
   parseGameReplayEnvelope,

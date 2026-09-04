@@ -5,6 +5,7 @@ export {
   blockPlacementPresentationAdapter,
   compileBlockPlacementFrameSource,
 } from './presentation/legacyPresentationAdapter';
+export { blockPlacementRenderContract } from './render/renderContract';
 export { blockPlacementLegacyRuntime, hashBlockPlacementState } from './legacyRuntime';
 export {
   BLOCK_PLACEMENT_ACTION_SCHEMA_ID,

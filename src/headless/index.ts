@@ -11,3 +11,6 @@ export * from './qualityGate.js';
 export * from './stableHash.js';
 export * from './validation.js';
 export * from './variantCompiler.js';
+export * from './variantCompilerV2.js';
+export * from './creativeMasterV2.js';
+export * from './qualityGateV2.js';

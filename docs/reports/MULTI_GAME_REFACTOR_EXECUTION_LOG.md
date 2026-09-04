@@ -52,6 +52,17 @@
 - 乱序/重复 Seek 结果一致
 - 未改 Scene / Exporter / App
 
+## R4 — Game Render Contract、CreativeMasterV2 与 Variant Compiler V2
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(headless): add game render contract and compiler v2`
+- 门禁：`check` / `test` 165 / `typecheck` PASS
+- V1 `compileVariant` / `runQualityGate` 未改行为；冻结 Plan Hash 仍为 steel `fnv1a32:b0ca5623` / wood `7bff218a` / aurora `5c4c3c9a`
+- V2 Plan Hash 含 `planSchemaVersion` / renderContract / game，与 V1 哈希空间独立
+- 假游戏合同只需 `crush.board` + `crush.drop-piece`，无需改 Compiler，无需 `tile.material`
+- 未知 Slot 以 `UNKNOWN_SLOT` 失败并带明确 path
+- Scene / Exporter / App / Capture 未改
+
 ## Remaining
 
-R4 → R8b 连续执行。R9 DEFERRED。
+R5 → R8b 连续执行。R9 DEFERRED。
