@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from 'react';
-import { TAPTILE_TRAY_CAPACITY } from '../gameplay';
-import { tapTileTraySlotRect } from '../trayLayout';
+import { TAPTILE_TRAY_CAPACITY, tapTileTraySlotRect } from '../trayLayout';
 
 function traySlotStyle(index: number): CSSProperties {
   const slot = tapTileTraySlotRect(index);
