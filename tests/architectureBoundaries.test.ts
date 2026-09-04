@@ -21,6 +21,10 @@ function writeSource(root: string, relative: string, source: string): void {
   writeFileSync(file, source);
 }
 
+function importLine(names: string, specifier: string): string {
+  return `import { ${names} } from ${JSON.stringify(specifier)};`;
+}
+
 afterEach(() => {
   while (scratchRoots.length > 0) {
     const root = scratchRoots.pop();
@@ -48,9 +52,9 @@ describe('architecture import guards', () => {
       root,
       'src/headless/bad.ts',
       [
-        'import { gameId } from "../games/block-placement/index";',
+        importLine('gameId', '../games/block-placement/index'),
         'import { WebGLRenderer } from "three";',
-        'import { StudioScene } from "../renderer/StudioScene";',
+        importLine('StudioScene', '../renderer/StudioScene'),
         'void gameId;',
         'void WebGLRenderer;',
         'void StudioScene;',
@@ -74,8 +78,8 @@ describe('architecture import guards', () => {
       'src/game-runtime/bad.ts',
       [
         'import { createElement } from "react";',
-        'import { gameId } from "../games/block-placement/index";',
-        'import { factory } from "../renderer/pbrMaterialFactory";',
+        importLine('gameId', '../games/block-placement/index'),
+        importLine('factory', '../renderer/pbrMaterialFactory'),
         'void createElement;',
         'void gameId;',
         'void factory;',
@@ -93,7 +97,11 @@ describe('architecture import guards', () => {
   it('rejects one game importing another', () => {
     const root = scratchRepo();
     writeSource(root, 'src/games/block-crush/index.ts', 'export const crush = true;\n');
-    writeSource(root, 'src/games/block-placement/index.ts', 'import { crush } from "../block-crush/index";\nvoid crush;\n');
+    writeSource(
+      root,
+      'src/games/block-placement/index.ts',
+      `${importLine('crush', '../block-crush/index')}\nvoid crush;\n`,
+    );
     const result = analyzeArchitecture(root, { checkStale: false });
     expect(result.violations).toEqual([
       {
@@ -110,7 +118,7 @@ describe('architecture import guards', () => {
     writeSource(
       root,
       'src/exporter/offlineVideoExporter.ts',
-      'import { applyPlacement } from "../domain/gameEngine";\nvoid applyPlacement;\n',
+      `${importLine('applyPlacement', '../domain/gameEngine')}\nvoid applyPlacement;\n`,
     );
     const result = analyzeArchitecture(root, { allowlist: [], checkStale: false });
     expect(result.violations).toEqual([
