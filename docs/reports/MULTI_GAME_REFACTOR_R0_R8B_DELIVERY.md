@@ -213,8 +213,26 @@ https://github.com/dongyuan21/block-creative-studio/pull/7 → `main`
 
 ## 11. Review `5110140679` 三项收口
 
+代码 Head：`7027bad6867fb5d9362bfec2b889c2323028f76a`。Fake Crush 仍只存在于 `tests/games/block-crush-drop/`，**不是**正式 Block Crush Diagnostic Slice。
+
 | 项 | 处理 |
 |---|---|
 | P0-A | `RenderResourcePolicy` 分为 `plan-bound` 与 `procedural-no-assets`。plan-bound 必须 `resources.planHash === plan.planHash`，Required Slots 由 Plan + Render Contract + Backend 推导。V1 Exporter 明确使用 procedural 策略，不再把 Frame Source Hash 冒充 Plan Hash。 |
 | P0-B | 保留 V1 `FrameRenderRequest`。新增 `FrameRenderRequestV2` 与 `src/capture/v2/captureStill.ts`。Fake Crush 通过 Registry 走 V2 Capture，并在浏览器中写出非空 PNG。 |
 | P0-C | `createCalibrationCase` 拒绝错误 Composition。`registerCalibrationProfile` 校验 Composition 存在且 gameId 一致。`registerGamePackage` 先 Preflight 全部 gameId / 重复 ID，提交失败则回滚。 |
+
+### 11.1 本 Head Full Capture（不是视觉批准）
+
+在 `7027bad` 上重新执行 `npm run capture:review`（`scripts/browser-capture.mjs --full`，随后 `wipe: false` 跑 Crush diagnostic）。旧 R8b 本地 Full Capture **不能**证明这些边界改动无回归。
+
+| 项 | 结果 |
+|---|---|
+| Head | `7027bad6867fb5d9362bfec2b889c2323028f76a` |
+| Block Full Capture | PASS，20 still + 4 MP4 |
+| 附加测试 | `prepared-pbr-maps` / `letterbox-pick` / `seek-repeat` / `cancel-export` / `webcodecs` 均为 PASS |
+| V1 Plan Hash | steel `fnv1a32:b0ca5623` / wood `fnv1a32:7bff218a` / aurora `fnv1a32:5c4c3c9a`（未变） |
+| Crush diagnostic PNG | PASS，`crush-idle` 720×1280，23133 B，PNG signature 有效，sha256 `7e6669d8019eb94744ab65cda026effd6ba4351d190cb8cc1e575337805e9cd6` |
+| WebGL | `ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)` |
+| CI `capture-full` | 仍为 skipped（无 `full-capture` label / schedule / workflow_dispatch） |
+
+不得把 SwiftShader / Fixture / 契约 PASS 读成商业视觉质量已批准。R9 DEFERRED；商业 Golden BLOCKED；人工视觉 PENDING；**不请求合入 `main`。**
