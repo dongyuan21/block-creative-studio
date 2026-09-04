@@ -216,27 +216,26 @@ function drawFlightAccent(
   frame: TapTilePresentationFrame,
 ): void {
   for (const moving of frame.movingTiles) {
-    const tile = moving;
-    const travelOpacity = Math.sin(Math.PI * tile.progress);
+    const travelOpacity = Math.sin(Math.PI * moving.progress);
     if (travelOpacity <= 0.01) continue;
     context.save();
-    const trail = context.createLinearGradient(tile.xPx, tile.yPx, tile.targetX, tile.targetY);
+    const trail = context.createLinearGradient(moving.xPx, moving.yPx, moving.targetX, moving.targetY);
     trail.addColorStop(0, `rgba(255,255,255,${0.03 + travelOpacity * 0.12})`);
     trail.addColorStop(1, 'rgba(154,224,255,0)');
     context.strokeStyle = trail;
     context.lineWidth = 8 + travelOpacity * 10;
     context.lineCap = 'round';
     context.beginPath();
-    context.moveTo(tile.xPx, tile.yPx + 12);
-    context.lineTo(tile.targetX, tile.targetY + 4);
+    context.moveTo(moving.xPx, moving.yPx + 12);
+    context.lineTo(moving.targetX, moving.targetY + 4);
     context.stroke();
-    if (tile.progress > 0.72) {
-      const landing = Math.max(0, Math.min(1, (tile.progress - 0.72) / 0.28));
+    if (moving.progress > 0.72) {
+      const landing = Math.max(0, Math.min(1, (moving.progress - 0.72) / 0.28));
       context.globalAlpha = (1 - landing) * 0.5;
       context.strokeStyle = '#d9f7ff';
       context.lineWidth = 4;
       context.beginPath();
-      context.ellipse(tile.targetX, tile.targetY, 24 + landing * 42, 10 + landing * 18, 0, 0, Math.PI * 2);
+      context.ellipse(moving.targetX, moving.targetY, 24 + landing * 42, 10 + landing * 18, 0, 0, Math.PI * 2);
       context.stroke();
     }
     context.restore();
@@ -280,7 +279,10 @@ export function renderPolishedTapTilePresentationFrame(
   bundle: TapTileCanvasRenderBundle,
   options: TapTileCanvasRenderOptions = {},
 ): CanvasRenderTrace {
-  const trace = renderTapTilePresentationFrame(canvas, frame, bundle, options);
+  const baseFrame = frame.movingTiles.length > 0
+    ? { ...frame, movingTiles: [] }
+    : frame;
+  const trace = renderTapTilePresentationFrame(canvas, baseFrame, bundle, options);
   if (frame.movingTiles.length === 0 && frame.trayTiles.length === 0) return trace;
   const context = canvas.getContext('2d', { alpha: false });
   if (!context) throw new Error('CANVAS_2D_CONTEXT_UNAVAILABLE');
