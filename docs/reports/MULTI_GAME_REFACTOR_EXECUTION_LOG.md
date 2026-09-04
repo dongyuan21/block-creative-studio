@@ -21,6 +21,16 @@
 - 人工视觉批准：PENDING
 - 未改 Gameplay / Compiler / Scene / PBR / Shot / Capture Spec
 
+## R1 — Game Runtime、Registry 与 Block Legacy Adapter
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(game): register Block Placement as the first game runtime`
+- 门禁：`check` / `test` 148 / `typecheck` / Smoke Capture PASS
+- Registry：重复 ID 失败、未知游戏失败、`require()` 可用
+- Adapter：与 `applyPlacement` / `listLegalMoves` 深度相等；完整 State Hash 覆盖 board/pieces/seed/setIndex/turn/score/combo/status；12-seed greedy replay 锁步
+- App / Capture / Exporter 未改
+- 未移动 `gameEngine.ts`
+
 ## Remaining
 
-R1 → R8b 连续执行。R9 DEFERRED。
+R2 → R8b 连续执行。R9 DEFERRED。

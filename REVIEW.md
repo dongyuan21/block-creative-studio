@@ -22,6 +22,7 @@ T0–T5 **未完成**。商业 Golden **BLOCKED**。人工视觉批准 **PENDING
 | 阶段 | 状态 |
 |---|---|
 | R0 基线与架构守卫 | PASS（自检） |
+| R1 Game Runtime / Registry | PASS（自检） |
 | R1–R8b | 未开始 |
 | R9 V2 默认切换 | DEFERRED |
 
