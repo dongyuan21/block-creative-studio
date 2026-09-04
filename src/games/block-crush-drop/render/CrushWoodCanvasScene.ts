@@ -11,15 +11,26 @@ import type {
 } from '../types';
 
 interface Palette {
-  backgroundTop: string;
-  backgroundBottom: string;
-  well: string;
-  wellEdge: string;
+  outerTop: string;
+  outerBottom: string;
+  outerLight: string;
+  outerDark: string;
+  frameLight: string;
+  frameMid: string;
+  frameDark: string;
+  wellTop: string;
+  wellBottom: string;
+  wellGrain: string;
   tileTop: string;
   tileBottom: string;
+  tileSide: string;
   tileEdge: string;
   tileHighlight: string;
   grain: string;
+  studTop: string;
+  studRight: string;
+  studBottom: string;
+  studLeft: string;
   hud: string;
   hudShadow: string;
   accent: string;
@@ -27,57 +38,101 @@ interface Palette {
 
 const PALETTES: Record<CrushWoodSkinId, Palette> = {
   'golden-embossed': {
-    backgroundTop: '#2a1508',
-    backgroundBottom: '#080402',
-    well: '#130904',
-    wellEdge: '#6f3b15',
-    tileTop: '#e8a63d',
-    tileBottom: '#8d4817',
-    tileEdge: '#4b240b',
-    tileHighlight: '#ffd77b',
-    grain: '#6a3210',
-    hud: '#f6c56c',
-    hudShadow: '#321305',
+    outerTop: '#d0a06a',
+    outerBottom: '#9b6538',
+    outerLight: '#e2bd84',
+    outerDark: '#71411f',
+    frameLight: '#c58c52',
+    frameMid: '#8d542c',
+    frameDark: '#3b1808',
+    wellTop: '#6d3517',
+    wellBottom: '#3b1708',
+    wellGrain: '#9e5c2d',
+    tileTop: '#f5dc94',
+    tileBottom: '#d5a152',
+    tileSide: '#b66f25',
+    tileEdge: '#8d4f17',
+    tileHighlight: '#fff2bc',
+    grain: '#bb7c32',
+    studTop: '#fff0b1',
+    studRight: '#e7b55d',
+    studBottom: '#b96f24',
+    studLeft: '#d99536',
+    hud: '#f7d98f',
+    hudShadow: '#4b210c',
     accent: '#fff0a8',
   },
   'classic-maple': {
-    backgroundTop: '#f3d19c',
-    backgroundBottom: '#7d421f',
-    well: '#482711',
-    wellEdge: '#f0c488',
-    tileTop: '#e9bd7a',
-    tileBottom: '#a66c37',
-    tileEdge: '#6e3d1e',
-    tileHighlight: '#ffe2aa',
-    grain: '#8f552d',
+    outerTop: '#e6c493',
+    outerBottom: '#b27943',
+    outerLight: '#f4dab2',
+    outerDark: '#79502c',
+    frameLight: '#d7aa70',
+    frameMid: '#9f6537',
+    frameDark: '#4a260f',
+    wellTop: '#7a401f',
+    wellBottom: '#3f1f0e',
+    wellGrain: '#aa6737',
+    tileTop: '#efd09a',
+    tileBottom: '#c2874d',
+    tileSide: '#9b5d2e',
+    tileEdge: '#75401d',
+    tileHighlight: '#ffedc4',
+    grain: '#a86635',
+    studTop: '#fff1c9',
+    studRight: '#dda96d',
+    studBottom: '#9e5f30',
+    studLeft: '#c48048',
     hud: '#fff6df',
     hudShadow: '#4a260f',
     accent: '#fff7c2',
   },
   'deep-mahogany': {
-    backgroundTop: '#44150f',
-    backgroundBottom: '#120305',
-    well: '#160405',
-    wellEdge: '#8b3527',
-    tileTop: '#a8442c',
-    tileBottom: '#4c130f',
+    outerTop: '#6f281c',
+    outerBottom: '#2b0908',
+    outerLight: '#a94c36',
+    outerDark: '#260605',
+    frameLight: '#8b3527',
+    frameMid: '#5e1e17',
+    frameDark: '#1d0304',
+    wellTop: '#3a0d0b',
+    wellBottom: '#140304',
+    wellGrain: '#6f2119',
+    tileTop: '#bd6042',
+    tileBottom: '#6b2018',
+    tileSide: '#4b100d',
     tileEdge: '#260706',
-    tileHighlight: '#e98360',
-    grain: '#360907',
+    tileHighlight: '#ed9b78',
+    grain: '#54110e',
+    studTop: '#f0a181',
+    studRight: '#b14a35',
+    studBottom: '#4b100d',
+    studLeft: '#7e281f',
     hud: '#ffc6a4',
     hudShadow: '#210304',
     accent: '#ffb58e',
   },
   'checker-maze': {
-    backgroundTop: '#d5b77f',
-    backgroundBottom: '#382617',
-    well: '#21170f',
-    wellEdge: '#d6b172',
-    tileTop: '#d9bd86',
-    tileBottom: '#704a2c',
-    tileEdge: '#322116',
-    tileHighlight: '#fff0c4',
-    grain: '#604227',
+    outerTop: '#d7bd8f',
+    outerBottom: '#806243',
+    outerLight: '#ead5aa',
+    outerDark: '#473220',
+    frameLight: '#c4a36e',
+    frameMid: '#806142',
+    frameDark: '#302015',
+    wellTop: '#4c3927',
+    wellBottom: '#20160f',
+    wellGrain: '#75573b',
+    tileTop: '#e9d4a5',
+    tileBottom: '#a98458',
+    tileSide: '#765233',
+    tileEdge: '#3c291a',
+    tileHighlight: '#fff2ca',
+    grain: '#80613d',
+    studTop: '#fff0c5',
+    studRight: '#d2b079',
+    studBottom: '#725033',
+    studLeft: '#a17d52',
     hud: '#fff1ca',
     hudShadow: '#24170d',
     accent: '#f7d887',
@@ -86,7 +141,11 @@ const PALETTES: Record<CrushWoodSkinId, Palette> = {
 
 const DESIGN_WIDTH = crushWoodCompositionProfile.designResolution.width;
 const DESIGN_HEIGHT = crushWoodCompositionProfile.designResolution.height;
-const PLAYFIELD = crushWoodCompositionProfile.playfield;
+const GRID = crushWoodCompositionProfile.playfield;
+const WELL = { x: 7, y: 113, width: 706, height: 1160 } as const;
+const HEADER_HEIGHT = 113;
+const PREVIEW_SLOT_COUNT = 5;
+const PREVIEW_SLOT = { x: 47, y: 10, width: 116, height: 96, gap: 11 } as const;
 
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -94,6 +153,11 @@ function clamp01(value: number): number {
 
 function lerp(left: number, right: number, progress: number): number {
   return left + (right - left) * progress;
+}
+
+function smoothstep(value: number): number {
+  const t = clamp01(value);
+  return t * t * (3 - 2 * t);
 }
 
 function easeOutBack(value: number): number {
@@ -148,6 +212,22 @@ function roundedRectPath(
   context.closePath();
 }
 
+function drawPolygon(
+  context: CanvasRenderingContext2D,
+  points: ReadonlyArray<{ x: number; y: number }>,
+  fill: string,
+): void {
+  if (points.length === 0) return;
+  context.beginPath();
+  context.moveTo(points[0]!.x, points[0]!.y);
+  for (let index = 1; index < points.length; index += 1) {
+    context.lineTo(points[index]!.x, points[index]!.y);
+  }
+  context.closePath();
+  context.fillStyle = fill;
+  context.fill();
+}
+
 function drawTextWithShadow(
   context: CanvasRenderingContext2D,
   text: string,
@@ -172,23 +252,20 @@ function drawTextWithShadow(
 }
 
 function cellGeometry(rows: number, columns: number): { width: number; height: number } {
-  return { width: PLAYFIELD.width / columns, height: PLAYFIELD.height / rows };
+  return { width: GRID.width / columns, height: GRID.height / rows };
 }
 
 function cellCenter(point: CrushWoodPoint, rows: number, columns: number): { x: number; y: number } {
   const cell = cellGeometry(rows, columns);
   return {
-    x: PLAYFIELD.x + (point.col + 0.5) * cell.width,
-    y: PLAYFIELD.y + (point.row + 0.5) * cell.height,
+    x: GRID.x + (point.col + 0.5) * cell.width,
+    y: GRID.y + (point.row + 0.5) * cell.height,
   };
 }
 
-function locateCell(board: CrushWoodBoard, cellId: string): CrushWoodPoint | null {
-  for (const [rowIndex, row] of board.entries()) {
-    const col = row.indexOf(cellId);
-    if (col >= 0) return { row: rowIndex, col };
-  }
-  return null;
+function previewRotation(pieceId: CrushWoodPieceId, slotIndex: number, batchIndex: number): 0 | 1 | 2 | 3 {
+  const value = Math.floor(hashUnit(`${pieceId}:${slotIndex}:${batchIndex}`, 91) * 4);
+  return value === 0 || value === 1 || value === 2 ? value : 3;
 }
 
 export class CrushWoodCanvasScene {
@@ -231,7 +308,7 @@ export class CrushWoodCanvasScene {
     context.scale(scale, scale);
 
     const shake = packet.feedback.screenShake ?? { x: 0, y: 0 };
-    const zoom = 1 + packet.feedback.cameraPunch * 0.012;
+    const zoom = 1 + packet.feedback.cameraPunch * 0.008;
     context.translate(DESIGN_WIDTH / 2 + shake.x, DESIGN_HEIGHT / 2 + shake.y);
     context.scale(zoom, zoom);
     context.translate(-DESIGN_WIDTH / 2, -DESIGN_HEIGHT / 2);
@@ -248,7 +325,7 @@ export class CrushWoodCanvasScene {
 
     if ((packet.feedback.exposurePulse ?? 0) > 0) {
       context.globalCompositeOperation = 'screen';
-      context.globalAlpha = packet.feedback.exposurePulse ?? 0;
+      context.globalAlpha = (packet.feedback.exposurePulse ?? 0) * 0.42;
       context.fillStyle = palette.accent;
       context.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
     }
@@ -261,117 +338,219 @@ export class CrushWoodCanvasScene {
 
   private drawBackground(payload: CrushWoodPresentationPayload, palette: Palette): void {
     const context = this.context;
-    const gradient = context.createLinearGradient(0, 0, 0, DESIGN_HEIGHT);
-    gradient.addColorStop(0, palette.backgroundTop);
-    gradient.addColorStop(1, palette.backgroundBottom);
+    const gradient = context.createLinearGradient(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
+    gradient.addColorStop(0, palette.outerTop);
+    gradient.addColorStop(0.48, mixHex(palette.outerTop, palette.outerBottom, 0.35));
+    gradient.addColorStop(1, palette.outerBottom);
     context.fillStyle = gradient;
     context.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
 
-    const glow = context.createRadialGradient(DESIGN_WIDTH / 2, 130, 20, DESIGN_WIDTH / 2, 360, 720);
-    glow.addColorStop(0, `${palette.tileHighlight}55`);
-    glow.addColorStop(0.45, `${palette.tileTop}18`);
-    glow.addColorStop(1, '#00000000');
-    context.fillStyle = glow;
-    context.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
-
     context.save();
-    context.globalAlpha = payload.skinId === 'classic-maple' ? 0.16 : 0.09;
-    context.strokeStyle = palette.grain;
-    context.lineWidth = 1;
-    for (let index = 0; index < 28; index += 1) {
-      const y = 18 + index * 48 + hashUnit(`background-${index}`, 17) * 22;
+    context.globalAlpha = payload.skinId === 'golden-embossed' ? 0.23 : 0.16;
+    context.lineCap = 'round';
+    for (let index = 0; index < 82; index += 1) {
+      const key = `outer-grain:${payload.skinId}:${index}`;
+      const x = index * (DESIGN_WIDTH / 81) + (hashUnit(key, 2) - 0.5) * 5;
+      const sway = 2 + hashUnit(key, 3) * 8;
+      context.strokeStyle = hashUnit(key, 4) > 0.48 ? palette.outerLight : palette.outerDark;
+      context.lineWidth = 0.35 + hashUnit(key, 5) * 1.15;
       context.beginPath();
-      context.moveTo(-30, y);
-      context.bezierCurveTo(190, y - 18, 410, y + 25, 750, y - 8);
+      context.moveTo(x, -12);
+      context.bezierCurveTo(x - sway, DESIGN_HEIGHT * 0.28, x + sway, DESIGN_HEIGHT * 0.72, x - sway * 0.35, DESIGN_HEIGHT + 12);
       context.stroke();
     }
     context.restore();
+
+    const headerGlow = context.createLinearGradient(0, 0, 0, HEADER_HEIGHT);
+    headerGlow.addColorStop(0, '#ffffff18');
+    headerGlow.addColorStop(0.7, '#ffffff00');
+    headerGlow.addColorStop(1, '#00000020');
+    context.fillStyle = headerGlow;
+    context.fillRect(0, 0, DESIGN_WIDTH, HEADER_HEIGHT);
   }
 
   private drawHeader(payload: CrushWoodPresentationPayload, palette: Palette): void {
     const context = this.context;
-    if (payload.skinId === 'classic-maple') {
-      drawTextWithShadow(context, 'LEVEL 29', 24, 43, 28, palette.hud, palette.hudShadow, 'left');
-      return;
-    }
+    const batchSlot = payload.queueIndex % PREVIEW_SLOT_COUNT;
+    const batchStart = payload.queueIndex - batchSlot;
+    const activeLeavesSlot = payload.phase === 'fall' ? 1 : 0;
+    const consumed = Math.min(PREVIEW_SLOT_COUNT, batchSlot + activeLeavesSlot);
 
-    const visible = Math.min(5, payload.queue.length);
-    const slotWidth = 58;
-    const startX = DESIGN_WIDTH / 2 - ((visible - 1) * slotWidth) / 2;
-    for (let index = 0; index < visible; index += 1) {
-      const pieceId = payload.queue[(payload.queueIndex + index) % payload.queue.length];
-      if (!pieceId) continue;
-      const x = startX + index * slotWidth;
+    for (let slotIndex = 0; slotIndex < PREVIEW_SLOT_COUNT; slotIndex += 1) {
+      const x = PREVIEW_SLOT.x + slotIndex * (PREVIEW_SLOT.width + PREVIEW_SLOT.gap);
+      const y = PREVIEW_SLOT.y;
       context.save();
-      context.shadowColor = '#00000088';
+      context.shadowColor = '#3a1609a8';
       context.shadowBlur = 8;
       context.shadowOffsetY = 4;
-      const slot = context.createRadialGradient(x - 7, 48, 4, x, 58, 29);
-      slot.addColorStop(0, palette.tileHighlight);
-      slot.addColorStop(0.5, palette.tileTop);
-      slot.addColorStop(1, palette.tileEdge);
-      context.fillStyle = slot;
-      context.beginPath();
-      context.arc(x, 58, 25, 0, Math.PI * 2);
+      roundedRectPath(context, x, y, PREVIEW_SLOT.width, PREVIEW_SLOT.height, 7);
+      const cavity = context.createLinearGradient(x, y, x, y + PREVIEW_SLOT.height);
+      cavity.addColorStop(0, mixHex(palette.outerDark, '#000000', 0.24));
+      cavity.addColorStop(0.16, mixHex(palette.outerBottom, '#000000', 0.05));
+      cavity.addColorStop(1, mixHex(palette.outerTop, '#ffffff', 0.08));
+      context.fillStyle = cavity;
       context.fill();
       context.restore();
-      this.drawMiniPiece(pieceId, x, 58, 8.2, palette, index === 0);
+
+      context.save();
+      roundedRectPath(context, x + 1.4, y + 1.4, PREVIEW_SLOT.width - 2.8, PREVIEW_SLOT.height - 2.8, 6);
+      context.strokeStyle = `${palette.outerLight}80`;
+      context.lineWidth = 1.3;
+      context.stroke();
+      context.beginPath();
+      context.moveTo(x + 9, y + PREVIEW_SLOT.height - 2.5);
+      context.lineTo(x + PREVIEW_SLOT.width - 9, y + PREVIEW_SLOT.height - 2.5);
+      context.strokeStyle = `${palette.outerLight}b0`;
+      context.lineWidth = 1.6;
+      context.stroke();
+      context.restore();
+
+      if (slotIndex < consumed || payload.queue.length === 0) continue;
+      const queueIndex = (batchStart + slotIndex) % payload.queue.length;
+      const pieceId = payload.queue[queueIndex];
+      if (!pieceId) continue;
+      this.drawMiniPiece(
+        pieceId,
+        previewRotation(pieceId, slotIndex, Math.floor(batchStart / PREVIEW_SLOT_COUNT)),
+        x + PREVIEW_SLOT.width / 2,
+        y + PREVIEW_SLOT.height / 2 + 3,
+        14.2,
+        palette,
+      );
     }
   }
 
-  private drawMiniPiece(pieceId: CrushWoodPieceId, centerX: number, centerY: number, size: number, palette: Palette, active: boolean): void {
+  private drawMiniPiece(
+    pieceId: CrushWoodPieceId,
+    rotation: 0 | 1 | 2 | 3,
+    centerX: number,
+    centerY: number,
+    size: number,
+    palette: Palette,
+  ): void {
     const context = this.context;
-    const shape = crushWoodShape(pieceId, 0);
+    const shape = crushWoodShape(pieceId, rotation);
     const bounds = crushWoodShapeSize(shape);
     const originX = centerX - (bounds.width * size) / 2;
     const originY = centerY - (bounds.height * size) / 2;
+    const depth = 2.8;
     for (const point of shape) {
-      context.fillStyle = active ? palette.accent : mixHex(palette.tileTop, palette.tileBottom, 0.2);
-      roundedRectPath(context, originX + point.col * size + 0.5, originY + point.row * size + 0.5, size - 1, size - 1, 1.8);
-      context.fill();
+      const x = originX + point.col * size;
+      const y = originY + point.row * size;
+      context.save();
+      context.shadowColor = '#3f1809a8';
+      context.shadowBlur = 4;
+      context.shadowOffsetY = 3;
+      drawPolygon(context, [
+        { x: x + size - 0.8, y: y + 0.8 },
+        { x: x + size + depth, y: y + depth },
+        { x: x + size + depth, y: y + size + depth },
+        { x: x + size - 0.8, y: y + size - 0.8 },
+      ], palette.tileSide);
+      drawPolygon(context, [
+        { x: x + 0.8, y: y + size - 0.8 },
+        { x: x + size - 0.8, y: y + size - 0.8 },
+        { x: x + size + depth, y: y + size + depth },
+        { x: x + depth, y: y + size + depth },
+      ], mixHex(palette.tileSide, palette.tileEdge, 0.28));
+      context.fillStyle = palette.tileTop;
+      context.fillRect(x + 0.5, y + 0.5, size - 1, size - 1);
+      context.strokeStyle = palette.tileEdge;
+      context.lineWidth = 0.65;
+      context.strokeRect(x + 0.5, y + 0.5, size - 1, size - 1);
+      const cx = x + size / 2;
+      const cy = y + size / 2;
+      const dx = size * 0.28;
+      const dy = size * 0.2;
+      drawPolygon(context, [{ x: cx, y: cy }, { x: cx - dx, y: cy }, { x: cx, y: cy - dy }, { x: cx + dx, y: cy }], palette.studTop);
+      drawPolygon(context, [{ x: cx, y: cy }, { x: cx + dx, y: cy }, { x: cx, y: cy + dy }], palette.studRight);
+      drawPolygon(context, [{ x: cx, y: cy }, { x: cx, y: cy + dy }, { x: cx - dx, y: cy }], palette.studBottom);
+      context.restore();
     }
   }
 
   private drawWell(payload: CrushWoodPresentationPayload, palette: Palette): void {
     const context = this.context;
     context.save();
-    context.shadowColor = '#000000cc';
-    context.shadowBlur = 18;
-    context.shadowOffsetY = 8;
-    roundedRectPath(context, PLAYFIELD.x - 5, PLAYFIELD.y - 5, PLAYFIELD.width + 10, PLAYFIELD.height + 10, 8);
-    context.fillStyle = palette.wellEdge;
+    context.shadowColor = '#241006cc';
+    context.shadowBlur = 12;
+    context.shadowOffsetY = 4;
+    roundedRectPath(context, WELL.x, WELL.y, WELL.width, WELL.height, 5);
+    context.fillStyle = palette.frameDark;
     context.fill();
     context.restore();
 
-    roundedRectPath(context, PLAYFIELD.x, PLAYFIELD.y, PLAYFIELD.width, PLAYFIELD.height, 4);
-    const well = context.createLinearGradient(0, PLAYFIELD.y, 0, PLAYFIELD.y + PLAYFIELD.height);
-    well.addColorStop(0, mixHex(palette.well, '#000000', 0.08));
-    well.addColorStop(1, mixHex(palette.well, '#000000', 0.45));
+    const inner = { x: WELL.x + 8, y: WELL.y + 5, width: WELL.width - 16, height: WELL.height - 12 };
+    roundedRectPath(context, inner.x, inner.y, inner.width, inner.height, 2.5);
+    const well = context.createLinearGradient(inner.x, inner.y, inner.x + inner.width, inner.y + inner.height);
+    well.addColorStop(0, palette.wellTop);
+    well.addColorStop(0.52, mixHex(palette.wellTop, palette.wellBottom, 0.32));
+    well.addColorStop(1, palette.wellBottom);
     context.fillStyle = well;
     context.fill();
 
-    const rows = payload.board.length;
-    const columns = payload.board[0]?.length ?? 1;
-    const cell = cellGeometry(rows, columns);
     context.save();
-    context.globalAlpha = 0.14;
-    context.strokeStyle = palette.wellEdge;
-    context.lineWidth = 0.5;
-    for (let column = 1; column < columns; column += 1) {
-      const x = PLAYFIELD.x + column * cell.width;
+    roundedRectPath(context, inner.x, inner.y, inner.width, inner.height, 2.5);
+    context.clip();
+    context.globalAlpha = payload.skinId === 'golden-embossed' ? 0.34 : 0.2;
+    for (let index = 0; index < 74; index += 1) {
+      const key = `well-grain:${payload.skinId}:${index}`;
+      const x = inner.x + index * (inner.width / 73) + (hashUnit(key, 1) - 0.5) * 5;
+      const sway = 1 + hashUnit(key, 2) * 7;
+      context.strokeStyle = hashUnit(key, 3) > 0.52 ? palette.wellGrain : mixHex(palette.wellBottom, '#000000', 0.18);
+      context.lineWidth = 0.3 + hashUnit(key, 4) * 1.25;
       context.beginPath();
-      context.moveTo(x, PLAYFIELD.y);
-      context.lineTo(x, PLAYFIELD.y + PLAYFIELD.height);
+      context.moveTo(x, inner.y - 8);
+      context.bezierCurveTo(x - sway, inner.y + inner.height * 0.28, x + sway, inner.y + inner.height * 0.72, x - sway * 0.4, inner.y + inner.height + 8);
       context.stroke();
     }
-    for (let row = 1; row < rows; row += 1) {
-      const y = PLAYFIELD.y + row * cell.height;
-      context.beginPath();
-      context.moveTo(PLAYFIELD.x, y);
-      context.lineTo(PLAYFIELD.x + PLAYFIELD.width, y);
-      context.stroke();
-    }
+    const vignette = context.createRadialGradient(
+      inner.x + inner.width / 2,
+      inner.y + inner.height * 0.45,
+      inner.width * 0.08,
+      inner.x + inner.width / 2,
+      inner.y + inner.height * 0.45,
+      inner.height * 0.74,
+    );
+    vignette.addColorStop(0, '#ffffff06');
+    vignette.addColorStop(0.74, '#00000004');
+    vignette.addColorStop(1, '#00000044');
+    context.fillStyle = vignette;
+    context.fillRect(inner.x, inner.y, inner.width, inner.height);
     context.restore();
+
+    const topRail = context.createLinearGradient(0, WELL.y - 5, 0, WELL.y + 10);
+    topRail.addColorStop(0, palette.frameLight);
+    topRail.addColorStop(0.45, palette.frameMid);
+    topRail.addColorStop(1, palette.frameDark);
+    context.beginPath();
+    context.moveTo(WELL.x, WELL.y - 5);
+    context.lineTo(WELL.x + WELL.width, WELL.y - 5);
+    context.lineTo(WELL.x + WELL.width - 8, WELL.y + 7);
+    context.lineTo(WELL.x + 8, WELL.y + 7);
+    context.closePath();
+    context.fillStyle = topRail;
+    context.fill();
+
+    const leftRail = context.createLinearGradient(WELL.x - 2, 0, WELL.x + 12, 0);
+    leftRail.addColorStop(0, palette.frameLight);
+    leftRail.addColorStop(0.46, palette.frameMid);
+    leftRail.addColorStop(1, palette.frameDark);
+    context.fillStyle = leftRail;
+    context.fillRect(WELL.x - 2, WELL.y, 10, WELL.height);
+    const rightRail = context.createLinearGradient(WELL.x + WELL.width - 10, 0, WELL.x + WELL.width + 2, 0);
+    rightRail.addColorStop(0, palette.frameDark);
+    rightRail.addColorStop(0.54, palette.frameMid);
+    rightRail.addColorStop(1, palette.frameLight);
+    context.fillStyle = rightRail;
+    context.fillRect(WELL.x + WELL.width - 8, WELL.y, 10, WELL.height);
+
+    const bottomRail = context.createLinearGradient(0, WELL.y + WELL.height - 11, 0, WELL.y + WELL.height + 3);
+    bottomRail.addColorStop(0, palette.frameDark);
+    bottomRail.addColorStop(0.46, palette.frameMid);
+    bottomRail.addColorStop(1, palette.frameLight);
+    context.fillStyle = bottomRail;
+    context.fillRect(WELL.x, WELL.y + WELL.height - 8, WELL.width, 11);
   }
 
   private drawBoard(payload: CrushWoodPresentationPayload, palette: Palette): void {
@@ -392,8 +571,8 @@ export class CrushWoodCanvasScene {
         let tileScale = 1;
         const clearRow = payload.phase === 'crush' && payload.clearedRows.includes(rowIndex);
         if (clearRow) {
-          opacity = 1 - clamp01(payload.phaseProgress * 1.45);
-          tileScale = 1 - clamp01(payload.phaseProgress) * 0.32;
+          opacity = 1 - smoothstep(payload.phaseProgress * 1.35);
+          tileScale = 1 - smoothstep(payload.phaseProgress) * 0.22;
         }
         this.drawTile(
           { row: drawRow, col: colIndex },
@@ -405,6 +584,7 @@ export class CrushWoodCanvasScene {
           opacity,
           tileScale,
           clearRow ? payload.phaseProgress : 0,
+          false,
         );
       }
     }
@@ -420,12 +600,13 @@ export class CrushWoodCanvasScene {
         { row: piece.row + offset.row, col: piece.column + offset.col },
         rows,
         columns,
-        `active-${piece.pieceId}-${index}`,
+        `active-${payload.actionIndex}-${piece.pieceId}-${index}`,
         palette,
         payload.skinId,
         1,
-        1.03,
+        1.015,
         0,
+        true,
       );
     }
   }
@@ -440,87 +621,122 @@ export class CrushWoodCanvasScene {
     opacity: number,
     scale: number,
     crackProgress: number,
+    floating: boolean,
   ): void {
     const context = this.context;
     const cell = cellGeometry(rows, columns);
-    const gap = Math.max(0.65, Math.min(cell.width, cell.height) * 0.025);
+    const gap = Math.max(0.45, Math.min(cell.width, cell.height) * 0.015);
     const center = cellCenter(point, rows, columns);
     const width = (cell.width - gap) * scale;
     const height = (cell.height - gap) * scale;
     const x = center.x - width / 2;
     const y = center.y - height / 2;
     const random = hashUnit(cellId, 31);
-    const checker = skinId === 'checker-maze' ? ((Math.round(point.row) + point.col) & 1) * 0.24 : 0;
-    const top = mixHex(palette.tileTop, '#ffffff', random * 0.08 - checker * 0.15);
-    const bottom = mixHex(palette.tileBottom, '#120703', checker + random * 0.08);
+    const checker = skinId === 'checker-maze' ? ((Math.round(point.row) + point.col) & 1) * 0.34 : 0;
+    const faceTop = mixHex(palette.tileTop, '#ffffff', random * 0.07 - checker * 0.14);
+    const faceBottom = mixHex(palette.tileBottom, palette.tileEdge, checker * 0.34 + random * 0.05);
+    const depth = floating ? Math.max(3, cell.width * 0.1) : Math.max(0.9, cell.width * 0.035);
 
     context.save();
     context.globalAlpha = opacity;
-    context.shadowColor = '#000000aa';
-    context.shadowBlur = Math.max(2, cell.width * 0.12);
-    context.shadowOffsetX = cell.width * 0.035;
-    context.shadowOffsetY = cell.height * 0.09;
-    roundedRectPath(context, x, y, width, height, Math.max(2.4, cell.width * 0.105));
-    const gradient = context.createLinearGradient(x, y, x + width * 0.85, y + height);
-    gradient.addColorStop(0, top);
-    gradient.addColorStop(0.5, palette.tileTop);
-    gradient.addColorStop(1, bottom);
-    context.fillStyle = gradient;
-    context.fill();
+    if (floating) {
+      context.shadowColor = '#2d1007b8';
+      context.shadowBlur = Math.max(4, cell.width * 0.18);
+      context.shadowOffsetX = cell.width * 0.04;
+      context.shadowOffsetY = cell.height * 0.12;
+    }
+
+    drawPolygon(context, [
+      { x: x + width, y },
+      { x: x + width + depth, y: y + depth },
+      { x: x + width + depth, y: y + height + depth },
+      { x: x + width, y: y + height },
+    ], palette.tileSide);
+    drawPolygon(context, [
+      { x, y: y + height },
+      { x: x + width, y: y + height },
+      { x: x + width + depth, y: y + height + depth },
+      { x: x + depth, y: y + height + depth },
+    ], mixHex(palette.tileSide, palette.tileEdge, 0.23));
+
+    const face = context.createLinearGradient(x, y, x + width * 0.82, y + height);
+    face.addColorStop(0, mixHex(faceTop, palette.tileHighlight, 0.18));
+    face.addColorStop(0.56, faceTop);
+    face.addColorStop(1, faceBottom);
+    context.fillStyle = face;
+    context.fillRect(x, y, width, height);
     context.shadowColor = 'transparent';
 
-    context.lineWidth = Math.max(0.8, cell.width * 0.025);
     context.strokeStyle = palette.tileEdge;
-    context.stroke();
+    context.lineWidth = Math.max(0.55, cell.width * 0.018);
+    context.strokeRect(x + 0.2, y + 0.2, width - 0.4, height - 0.4);
 
     context.save();
-    roundedRectPath(context, x + 1.6, y + 1.6, width - 3.2, height - 3.2, Math.max(1.5, cell.width * 0.08));
+    context.beginPath();
+    context.rect(x + 1, y + 1, Math.max(1, width - 2), Math.max(1, height - 2));
     context.clip();
     context.globalAlpha *= 0.24;
-    context.strokeStyle = palette.grain;
-    context.lineWidth = 0.7;
-    for (let index = 0; index < 3; index += 1) {
-      const grainY = y + height * (0.25 + index * 0.24 + hashUnit(cellId, index + 101) * 0.08);
+    context.lineCap = 'round';
+    for (let index = 0; index < 4; index += 1) {
+      const grainX = x + width * (0.16 + index * 0.23 + (hashUnit(cellId, index + 101) - 0.5) * 0.09);
+      context.strokeStyle = index % 2 === 0 ? palette.grain : palette.tileHighlight;
+      context.lineWidth = 0.35 + hashUnit(cellId, index + 201) * 0.45;
       context.beginPath();
-      context.moveTo(x - 3, grainY);
-      context.bezierCurveTo(x + width * 0.3, grainY - 2, x + width * 0.68, grainY + 3, x + width + 3, grainY - 1);
+      context.moveTo(grainX, y - 2);
+      context.bezierCurveTo(grainX - 1.5, y + height * 0.34, grainX + 1.2, y + height * 0.7, grainX - 0.4, y + height + 2);
       context.stroke();
     }
     context.restore();
 
-    context.globalAlpha *= 0.72;
+    context.globalAlpha = opacity * 0.75;
     context.strokeStyle = palette.tileHighlight;
-    context.lineWidth = Math.max(0.8, cell.width * 0.025);
+    context.lineWidth = Math.max(0.45, cell.width * 0.014);
     context.beginPath();
-    context.moveTo(x + width * 0.16, y + height * 0.15);
-    context.lineTo(x + width * 0.78, y + height * 0.15);
+    context.moveTo(x + 1.2, y + 1.2);
+    context.lineTo(x + width - 1.6, y + 1.2);
+    context.moveTo(x + 1.2, y + 1.2);
+    context.lineTo(x + 1.2, y + height - 1.6);
     context.stroke();
 
-    if (skinId === 'golden-embossed') {
-      context.globalAlpha *= 0.62;
-      context.strokeStyle = mixHex(palette.tileHighlight, palette.tileEdge, 0.28);
-      context.lineWidth = Math.max(0.8, cell.width * 0.032);
-      context.beginPath();
-      context.moveTo(center.x, y + height * 0.23);
-      context.lineTo(x + width * 0.77, center.y);
-      context.lineTo(center.x, y + height * 0.77);
-      context.lineTo(x + width * 0.23, center.y);
-      context.closePath();
-      context.stroke();
-    }
+    const studX = center.x;
+    const studY = center.y - height * 0.01;
+    const studWidth = width * 0.25;
+    const studHeight = height * 0.17;
+    context.globalAlpha = opacity * 0.98;
+    drawPolygon(context, [
+      { x: studX, y: studY },
+      { x: studX - studWidth, y: studY },
+      { x: studX, y: studY - studHeight },
+      { x: studX + studWidth, y: studY },
+    ], palette.studTop);
+    drawPolygon(context, [
+      { x: studX, y: studY },
+      { x: studX + studWidth, y: studY },
+      { x: studX, y: studY + studHeight },
+    ], palette.studRight);
+    drawPolygon(context, [
+      { x: studX, y: studY },
+      { x: studX, y: studY + studHeight },
+      { x: studX - studWidth, y: studY },
+    ], palette.studBottom);
+    drawPolygon(context, [
+      { x: studX, y: studY },
+      { x: studX - studWidth, y: studY },
+      { x: studX, y: studY - studHeight },
+    ], palette.studLeft);
 
-    if (crackProgress > 0.04) {
-      context.globalAlpha = opacity * Math.min(0.95, crackProgress * 1.5);
+    if (crackProgress > 0.025) {
+      context.globalAlpha = opacity * Math.min(1, crackProgress * 1.8);
       context.strokeStyle = palette.tileEdge;
-      context.lineWidth = Math.max(1, cell.width * 0.045);
-      const spread = width * (0.18 + crackProgress * 0.2);
+      context.lineWidth = Math.max(0.8, cell.width * 0.036);
+      const spread = width * (0.14 + crackProgress * 0.28);
       context.beginPath();
       context.moveTo(center.x, center.y);
-      context.lineTo(center.x - spread, center.y - height * 0.35);
+      context.lineTo(center.x - spread, center.y - height * 0.34);
       context.moveTo(center.x, center.y);
-      context.lineTo(center.x + spread, center.y - height * 0.22);
+      context.lineTo(center.x + spread, center.y - height * 0.2);
       context.moveTo(center.x, center.y);
-      context.lineTo(center.x + spread * 0.75, center.y + height * 0.38);
+      context.lineTo(center.x + spread * 0.72, center.y + height * 0.36);
       context.stroke();
     }
     context.restore();
@@ -533,80 +749,96 @@ export class CrushWoodCanvasScene {
     const columns = payload.placedBoard[0]?.length ?? 1;
     const cell = cellGeometry(rows, columns);
     const globalProgress = payload.phase === 'crush'
-      ? payload.phaseProgress * 0.62
-      : 0.62 + payload.phaseProgress * 0.38;
+      ? payload.phaseProgress * 0.66
+      : 0.66 + payload.phaseProgress * 0.34;
+    const fragmentsPerCell = payload.clearedRows.length > 1 ? 11 : 9;
 
     for (const cleared of payload.clearedCells) {
       const origin = cellCenter(cleared, rows, columns);
-      for (let fragmentIndex = 0; fragmentIndex < 5; fragmentIndex += 1) {
+      const normalizedX = (origin.x - DESIGN_WIDTH / 2) / (GRID.width / 2);
+      for (let fragmentIndex = 0; fragmentIndex < fragmentsPerCell; fragmentIndex += 1) {
         const key = `${payload.debrisSeed}:${cleared.cellId}:${fragmentIndex}`;
-        const delay = hashUnit(key, 1) * 0.16;
-        const progress = clamp01((globalProgress - delay) / (1 - delay));
+        const radial = Math.abs(normalizedX);
+        const delay = radial * 0.18 + hashUnit(key, 1) * 0.1;
+        const progress = clamp01((globalProgress - delay) / Math.max(0.01, 1 - delay));
         if (progress <= 0) continue;
-        const side = hashUnit(key, 2) < 0.5 ? -1 : 1;
-        const centerBias = (origin.x - DESIGN_WIDTH / 2) / DESIGN_WIDTH;
-        const velocityX = side * (75 + hashUnit(key, 3) * 330) - centerBias * 120;
-        const velocityY = -(190 + hashUnit(key, 4) * 500);
-        const gravity = 720 + hashUnit(key, 5) * 540;
-        const x = origin.x + velocityX * progress + Math.sin(progress * Math.PI * (1.5 + hashUnit(key, 6) * 2)) * 34;
-        const y = origin.y + velocityY * progress + gravity * progress * progress * 0.56;
-        if (x < -60 || x > DESIGN_WIDTH + 60 || y > DESIGN_HEIGHT + 80) continue;
-        const rotation = (hashUnit(key, 7) - 0.5) * 9 * progress;
-        const fragmentWidth = cell.width * (0.16 + hashUnit(key, 8) * 0.34);
-        const fragmentHeight = cell.height * (0.09 + hashUnit(key, 9) * 0.28);
+
+        const randomSide = hashUnit(key, 2) < 0.5 ? -1 : 1;
+        const side = Math.abs(normalizedX) > 0.08 ? Math.sign(normalizedX) : randomSide;
+        const inward = hashUnit(key, 3) < 0.22;
+        const horizontalDirection = inward ? -side : side;
+        const horizontalDistance = 45 + hashUnit(key, 4) * (inward ? 190 : 390);
+        const sweep = smoothstep(progress);
+        const arch = Math.sin(progress * Math.PI);
+        const x = origin.x
+          + horizontalDirection * horizontalDistance * sweep
+          + Math.sin(progress * Math.PI * (1.2 + hashUnit(key, 5) * 2.8)) * (8 + hashUnit(key, 6) * 24);
+        const lift = 75 + hashUnit(key, 7) * 260;
+        const fall = 170 + hashUnit(key, 8) * 520;
+        const y = origin.y - lift * arch + fall * progress * progress;
+        if (x < -80 || x > DESIGN_WIDTH + 80 || y < -80 || y > DESIGN_HEIGHT + 120) continue;
+
+        const fadeStart = 0.82 + hashUnit(key, 9) * 0.11;
+        const alpha = 1 - clamp01((progress - fadeStart) / Math.max(0.01, 1 - fadeStart));
+        const rotation = (hashUnit(key, 10) - 0.5) * 13 * progress;
+        const fragmentWidth = cell.width * (0.12 + hashUnit(key, 11) * 0.5);
+        const fragmentHeight = cell.height * (0.08 + hashUnit(key, 12) * 0.38);
+        const lightFace = hashUnit(key, 13) > 0.26;
+
         context.save();
         context.translate(x, y);
         context.rotate(rotation);
-        context.globalAlpha = (1 - clamp01((progress - 0.72) / 0.28)) * 0.96;
-        context.shadowColor = '#000000aa';
-        context.shadowBlur = 5;
-        context.shadowOffsetY = 4;
-        const fragment = context.createLinearGradient(-fragmentWidth / 2, -fragmentHeight / 2, fragmentWidth / 2, fragmentHeight / 2);
-        fragment.addColorStop(0, palette.tileHighlight);
-        fragment.addColorStop(0.45, palette.tileTop);
+        context.globalAlpha = alpha * 0.98;
+        context.shadowColor = '#32140680';
+        context.shadowBlur = 2 + hashUnit(key, 14) * 5;
+        context.shadowOffsetY = 2 + hashUnit(key, 15) * 4;
+        const fragment = context.createLinearGradient(
+          -fragmentWidth / 2,
+          -fragmentHeight / 2,
+          fragmentWidth / 2,
+          fragmentHeight / 2,
+        );
+        fragment.addColorStop(0, lightFace ? palette.tileHighlight : palette.tileSide);
+        fragment.addColorStop(0.48, lightFace ? palette.tileTop : palette.tileBottom);
         fragment.addColorStop(1, palette.tileEdge);
         context.fillStyle = fragment;
         context.beginPath();
-        context.moveTo(-fragmentWidth / 2, -fragmentHeight * 0.2);
-        context.lineTo(-fragmentWidth * 0.12, -fragmentHeight / 2);
-        context.lineTo(fragmentWidth / 2, -fragmentHeight * 0.12);
-        context.lineTo(fragmentWidth * 0.28, fragmentHeight / 2);
-        context.lineTo(-fragmentWidth * 0.42, fragmentHeight * 0.34);
+        context.moveTo(-fragmentWidth / 2, -fragmentHeight * 0.14);
+        context.lineTo(-fragmentWidth * (0.18 + hashUnit(key, 16) * 0.2), -fragmentHeight / 2);
+        context.lineTo(fragmentWidth / 2, -fragmentHeight * (0.05 + hashUnit(key, 17) * 0.16));
+        context.lineTo(fragmentWidth * (0.18 + hashUnit(key, 18) * 0.22), fragmentHeight / 2);
+        context.lineTo(-fragmentWidth * (0.28 + hashUnit(key, 19) * 0.2), fragmentHeight * 0.34);
         context.closePath();
         context.fill();
         context.restore();
       }
     }
+
+    context.save();
+    context.globalCompositeOperation = 'screen';
+    context.globalAlpha = (1 - smoothstep(Math.max(0, globalProgress - 0.42) / 0.58)) * 0.14;
+    const flash = context.createRadialGradient(DESIGN_WIDTH / 2, GRID.y + 220, 4, DESIGN_WIDTH / 2, GRID.y + 220, 280);
+    flash.addColorStop(0, palette.accent);
+    flash.addColorStop(0.45, `${palette.tileTop}88`);
+    flash.addColorStop(1, '#ffffff00');
+    context.fillStyle = flash;
+    context.fillRect(0, HEADER_HEIGHT, DESIGN_WIDTH, DESIGN_HEIGHT - HEADER_HEIGHT);
+    context.restore();
   }
 
   private drawHud(payload: CrushWoodPresentationPayload, palette: Palette): void {
+    if (payload.skinId === 'golden-embossed') return;
     const context = this.context;
     const seconds = Math.ceil(payload.remainingTimeMs / 1_000);
-    if (payload.skinId === 'golden-embossed') {
-      drawTextWithShadow(context, String(payload.score), 683, 57, 31, palette.hud, palette.hudShadow, 'right');
-      return;
-    }
-
-    context.save();
-    context.globalAlpha = 0.94;
-    roundedRectPath(context, 535, 18, 166, 82, 18);
-    const panel = context.createLinearGradient(535, 18, 701, 100);
-    panel.addColorStop(0, `${palette.tileTop}dd`);
-    panel.addColorStop(1, `${palette.tileBottom}ee`);
-    context.fillStyle = panel;
-    context.fill();
-    context.strokeStyle = palette.tileHighlight;
-    context.lineWidth = 2;
-    context.stroke();
-    context.restore();
-    drawTextWithShadow(context, String(payload.score), 618, 52, 29, palette.hud, palette.hudShadow);
-    drawTextWithShadow(context, `${seconds}s`, 618, 82, 17, palette.hud, palette.hudShadow);
+    drawTextWithShadow(context, `LEVEL ${payload.actionIndex + 29}`, 18, 24, 17, palette.hud, palette.hudShadow, 'left');
+    drawTextWithShadow(context, String(payload.score), DESIGN_WIDTH - 18, 24, 20, palette.hud, palette.hudShadow, 'right');
+    drawTextWithShadow(context, `${seconds}s`, DESIGN_WIDTH - 18, 50, 12, palette.hud, palette.hudShadow, 'right');
 
     if (payload.scoreDelta > 0 && (payload.phase === 'crush' || payload.phase === 'collapse')) {
-      const floatProgress = payload.phase === 'crush' ? payload.phaseProgress * 0.6 : 0.6 + payload.phaseProgress * 0.4;
+      const floatProgress = payload.phase === 'crush' ? payload.phaseProgress * 0.65 : 0.65 + payload.phaseProgress * 0.35;
       context.save();
-      context.globalAlpha = 1 - clamp01((floatProgress - 0.55) / 0.45);
-      drawTextWithShadow(context, `+${payload.scoreDelta}`, DESIGN_WIDTH / 2, 175 - floatProgress * 55, 38, palette.accent, palette.hudShadow);
+      context.globalAlpha = 1 - clamp01((floatProgress - 0.58) / 0.42);
+      drawTextWithShadow(context, `+${payload.scoreDelta}`, DESIGN_WIDTH / 2, 164 - floatProgress * 48, 30, palette.accent, palette.hudShadow);
       context.restore();
     }
   }
@@ -616,7 +848,7 @@ export class CrushWoodCanvasScene {
     const context = this.context;
     const progress = easeInOutCubic(payload.phaseProgress);
     context.save();
-    context.globalAlpha = 0.68 * progress;
+    context.globalAlpha = 0.66 * progress;
     context.fillStyle = '#000000';
     context.fillRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);
     context.restore();
