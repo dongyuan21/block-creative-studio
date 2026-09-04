@@ -18,13 +18,16 @@ import type { GameSnapshot, GameTransition, PlacementAction } from '../src/domai
 import { GameRuntimeError, GameSchemaError } from '../src/game-runtime/errors';
 import { hashBlockPlacementState } from '../src/games/block-placement/legacyRuntime';
 import {
+  BLOCK_PLACEMENT_ACTION_SCHEMA_ID,
   BLOCK_PLACEMENT_GAME_ID,
   BLOCK_PLACEMENT_MODULE_VERSION,
+  BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID,
 } from '../src/games/block-placement/manifest';
 import {
   parseBlockPlacementAction,
   parseBlockPlacementState,
   type BlockPlacementConfig,
+  type BlockPlacementSemanticAction,
 } from '../src/games/block-placement/schemas';
 
 function placement(pieceId: string, row: number, col: number): PlacementAction {
@@ -38,15 +41,26 @@ function placement(pieceId: string, row: number, col: number): PlacementAction {
   };
 }
 
+function semantic(pieceId: string, row: number, col: number): BlockPlacementSemanticAction {
+  return { pieceId, anchor: { row, col } };
+}
+
 describe('block placement legacy runtime', () => {
   const registry = createDefaultGameRegistry();
   const definition = registry.get<
     BlockPlacementConfig,
     GameSnapshot,
-    PlacementAction,
+    BlockPlacementSemanticAction,
     GameTransition
   >(BLOCK_PLACEMENT_GAME_ID, BLOCK_PLACEMENT_MODULE_VERSION);
   const runtime = definition.runtime;
+
+  it('registers the semantic action schema as GameDefinition.schemas.action', () => {
+    expect(definition.schemas.action.id).toBe(BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID);
+    expect(definition.schemas.replayAction?.id).toBe(BLOCK_PLACEMENT_ACTION_SCHEMA_ID);
+    expect(registry.schemas.has(BLOCK_PLACEMENT_SEMANTIC_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
+    expect(registry.schemas.has(BLOCK_PLACEMENT_ACTION_SCHEMA_ID, '1.0.0')).toBe(true);
+  });
 
   it('rejects illegal state and action payloads instead of filling defaults', () => {
     const snapshot = idleSnapshot();
@@ -58,10 +72,17 @@ describe('block placement legacy runtime', () => {
     const action = singleClearTake().actions[0];
     expect(action).toBeDefined();
     if (!action) throw new Error('missing fixture action');
-    const { pointerPath, durationFrames, ...actionWithoutRequired } = action;
-    expect(() => definition.schemas.action.parse(actionWithoutRequired)).toThrowError(/is required/);
-    expect(() => parseBlockPlacementAction({ ...actionWithoutRequired, pointerPath })).toThrowError(/durationFrames/);
-    expect(() => parseBlockPlacementAction({ ...actionWithoutRequired, durationFrames })).toThrowError(/pointerPath/);
+    const { pointerPath, durationFrames, pieceId, ...actionWithoutPiece } = action;
+    void pointerPath;
+    void durationFrames;
+    void pieceId;
+    expect(() => definition.schemas.action.parse(actionWithoutPiece)).toThrowError(/is required/);
+    const { durationFrames: _duration, ...withoutDuration } = action;
+    const { pointerPath: _path, ...withoutPath } = action;
+    void _duration;
+    void _path;
+    expect(() => parseBlockPlacementAction(withoutDuration)).toThrowError(/durationFrames/);
+    expect(() => parseBlockPlacementAction(withoutPath)).toThrowError(/pointerPath/);
   });
 
   it('matches applyPlacement on public fixture takes', () => {
@@ -69,11 +90,12 @@ describe('block placement legacy runtime', () => {
       let cursor = definition.schemas.state.parse(take.initial);
       expect(runtime.hashState(cursor)).toBe(hashBlockPlacementState(take.initial));
       for (const [stepIndex, rawAction] of take.actions.entries()) {
-        const action = definition.schemas.action.parse(rawAction);
+        const action = definition.schemas.action.parse({ pieceId: rawAction.pieceId, anchor: rawAction.anchor });
         const adapted = runtime.resolve(cursor, action, { seed: cursor.seed, stepIndex });
-        const direct = applyPlacement(cursor, action);
+        const direct = applyPlacement(cursor, rawAction);
         expect(direct).not.toBeNull();
-        expect(adapted).toEqual(direct);
+        expect(adapted.after).toEqual(direct!.after);
+        expect(adapted.clear).toEqual(direct!.clear);
         cursor = runtime.stateAfter(adapted);
         expect(cursor).toEqual(direct!.after);
       }
@@ -87,7 +109,7 @@ describe('block placement legacy runtime', () => {
     expect(adapted.map((item) => `${item.pieceId}:${item.anchor.row},${item.anchor.col}`)).toEqual(
       direct.map((item) => `${item.pieceId}:${item.anchor.row},${item.anchor.col}`),
     );
-    expect(adapted.every((item) => item.id.startsWith('probe-') && item.pointerPath.length === 0)).toBe(true);
+    expect(adapted.every((item) => !('durationFrames' in item) && !('pointerPath' in item))).toBe(true);
   });
 
   it('throws on an illegal placement instead of returning null', () => {
@@ -95,7 +117,7 @@ describe('block placement legacy runtime', () => {
     const game = runtime.createInitialState({ board: createEmptyBoard(), pieces }, 1);
     const first = applyPlacement(game, placement(pieces[0]!.id, 0, 0));
     expect(first).not.toBeNull();
-    expect(() => runtime.resolve(first!.after, placement(pieces[1]!.id, 0, 0), { seed: 1, stepIndex: 1 }))
+    expect(() => runtime.resolve(first!.after, semantic(pieces[1]!.id, 0, 0), { seed: 1, stepIndex: 1 }))
       .toThrowError(GameRuntimeError);
     expect(applyPlacement(first!.after, placement(pieces[1]!.id, 0, 0))).toBeNull();
   });
@@ -129,10 +151,13 @@ describe('block placement legacy runtime', () => {
         if (!move) break;
         const action = placement(move.pieceId, move.anchor.row, move.anchor.col);
         action.id = `fuzz-${seed}-${step}`;
-        const resolved = runtime.resolve(adapted, action, { seed, stepIndex: step });
+        const resolved = runtime.resolve(adapted, semantic(move.pieceId, move.anchor.row, move.anchor.col), {
+          seed,
+          stepIndex: step,
+        });
         const applied = applyPlacement(direct, action);
         expect(applied).not.toBeNull();
-        expect(resolved).toEqual(applied);
+        expect(resolved.after).toEqual(applied!.after);
         adapted = runtime.stateAfter(resolved);
         direct = applied!.after;
         expect(runtime.hashState(adapted)).toBe(hashBlockPlacementState(direct));

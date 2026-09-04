@@ -1,8 +1,8 @@
+import { createDefaultPlatform } from './bootstrap/platformBootstrap';
 import { StudioShell } from './studio/StudioShell';
-import { createDefaultStudioRegistry } from './studio/gameStudioRegistry';
 
-const studioRegistry = createDefaultStudioRegistry();
+const platform = createDefaultPlatform();
 
 export default function App() {
-  return <StudioShell registry={studioRegistry} />;
+  return <StudioShell registry={platform.studio} />;
 }

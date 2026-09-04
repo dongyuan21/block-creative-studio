@@ -1,10 +1,10 @@
 import { createEmptyBoard } from '../../domain/boardPresets';
 import { applyPlacement, createGame, createPieceSet, listLegalMoves } from '../../domain/gameEngine';
-import type { GameSnapshot, GameTransition, PlacementAction } from '../../domain/types';
+import type { GameSnapshot, GameTransition } from '../../domain/types';
 import type { GameRuntime } from '../../game-runtime/contracts';
 import { GameRuntimeError } from '../../game-runtime/errors';
 import { stableHash } from '../../headless/stableHash';
-import type { BlockPlacementConfig } from './schemas';
+import type { BlockPlacementConfig, BlockPlacementSemanticAction } from './schemas';
 
 export function hashBlockPlacementState(state: GameSnapshot): string {
   return stableHash({
@@ -19,12 +19,15 @@ export function hashBlockPlacementState(state: GameSnapshot): string {
   });
 }
 
-function legalActionFromMove(pieceId: string, row: number, col: number): PlacementAction {
+function placementFromSemantic(
+  action: BlockPlacementSemanticAction,
+  stepIndex: number,
+) {
   return {
-    id: `probe-${pieceId}-${row}-${col}`,
-    actor: 'agent',
-    pieceId,
-    anchor: { row, col },
+    id: `runtime-${stepIndex}-${action.pieceId}-${action.anchor.row}-${action.anchor.col}`,
+    actor: 'agent' as const,
+    pieceId: action.pieceId,
+    anchor: { ...action.anchor },
     durationFrames: 16,
     pointerPath: [],
   };
@@ -33,7 +36,7 @@ function legalActionFromMove(pieceId: string, row: number, col: number): Placeme
 export const blockPlacementLegacyRuntime: GameRuntime<
   BlockPlacementConfig,
   GameSnapshot,
-  PlacementAction,
+  BlockPlacementSemanticAction,
   GameTransition
 > = {
   createInitialState(config, seed) {
@@ -43,15 +46,18 @@ export const blockPlacementLegacyRuntime: GameRuntime<
   },
   hashState: hashBlockPlacementState,
   listLegalActions(state) {
-    return listLegalMoves(state).map((move) => legalActionFromMove(move.pieceId, move.anchor.row, move.anchor.col));
+    return listLegalMoves(state).map((move) => ({
+      pieceId: move.pieceId,
+      anchor: { ...move.anchor },
+    }));
   },
-  resolve(state, action) {
-    const transition = applyPlacement(state, action);
+  resolve(state, action, context) {
+    const transition = applyPlacement(state, placementFromSemantic(action, context.stepIndex));
     if (!transition) {
       throw new GameRuntimeError(
         'ILLEGAL_ACTION',
-        `Placement ${action.id} is not legal in the current state.`,
-        { details: { actionId: action.id, pieceId: action.pieceId, anchor: action.anchor } },
+        `Placement ${action.pieceId} at ${action.anchor.row},${action.anchor.col} is not legal in the current state.`,
+        { details: { pieceId: action.pieceId, anchor: action.anchor } },
       );
     }
     return transition;

@@ -1,5 +1,4 @@
 import type { ComponentType } from 'react';
-import { BlockPlacementWorkspace } from '../games/block-placement/studio/BlockPlacementWorkspace';
 import type { GameStudioModuleStatus, GameStudioModuleSummary } from './sessionTypes';
 
 export interface GameStudioModule extends GameStudioModuleSummary {
@@ -26,32 +25,10 @@ export class GameStudioRegistry {
   }
 
   defaultGameId(): string {
-    return this.modules.find((item) => item.status === 'available')?.gameId ?? 'block-placement';
+    return this.modules.find((item) => item.status === 'available')?.gameId
+      ?? this.modules[0]?.gameId
+      ?? '';
   }
-}
-
-export function createDefaultStudioRegistry(): GameStudioRegistry {
-  return new GameStudioRegistry([
-    {
-      gameId: 'block-placement',
-      displayName: 'Block Placement',
-      status: 'available',
-      description: '固定视图方块创作',
-      Workspace: BlockPlacementWorkspace,
-    },
-    {
-      gameId: 'block-crush',
-      displayName: 'Block Crush',
-      status: 'coming-soon',
-      description: 'Diagnostic Slice 完成后接入',
-    },
-    {
-      gameId: 'vita-mahjong',
-      displayName: 'Vita Mahjong',
-      status: 'coming-soon',
-      description: '语义 Slot 已预留，规则尚未接入',
-    },
-  ]);
 }
 
 export function isAvailableStudioModule(module: GameStudioModuleSummary): boolean {

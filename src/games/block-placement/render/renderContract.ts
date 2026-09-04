@@ -27,13 +27,13 @@ export const blockPlacementRenderContract: GameRenderContract = {
   version: BLOCK_PLACEMENT_RENDER_CONTRACT_VERSION,
   gameId: BLOCK_PLACEMENT_GAME_ID,
   eventCatalog: [
-    { type: 'block-placement.drag', category: 'interaction', tags: ['pointer'] },
-    { type: 'block-placement.placement-committed', category: 'commit', tags: ['placement'] },
-    { type: 'block-placement.line-cleared', category: 'resolve', tags: ['clear'] },
-    { type: 'block-placement.cross-cleared', category: 'resolve', tags: ['clear', 'cross'] },
-    { type: 'block-placement.combo', category: 'resolve', tags: ['combo'] },
-    { type: 'block-placement.all-cleared', category: 'resolve', tags: ['all-clear'] },
-    { type: 'block-placement.game-over', category: 'outcome', tags: ['terminal'] },
+    { type: 'block-placement.drag', category: 'interaction', tags: ['pointer'], legacyAliases: ['placement'] },
+    { type: 'block-placement.placement-committed', category: 'commit', tags: ['placement'], legacyAliases: ['placement'] },
+    { type: 'block-placement.line-cleared', category: 'resolve', tags: ['clear'], legacyAliases: ['line-clear'] },
+    { type: 'block-placement.cross-cleared', category: 'resolve', tags: ['clear', 'cross'], legacyAliases: ['cross-clear'] },
+    { type: 'block-placement.combo', category: 'resolve', tags: ['combo'], legacyAliases: ['combo'] },
+    { type: 'block-placement.all-cleared', category: 'resolve', tags: ['all-clear'], legacyAliases: ['all-clear'] },
+    { type: 'block-placement.game-over', category: 'outcome', tags: ['terminal'], legacyAliases: ['game-over'] },
   ],
   backends: {
     'reference-2d': {

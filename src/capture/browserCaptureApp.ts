@@ -1,3 +1,4 @@
+import { ensureDefaultHeadlessPlatform } from '../bootstrap/headlessBootstrap';
 import { DEFAULT_STYLE } from '../renderer/stylePresets';
 import { copyLookDevPreset } from '../renderer/lookDev';
 import { StudioScene } from '../renderer/StudioScene';
@@ -26,6 +27,7 @@ import {
 } from '../integration/studioAssetCatalog';
 import { BrowserAssetStore, MemoryAssetBlobRepository } from '../assets/browserAssetStore';
 import { EMPTY_RUNTIME_ASSET_BINDINGS, createRuntimeAssetBindings } from '../assets/runtimeAssetBindings';
+import { readyRenderResources } from '../rendering/preparedRenderResources';
 import { loadRuntimeTextureSet, resolveMaterialMapFetchUrl } from '../renderer/runtimeTextures';
 import { activeShotProfile } from '../renderer/planShotAdapter';
 import { viewportPolicyForRenderer } from '../renderer/shotProfile';
@@ -70,6 +72,7 @@ document.body.append(statusEl);
 const params = new URLSearchParams(location.search);
 const mode = params.get('mode') === 'smoke' ? 'smoke' : 'full';
 const autorun = params.get('autorun') !== '0';
+ensureDefaultHeadlessPlatform();
 
 function log(message: string): void {
   statusEl.textContent += `\n${message}`;
@@ -187,7 +190,7 @@ async function captureStill(spec: (typeof STILL_SPECS)[number]): Promise<{
   host.style.position = 'fixed';
   host.style.left = '-4096px';
   document.body.append(host);
-  const stage = backend.createStage(host, { revision: 'capture' });
+  const stage = backend.createStage(host, readyRenderResources('capture'));
   try {
     if (spec.renderer === 'reference-2d' && backend.designResolution) {
       stage.resize(backend.designResolution.width, backend.designResolution.height, 1);

@@ -1,6 +1,16 @@
-import type { AnyGameDefinition, GameDefinition, GameManifest } from './contracts';
+import type { AnyGameDefinition, GameDefinition, GameManifest, RuntimeSchema } from './contracts';
 import { GameRegistryError } from './errors';
 import { SchemaRegistry } from './schemaRegistry';
+
+export function definitionSchemas(definition: AnyGameDefinition): RuntimeSchema<unknown>[] {
+  const schemas: RuntimeSchema<unknown>[] = [
+    definition.schemas.config,
+    definition.schemas.state,
+    definition.schemas.action,
+  ];
+  if (definition.schemas.replayAction) schemas.push(definition.schemas.replayAction);
+  return schemas;
+}
 
 export function gameKey(gameId: string, moduleVersion: string): string {
   return `${gameId}@${moduleVersion}`;
@@ -18,6 +28,7 @@ export class GameRegistry {
     definition: GameDefinition<Config, State, Action, Resolution>,
   ): void {
     const key = gameKey(definition.manifest.gameId, definition.manifest.moduleVersion);
+    const pending = definitionSchemas(definition);
     if (this.games.has(key)) {
       throw new GameRegistryError(
         'DUPLICATE_GAME',
@@ -25,9 +36,28 @@ export class GameRegistry {
         { details: { gameId: definition.manifest.gameId, moduleVersion: definition.manifest.moduleVersion } },
       );
     }
-    this.schemas.register(definition.schemas.config);
-    this.schemas.register(definition.schemas.state);
-    this.schemas.register(definition.schemas.action);
+    for (const schema of pending) {
+      if (this.schemas.has(schema.id, schema.version)) {
+        throw new GameRegistryError(
+          'DUPLICATE_SCHEMA',
+          `Schema ${schema.id}@${schema.version} is already registered.`,
+          { details: { id: schema.id, version: schema.version, gameId: definition.manifest.gameId } },
+        );
+      }
+    }
+    const seen = new Set<string>();
+    for (const schema of pending) {
+      const schemaId = `${schema.id}@${schema.version}`;
+      if (seen.has(schemaId)) {
+        throw new GameRegistryError(
+          'DUPLICATE_SCHEMA',
+          `Schema ${schemaId} is declared twice on ${key}.`,
+          { details: { id: schema.id, version: schema.version, gameId: definition.manifest.gameId } },
+        );
+      }
+      seen.add(schemaId);
+    }
+    for (const schema of pending) this.schemas.register(schema);
     this.games.set(key, definition);
   }
 

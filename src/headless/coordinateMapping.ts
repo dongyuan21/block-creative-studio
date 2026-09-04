@@ -7,24 +7,43 @@ import {
   videoCompositionAspect,
   type CompositionProfile,
   type ContainMapping,
+  type PixelSize,
 } from '../rendering/composition';
 import { getDefaultCompositionProfile } from '../rendering/compositionRegistry';
 
 export type { CompositionProfile, ContainMapping };
 export { containMapping, mapComposition };
 
-const defaultComposition = getDefaultCompositionProfile();
-
-/** Native Reference 2D design canvas for the default (Block Placement) composition. */
-export const DESIGN_RESOLUTION = defaultComposition.designResolution;
+/** Native Reference 2D design canvas for the default composition profile. */
+export const DESIGN_RESOLUTION: PixelSize = {
+  get width() {
+    return getDefaultCompositionProfile().designResolution.width;
+  },
+  get height() {
+    return getDefaultCompositionProfile().designResolution.height;
+  },
+};
 
 export const DESIGN_BOARD_OUTER = {
-  x: defaultComposition.playfield.x,
-  y: defaultComposition.playfield.y,
-  size: defaultComposition.playfield.width,
-} as const;
+  get x() {
+    return getDefaultCompositionProfile().playfield.x;
+  },
+  get y() {
+    return getDefaultCompositionProfile().playfield.y;
+  },
+  get size() {
+    return getDefaultCompositionProfile().playfield.width;
+  },
+};
 
-export const VIDEO_RESOLUTION = defaultComposition.videoResolution;
+export const VIDEO_RESOLUTION: PixelSize = {
+  get width() {
+    return getDefaultCompositionProfile().videoResolution.width;
+  },
+  get height() {
+    return getDefaultCompositionProfile().videoResolution.height;
+  },
+};
 
 export function designToVideoMapping(profile: CompositionProfile = getDefaultCompositionProfile()): ContainMapping {
   return mapComposition(profile);

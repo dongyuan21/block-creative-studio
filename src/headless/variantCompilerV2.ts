@@ -14,7 +14,7 @@ import { AssetRegistry } from './assetRegistry.js';
 import { stableHash } from './stableHash.js';
 import { validateVariantRecipe } from './validation.js';
 import type { GameRenderContract } from '../game-runtime/renderContract.js';
-import { requiredSlotIds, slotRequirement } from '../game-runtime/renderContract.js';
+import { catalogAcceptsEvent, requiredSlotIds, slotRequirement } from '../game-runtime/renderContract.js';
 import {
   CREATIVE_MASTER_V2_CONTRACT,
   CREATIVE_MASTER_V2_CONTRACT_VERSION,
@@ -106,22 +106,8 @@ function assertRoleCompatibility(contract: GameRenderContract, renderer: string,
       { path: `$.slots.${clearSlot.slotId}` },
     );
   }
-  const catalog = new Set(contract.eventCatalog.map((item) => item.type));
   for (const event of effect.supportedEvents) {
-    const mapped =       event === 'line-clear'
-        ? 'block-placement.line-cleared'
-        : event === 'cross-clear'
-          ? 'block-placement.cross-cleared'
-          : event === 'game-over'
-            ? 'block-placement.game-over'
-            : event === 'placement'
-              ? 'block-placement.placement-committed'
-              : event === 'combo'
-                ? 'block-placement.combo'
-                : event === 'all-clear'
-                  ? 'block-placement.all-cleared'
-                  : event;
-    if (!catalog.has(mapped) && !catalog.has(event)) {
+    if (!catalogAcceptsEvent(contract, event)) {
       throw new BcsHeadlessError(
         'UNKNOWN_EVENT',
         `Effect ${effect.id} declares unsupported event ${event} for render contract ${contract.id}.`,

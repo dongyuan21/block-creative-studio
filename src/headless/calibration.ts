@@ -10,6 +10,7 @@ import { DESIGN_RESOLUTION } from './coordinateMapping.js';
 import {
   getDefaultCalibrationProfile,
   getDefaultCompositionProfile,
+  requireCalibrationProfile,
 } from '../rendering/compositionRegistry.js';
 
 export interface GoldenSceneDefinition {
@@ -20,13 +21,20 @@ export interface GoldenSceneDefinition {
   purpose: string;
 }
 
-export const DEFAULT_CALIBRATION_ROIS: CalibrationRoi[] = getDefaultCalibrationProfile().rois.map((roi) => ({
-  id: roi.id,
-  x: roi.x,
-  y: roi.y,
-  width: roi.width,
-  height: roi.height,
-}));
+export function roisFromCalibrationProfile(profileId: string) {
+  const profile = requireCalibrationProfile(profileId);
+  return profile.rois.map((roi) => ({
+    id: roi.id,
+    x: roi.x,
+    y: roi.y,
+    width: roi.width,
+    height: roi.height,
+  }));
+}
+
+export function defaultCalibrationRois() {
+  return roisFromCalibrationProfile(getDefaultCalibrationProfile().id);
+}
 
 export function calibrationCaseIdentity(input: {
   referenceMediaHash?: string;
@@ -77,7 +85,7 @@ export function createCalibrationCase(input: {
     eventId: input.eventId,
     eventType: input.eventType,
     correspondence: input.correspondence,
-    roi: input.roi ?? DEFAULT_CALIBRATION_ROIS,
+    roi: input.roi ?? roisFromCalibrationProfile(calibrationProfileId),
     excludedRegions: [],
     reviewStatus,
     unresolvedReasons: input.unresolvedReasons ?? [],
@@ -122,6 +130,8 @@ export function expandGoldenSceneCases(
     targetFps?: number;
     isolatedFixtureHash?: string;
     targetTakeHash?: string;
+    compositionProfileId?: string;
+    calibrationProfileId?: string;
   },
 ): CalibrationCase[] {
   if (options.correspondence === 'exact-replay' && !options.targetTakeHash) {
@@ -153,6 +163,8 @@ export function expandGoldenSceneCases(
         ...(sourcePts !== undefined ? { sourcePtsSeconds: sourcePts, sourceTimeBase : `${options.sourceFps}/1` } : {}),
         ...(options.targetTakeHash !== undefined ? { targetTakeHash: options.targetTakeHash } : {}),
         ...(options.isolatedFixtureHash !== undefined ? { isolatedFixtureHash: options.isolatedFixtureHash } : {}),
+        ...(options.compositionProfileId !== undefined ? { compositionProfileId: options.compositionProfileId } : {}),
+        ...(options.calibrationProfileId !== undefined ? { calibrationProfileId: options.calibrationProfileId } : {}),
       }));
     }
   }

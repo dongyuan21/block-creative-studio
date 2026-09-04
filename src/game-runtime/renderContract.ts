@@ -22,10 +22,18 @@ export interface GameRenderBackendSpec {
   passes: GameRenderPassSpec[];
 }
 
+export interface GameEventBinding {
+  eventType?: string;
+  category?: SemanticEventCategory;
+  tags?: string[];
+  legacyAliases?: string[];
+}
+
 export interface GameRenderEventSpec {
   type: string;
   category: SemanticEventCategory;
   tags: string[];
+  legacyAliases?: string[];
 }
 
 export interface GameRenderContract {
@@ -50,4 +58,15 @@ export function slotRequirement(
   slotId: string,
 ): GameRenderSlotRequirement | undefined {
   return contract.backends[renderer]?.requiredSlots.find((slot) => slot.slotId === slotId);
+}
+
+export function catalogAcceptsEvent(contract: GameRenderContract, event: string): boolean {
+  return contract.eventCatalog.some((item) => {
+    if (item.type === event) return true;
+    return (item.legacyAliases ?? []).includes(event);
+  });
+}
+
+export function bindingEventType(binding: GameEventBinding, fallback: string): string {
+  return binding.eventType ?? fallback;
 }

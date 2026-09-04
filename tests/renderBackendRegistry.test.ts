@@ -11,6 +11,7 @@ import {
   registerRenderBackend,
   type RenderBackendAdapter,
 } from '../src/rendering/backendRegistry';
+import { readyRenderResources } from '../src/rendering/preparedRenderResources';
 
 function packet(schema: string): PresentationPacket {
   return {
@@ -57,7 +58,7 @@ describe('render backend registry', () => {
     };
     registerRenderBackend(adapter);
     expect(getRenderBackend(adapter.id)?.renderer).toBe('dummy-canvas');
-    const stage = adapter.createStage({} as HTMLCanvasElement, { revision: 'test' });
+    const stage = adapter.createStage({} as HTMLCanvasElement, readyRenderResources('test'));
     stage.renderAt(packet('bcs.dummy.presentation-frame.v1'));
     expect(pixels).toEqual(['#112233']);
     stage.dispose();
@@ -80,7 +81,7 @@ describe('render backend registry', () => {
         };
       },
     };
-    const stage = adapter.createStage({} as HTMLCanvasElement, { revision: 'test' });
+    const stage = adapter.createStage({} as HTMLCanvasElement, readyRenderResources('test'));
     try {
       stage.renderAt(packet('bcs.block-placement.presentation-frame.v1'));
       throw new Error('expected schema rejection');

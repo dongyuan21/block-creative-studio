@@ -29,10 +29,12 @@ export interface GameManifest {
   rulesetVersion?: string;
 }
 
-export interface GameSchemas<Config, State, Action> {
+export interface GameSchemas<Config, State, Action, ReplayAction = Action> {
   config: RuntimeSchema<Config>;
   state: RuntimeSchema<State>;
+  /** Rule-semantic action. Pointer timing belongs on Interaction Records. */
   action: RuntimeSchema<Action>;
+  replayAction?: RuntimeSchema<ReplayAction>;
 }
 
 export interface GameDefinition<Config, State, Action, Resolution> {

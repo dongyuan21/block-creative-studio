@@ -162,6 +162,7 @@ export interface MaterialPackManifest extends AssetManifestBase<'material-pack'>
   behavior: MaterialBehaviorProfile;
 }
 
+/** V1 EffectPack vocabulary. Game-specific events live on GameRenderContract. */
 export type CinematicEventType =
   | 'placement'
   | 'line-clear'
@@ -202,7 +203,11 @@ export interface EffectLayerSpec {
 }
 
 export interface EffectPackManifest extends AssetManifestBase<'effect-pack'> {
-  supportedEvents: CinematicEventType[];
+  /**
+   * V1 packs use CinematicEventType values. V2 games declare their own event
+   * types; GameRenderContract.legacyAliases maps V1 names onto the catalog.
+   */
+  supportedEvents: string[];
   compatibleMaterialClasses: Array<MaterialClass | '*'>;
   layers: EffectLayerSpec[];
 }

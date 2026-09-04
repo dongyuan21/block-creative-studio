@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { BlockPlacementWorkspace } from '../src/games/block-placement/studio/BlockPlacementWorkspace';
-import { createDefaultStudioRegistry } from '../src/studio/gameStudioRegistry';
+import { createDefaultStudioRegistry } from '../src/bootstrap/platformBootstrap';
 import { StudioShell } from '../src/studio/StudioShell';
 
 function source(relative: string): string {
@@ -23,12 +23,12 @@ describe('studio shell modularization', () => {
     const registry = createDefaultStudioRegistry();
     expect(registry.list().map((item) => [item.gameId, item.status])).toEqual([
       ['block-placement', 'available'],
-      ['block-crush', 'coming-soon'],
-      ['vita-mahjong', 'coming-soon'],
+      ['block-crush-drop', 'coming-soon'],
+      ['vita-mahjong-solitaire', 'coming-soon'],
     ]);
     expect(registry.require('block-placement').Workspace).toBe(BlockPlacementWorkspace);
     expect(typeof BlockPlacementWorkspace).toBe('function');
     expect(typeof StudioShell).toBe('function');
-    expect(registry.get('block-crush')?.Workspace).toBeUndefined();
+    expect(registry.get('block-crush-drop')?.Workspace).toBeUndefined();
   });
 });

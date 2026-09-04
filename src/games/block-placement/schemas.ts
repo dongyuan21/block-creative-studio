@@ -254,7 +254,8 @@ export const blockPlacementSemanticActionSchema: RuntimeSchema<BlockPlacementSem
 export const blockPlacementSchemas = {
   config: blockPlacementConfigSchema,
   state: blockPlacementStateSchema,
-  action: blockPlacementActionSchema,
+  action: blockPlacementSemanticActionSchema,
+  replayAction: blockPlacementActionSchema,
 };
 
 export function defaultBlockPlacementConfig(): BlockPlacementConfig {

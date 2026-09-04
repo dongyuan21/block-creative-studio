@@ -7,12 +7,18 @@ import {
   Quality,
 } from 'mediabunny';
 import type { CompiledFrameSource } from '../game-runtime/frameSource';
+import type { PresentationPacket } from '../game-runtime/presentationPacket';
 import { containMapping } from './composition';
 import {
   assertBackendSupportsPacket,
+  RenderBackendError,
   type RenderBackendAdapter,
 } from './backendRegistry';
-import type { PreparedRenderResources } from './preparedRenderResources';
+import {
+  assertPreparedResourcesReady,
+  readyRenderResources,
+  type PreparedRenderResources,
+} from './preparedRenderResources';
 import { safeFileName } from '../utils/download';
 
 export interface RenderProgress {
@@ -37,6 +43,7 @@ export interface VideoRenderJob {
   projectName: string;
   takeName: string;
   resources?: PreparedRenderResources;
+  requiredSlotIds?: string[];
   signal?: AbortSignal;
   onProgress?: (progress: RenderProgress) => void;
 }
@@ -62,6 +69,61 @@ const QUALITY_SETTINGS: Record<VideoRenderOutput['quality'], QualitySettings> = 
 
 function report(callback: VideoRenderJob['onProgress'], progress: RenderProgress): void {
   callback?.(progress);
+}
+
+export function assertPacketMatchesFrameSource(
+  packet: PresentationPacket,
+  frameSource: CompiledFrameSource,
+  requestedFrame: number,
+): void {
+  const identity = packet.identity;
+  if (identity.gameId !== frameSource.gameId) {
+    throw new RenderBackendError(
+      'PACKET_GAME_MISMATCH',
+      `Packet game ${identity.gameId} does not match frame source ${frameSource.gameId}.`,
+      '$.identity.gameId',
+    );
+  }
+  if (identity.takeId !== frameSource.takeId) {
+    throw new RenderBackendError(
+      'PACKET_TAKE_MISMATCH',
+      `Packet take ${identity.takeId} does not match frame source ${frameSource.takeId}.`,
+      '$.identity.takeId',
+    );
+  }
+  if (identity.frameIndex !== requestedFrame) {
+    throw new RenderBackendError(
+      'PACKET_FRAME_MISMATCH',
+      `Packet frameIndex ${identity.frameIndex} does not match requested frame ${requestedFrame}.`,
+      '$.identity.frameIndex',
+    );
+  }
+  if (identity.fps !== frameSource.fps) {
+    throw new RenderBackendError(
+      'PACKET_FPS_MISMATCH',
+      `Packet fps ${identity.fps} does not match frame source fps ${frameSource.fps}.`,
+      '$.identity.fps',
+    );
+  }
+  if (identity.totalFrames !== frameSource.totalFrames) {
+    throw new RenderBackendError(
+      'PACKET_TOTAL_FRAMES_MISMATCH',
+      `Packet totalFrames ${identity.totalFrames} does not match frame source ${frameSource.totalFrames}.`,
+      '$.identity.totalFrames',
+    );
+  }
+}
+
+export function assertVideoRenderJobContract(job: VideoRenderJob): void {
+  if (job.output.fps !== job.frameSource.fps) {
+    throw new RenderBackendError(
+      'OUTPUT_FPS_MISMATCH',
+      `Job output fps ${job.output.fps} must equal frame source fps ${job.frameSource.fps}.`,
+      '$.output.fps',
+    );
+  }
+  const resources = job.resources ?? readyRenderResources(job.frameSource.frameSourceHash);
+  assertPreparedResourcesReady(resources, job.requiredSlotIds ?? []);
 }
 
 function throwIfAborted(signal?: AbortSignal): void {
@@ -92,6 +154,7 @@ function blitFrame(
 }
 
 export async function executeVideoRenderJob(job: VideoRenderJob): Promise<VideoRenderJobResult> {
+  assertVideoRenderJobContract(job);
   if (typeof VideoEncoder === 'undefined') {
     throw new Error('当前 Chrome 未启用 WebCodecs VideoEncoder，无法在浏览器内导出 MP4。');
   }
@@ -100,6 +163,7 @@ export async function executeVideoRenderJob(job: VideoRenderJob): Promise<VideoR
   }
 
   const warmupPacket = job.frameSource.evaluate(0);
+  assertPacketMatchesFrameSource(warmupPacket, job.frameSource, 0);
   assertBackendSupportsPacket(job.backend, warmupPacket);
 
   const quality = QUALITY_SETTINGS[job.output.quality];
@@ -124,7 +188,7 @@ export async function executeVideoRenderJob(job: VideoRenderJob): Promise<VideoR
   outputContext.imageSmoothingEnabled = true;
   outputContext.imageSmoothingQuality = 'high';
 
-  const resources = job.resources ?? { revision: 'none' };
+  const resources = job.resources ?? readyRenderResources(job.frameSource.frameSourceHash);
   const stage = job.backend.createStage(renderCanvas, resources);
   if (job.backend.letterboxFromDesign && job.backend.designResolution) {
     stage.resize(job.backend.designResolution.width, job.backend.designResolution.height, 1);
@@ -163,6 +227,7 @@ export async function executeVideoRenderJob(job: VideoRenderJob): Promise<VideoR
     for (let frameIndex = 0; frameIndex < job.frameSource.totalFrames; frameIndex += 1) {
       throwIfAborted(job.signal);
       const packet = job.frameSource.evaluate(frameIndex);
+      assertPacketMatchesFrameSource(packet, job.frameSource, frameIndex);
       assertBackendSupportsPacket(job.backend, packet);
       stage.renderAt(packet);
       blitFrame(outputContext, renderCanvas, job.backend, job.output.width, job.output.height);

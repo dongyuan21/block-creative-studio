@@ -1,7 +1,7 @@
 import type { RuntimeAssetBindings } from '../../../assets/runtimeAssetBindings';
 import type { StyleSpec } from '../../../domain/types';
 import type { PresentationPacket } from '../../../game-runtime/presentationPacket';
-import { Reference2DScene } from '../../../reference2d/Reference2DScene';
+import { Reference2DScene } from './BlockPlacementReferenceScene';
 import {
   assertBackendSupportsPacket,
   type RenderBackendAdapter,

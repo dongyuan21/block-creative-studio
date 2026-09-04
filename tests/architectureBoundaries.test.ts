@@ -150,6 +150,27 @@ describe('architecture import guards', () => {
     ]);
   });
 
+  it('rejects rendering and studio imports of concrete games', () => {
+    const root = scratchRepo();
+    writeSource(root, 'src/games/block-placement/index.ts', 'export const gameId = "block-placement";\n');
+    writeSource(
+      root,
+      'src/rendering/bad.ts',
+      `${importLine('gameId', '../games/block-placement/index')}\nvoid gameId;\n`,
+    );
+    writeSource(
+      root,
+      'src/studio/bad.ts',
+      `${importLine('gameId', '../games/block-placement/index')}\nvoid gameId;\n`,
+    );
+    const result = runGuard(root);
+    expect(result.status).not.toBe(0);
+    expect(result.violations.map((item) => item.code).sort()).toEqual([
+      'RENDERING_IMPORTS_GAME',
+      'STUDIO_IMPORTS_GAME',
+    ]);
+  });
+
   it('rejects new exporter-to-scene debt that is not on the allowlist', () => {
     const root = scratchRepo();
     writeSource(root, 'src/domain/gameEngine.ts', 'export const applyPlacement = () => null;\n');

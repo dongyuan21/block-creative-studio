@@ -156,6 +156,14 @@ export function analyzeArchitecture(repositoryRoot = root, options = {}) {
         }
       }
 
+      if (importer.startsWith('src/rendering/') && target.startsWith('src/games/')) {
+        violations.push({ code: 'RENDERING_IMPORTS_GAME', importer, target });
+      }
+
+      if (importer.startsWith('src/studio/') && target.startsWith('src/games/')) {
+        violations.push({ code: 'STUDIO_IMPORTS_GAME', importer, target });
+      }
+
       if (isPlatformModule(importer) && target === 'src/domain/types.ts') {
         violations.push({ code: 'PLATFORM_IMPORTS_BLOCK_TYPES', importer, target });
       }

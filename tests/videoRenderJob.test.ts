@@ -5,11 +5,16 @@ import {
   PRESENTATION_PACKET_CONTRACT_VERSION,
   type PresentationPacket,
 } from '../src/game-runtime/presentationPacket';
+import { readyRenderResources } from '../src/rendering/preparedRenderResources';
 import {
   RenderBackendError,
   assertBackendSupportsPacket,
   type RenderBackendAdapter,
 } from '../src/rendering/backendRegistry';
+import {
+  assertPacketMatchesFrameSource,
+  assertVideoRenderJobContract,
+} from '../src/rendering/renderJob';
 
 function packet(schema: string, frameIndex = 0): PresentationPacket {
   return {
@@ -62,7 +67,7 @@ describe('video render job inputs', () => {
       frameSourceHash: 'fnv1a32:source',
       evaluate: (index) => packet('bcs.dummy.presentation-frame.v1', index),
     };
-    const stage = backend.createStage({} as HTMLCanvasElement, { revision: 'job' });
+    const stage = backend.createStage({} as HTMLCanvasElement, readyRenderResources('job'));
     for (let index = 0; index < frameSource.totalFrames; index += 1) {
       const next = frameSource.evaluate(index);
       assertBackendSupportsPacket(backend, next);
@@ -92,5 +97,48 @@ describe('video render job inputs', () => {
     expect(() => assertBackendSupportsPacket(backend, packet('bcs.other.presentation-frame.v1'))).toThrow(
       RenderBackendError,
     );
+  });
+
+  it('locks packet identity, fps, and prepared resources before encoding', () => {
+    const frameSource: CompiledFrameSource = {
+      gameId: 'dummy',
+      takeId: 'dummy-take',
+      fps: 30,
+      totalFrames: 2,
+      frameSourceHash: 'fnv1a32:source',
+      evaluate: (index) => packet('bcs.dummy.presentation-frame.v1', index),
+    };
+    const backend: RenderBackendAdapter = {
+      id: 'dummy.lock',
+      renderer: 'dummy',
+      supportedPresentationSchemas: ['bcs.dummy.presentation-frame.v1'],
+      letterboxFromDesign: false,
+      createStage() {
+        return { resize() {}, async warmup() {}, renderAt() {}, dispose() {} };
+      },
+    };
+    assertPacketMatchesFrameSource(frameSource.evaluate(1), frameSource, 1);
+    expect(() => assertPacketMatchesFrameSource(frameSource.evaluate(1), frameSource, 0)).toThrow(
+      /PACKET_FRAME_MISMATCH|frameIndex/,
+    );
+    const job = {
+      frameSource,
+      backend,
+      output: { width: 1080, height: 1920, fps: 30, quality: 'preview' as const },
+      projectName: 'dummy',
+      takeName: 'take',
+      resources: readyRenderResources(frameSource.frameSourceHash),
+    };
+    expect(() => assertVideoRenderJobContract(job)).not.toThrow();
+    expect(() => assertVideoRenderJobContract({ ...job, output: { ...job.output, fps: 24 } })).toThrow(
+      /OUTPUT_FPS_MISMATCH|fps/,
+    );
+    expect(() => assertVideoRenderJobContract({
+      ...job,
+      resources: {
+        ...readyRenderResources(frameSource.frameSourceHash),
+        readiness: 'pending',
+      },
+    })).toThrow(/RESOURCES_NOT_READY|ready/);
   });
 });

@@ -8,6 +8,7 @@ import {
   type RenderProgress,
   type VideoRenderJobResult,
 } from '../rendering/renderJob';
+import { readyRenderResources } from '../rendering/preparedRenderResources';
 
 export type { RenderProgress };
 
@@ -39,9 +40,10 @@ export async function exportTakeVideo(options: ExportVideoOptions): Promise<Expo
     output: options.render,
     projectName: options.projectName,
     takeName: options.take.name,
-    ...(options.runtimeAssets
-      ? { resources: { revision: options.runtimeAssets.revision, runtimeAssets: options.runtimeAssets } }
-      : {}),
+    resources: readyRenderResources(
+      frameSource.frameSourceHash,
+      options.runtimeAssets ? { runtimeAssets: options.runtimeAssets } : {},
+    ),
     ...(options.signal ? { signal: options.signal } : {}),
     ...(options.onProgress ? { onProgress: options.onProgress } : {}),
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CALIBRATION_ROIS, expandGoldenSceneCases } from '../src/headless/calibration';
+import { createCalibrationCase, defaultCalibrationRois, expandGoldenSceneCases } from '../src/headless/calibration';
 import {
   DESIGN_BOARD_OUTER,
   DESIGN_RESOLUTION,
@@ -12,6 +12,7 @@ import { mapComposition, type CompositionProfile } from '../src/rendering/compos
 import {
   getDefaultCalibrationProfile,
   getDefaultCompositionProfile,
+  registerCalibrationProfile,
   registerCompositionProfile,
 } from '../src/rendering/compositionRegistry';
 import { mapClientPointToComposition } from '../src/renderer/shotProfile';
@@ -42,7 +43,7 @@ describe('composition profiles', () => {
   });
 
   it('keeps current calibration ROIs and records profile identities on cases', () => {
-    expect(DEFAULT_CALIBRATION_ROIS).toEqual([
+    expect(defaultCalibrationRois()).toEqual([
       { id: 'board', x: 80, y: 309, width: 912, height: 912 },
       { id: 'grid', x: 91, y: 321, width: 892, height: 892 },
       { id: 'hud-score', x: 372, y: 165, width: 320, height: 96 },
@@ -91,5 +92,26 @@ describe('composition profiles', () => {
     expect(DESIGN_RESOLUTION).toEqual({ width: 1064, height: 1788 });
     expect(VIDEO_RESOLUTION).toEqual({ width: 1080, height: 1920 });
     expect(getDefaultCompositionProfile().id).toBe(BLOCK_PLACEMENT_COMPOSITION_PROFILE_ID);
+  });
+
+  it('resolves calibration ROIs from the requested profile at call time', () => {
+    const crushCalibration = {
+      id: 'block-crush-drop.calibration.test',
+      version: '0.0.1',
+      gameId: 'block-crush-drop',
+      compositionProfileId: 'block-crush.composition.diag',
+      rois: [{ id: 'well', x: 10, y: 20, width: 30, height: 40 }],
+    };
+    registerCalibrationProfile(crushCalibration);
+    const crushCase = createCalibrationCase({
+      id: 'crush-only',
+      eventId: 'impact',
+      eventType: 'block-crush.impact',
+      targetFrame: 0,
+      correspondence: 'isolated-presentation',
+      calibrationProfileId: crushCalibration.id,
+    });
+    expect(crushCase.roi).toEqual(crushCalibration.rois);
+    expect(getDefaultCalibrationProfile().id).toBe(BLOCK_PLACEMENT_CALIBRATION_PROFILE_ID);
   });
 });

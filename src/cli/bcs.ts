@@ -24,6 +24,7 @@ import {
   type ResolvedRenderPlan,
   type VariantRecipe,
 } from '../headless/index.js';
+import { ensureDefaultHeadlessPlatform } from '../bootstrap/headlessBootstrap.js';
 import { commandProjectMigrate } from './commands/projectMigrate.js';
 
 interface ParsedArgs {
@@ -282,6 +283,7 @@ async function commandProject(args: ParsedArgs): Promise<unknown> {
 }
 
 async function execute(argv: string[]): Promise<unknown> {
+  ensureDefaultHeadlessPlatform();
   const [command, ...rest] = argv;
   const args = parseArgs(rest);
   if (command === 'capabilities') return { ok: true, capabilities: BCS_CAPABILITIES };

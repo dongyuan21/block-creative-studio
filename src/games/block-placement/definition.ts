@@ -1,13 +1,17 @@
 import type { GameDefinition } from '../../game-runtime/contracts';
-import type { GameSnapshot, GameTransition, PlacementAction } from '../../domain/types';
+import type { GameSnapshot, GameTransition } from '../../domain/types';
 import { blockPlacementLegacyRuntime } from './legacyRuntime';
 import { blockPlacementManifest } from './manifest';
-import { blockPlacementSchemas, type BlockPlacementConfig } from './schemas';
+import {
+  blockPlacementSchemas,
+  type BlockPlacementConfig,
+  type BlockPlacementSemanticAction,
+} from './schemas';
 
 export const blockPlacementDefinition: GameDefinition<
   BlockPlacementConfig,
   GameSnapshot,
-  PlacementAction,
+  BlockPlacementSemanticAction,
   GameTransition
 > = {
   manifest: blockPlacementManifest,

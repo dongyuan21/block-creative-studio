@@ -32,6 +32,7 @@
     "src/rendering/**/*.ts"
   ],
   "exclude": [
-    "src/games/block-placement/studio/**"
+    "src/games/block-placement/studio/**",
+    "src/bootstrap/platformBootstrap.ts"
   ]
 }

@@ -12,7 +12,9 @@ import {
   type ProjectMigrationReport,
   type StudioProjectDocumentV2,
 } from '../../../game-runtime/projectEnvelope';
-import { parseStudioProjectDocumentV2 } from '../../../game-runtime/projectParser';
+import { GameRegistry } from '../../../game-runtime/gameRegistry';
+import { validateStudioProjectDocumentV2 } from '../../../game-runtime/projectDocument';
+import { blockPlacementDefinition } from '../definition';
 import {
   GAME_REPLAY_CONTRACT,
   GAME_REPLAY_CONTRACT_VERSION,
@@ -297,10 +299,14 @@ export function studioBundleFromBlockPlacementV2(document: StudioProjectDocument
   };
 }
 
-export function importStudioDocument(value: unknown): StudioBundle {
+export function importStudioDocument(value: unknown, registry?: GameRegistry): StudioBundle {
   const source = value as { format?: unknown };
   if (source?.format === STUDIO_PROJECT_V2_FORMAT) {
-    return studioBundleFromBlockPlacementV2(parseStudioProjectDocumentV2(value));
+    const games = registry ?? new GameRegistry();
+    if (!games.has(blockPlacementDefinition.manifest.gameId, blockPlacementDefinition.manifest.moduleVersion)) {
+      games.register(blockPlacementDefinition);
+    }
+    return studioBundleFromBlockPlacementV2(validateStudioProjectDocumentV2(value, games));
   }
   return parseStudioBundle(value);
 }
