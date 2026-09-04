@@ -7,7 +7,10 @@ import type {
 import { BCS_CONTRACT_VERSION } from './contracts.js';
 import { stableHash } from './stableHash.js';
 import { DESIGN_RESOLUTION } from './coordinateMapping.js';
-import { DESIGN_BOARD_OUTER } from './coordinateMapping.js';
+import {
+  getDefaultCalibrationProfile,
+  getDefaultCompositionProfile,
+} from '../rendering/compositionRegistry.js';
 
 export interface GoldenSceneDefinition {
   id: string;
@@ -17,12 +20,13 @@ export interface GoldenSceneDefinition {
   purpose: string;
 }
 
-export const DEFAULT_CALIBRATION_ROIS: CalibrationRoi[] = [
-  { id: 'board', x: DESIGN_BOARD_OUTER.x, y: DESIGN_BOARD_OUTER.y, width: DESIGN_BOARD_OUTER.size, height: DESIGN_BOARD_OUTER.size },
-  { id: 'grid', x: 91, y: 321, width: 892, height: 892 },
-  { id: 'hud-score', x: 372, y: 165, width: 320, height: 96 },
-  { id: 'tray', x: 80, y: 1320, width: 904, height: 280 },
-];
+export const DEFAULT_CALIBRATION_ROIS: CalibrationRoi[] = getDefaultCalibrationProfile().rois.map((roi) => ({
+  id: roi.id,
+  x: roi.x,
+  y: roi.y,
+  width: roi.width,
+  height: roi.height,
+}));
 
 export function calibrationCaseIdentity(input: {
   referenceMediaHash?: string;
@@ -32,8 +36,14 @@ export function calibrationCaseIdentity(input: {
   targetFrame: number;
   targetFps: number;
   planHash?: string;
+  compositionProfileId?: string;
+  calibrationProfileId?: string;
 }): string {
-  return stableHash(input);
+  return stableHash({
+    ...input,
+    compositionProfileId: input.compositionProfileId ?? getDefaultCompositionProfile().id,
+    calibrationProfileId: input.calibrationProfileId ?? getDefaultCalibrationProfile().id,
+  });
 }
 
 export function createCalibrationCase(input: {
@@ -52,8 +62,12 @@ export function createCalibrationCase(input: {
   targetTakeHash?: string;
   isolatedFixtureHash?: string;
   roi?: CalibrationRoi[];
+  compositionProfileId?: string;
+  calibrationProfileId?: string;
 }): CalibrationCase {
   const reviewStatus = input.reviewStatus ?? 'NOT_RUN';
+  const compositionProfileId = input.compositionProfileId ?? getDefaultCompositionProfile().id;
+  const calibrationProfileId = input.calibrationProfileId ?? getDefaultCalibrationProfile().id;
   const value: CalibrationCase = {
     contract: 'bcs.calibration-case',
     contractVersion: BCS_CONTRACT_VERSION,
@@ -67,6 +81,8 @@ export function createCalibrationCase(input: {
     excludedRegions: [],
     reviewStatus,
     unresolvedReasons: input.unresolvedReasons ?? [],
+    compositionProfileId,
+    calibrationProfileId,
   };
   if (input.referenceMediaHash !== undefined) value.referenceMediaHash = input.referenceMediaHash;
   if (input.sourceFrameIndex !== undefined) value.sourceFrameIndex = input.sourceFrameIndex;

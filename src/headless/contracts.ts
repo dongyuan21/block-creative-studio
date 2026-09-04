@@ -472,6 +472,8 @@ export interface CalibrationCase {
   excludedRegions: CalibrationRoi[];
   reviewStatus: CalibrationReviewStatus;
   unresolvedReasons: string[];
+  compositionProfileId: string;
+  calibrationProfileId: string;
 }
 
 export type ColorSpaceTag = 'srgb' | 'linear';

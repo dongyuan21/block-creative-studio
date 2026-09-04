@@ -11,6 +11,7 @@ import type {
 import type { RuntimeAssetBindings } from '../assets/runtimeAssetBindings';
 import { ReferenceCalibrationOverlay } from './ReferenceCalibrationOverlay';
 import { Reference2DScene } from './Reference2DScene';
+import { REFERENCE_CANVAS } from './referenceProfile';
 
 interface ClearSignal {
   id: number;
@@ -199,7 +200,7 @@ export function Reference2DViewport({
         captureCurrentFrame={captureCurrentFrame}
       />
       <div className="viewport-badges" aria-hidden="true">
-        <span>REFERENCE 2D · 1064×1788</span>
+        <span>REFERENCE 2D · {REFERENCE_CANVAS.width}×{REFERENCE_CANVAS.height}</span>
         <span>{mode === 'render' ? 'OFFLINE RENDER' : mode.toUpperCase()}</span>
       </div>
       {mode === 'edit' && <div className="viewport-hint">按真机布局点击格子绘制或擦除牌面</div>}

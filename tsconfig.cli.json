@@ -27,6 +27,7 @@
     "src/games/block-placement/**/*.ts",
     "src/domain/**/*.ts",
     "src/director/**/*.ts",
-    "src/bootstrap/**/*.ts"
+    "src/bootstrap/**/*.ts",
+    "src/rendering/**/*.ts"
   ]
 }

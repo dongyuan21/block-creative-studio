@@ -32,6 +32,8 @@ import {
   DEFAULT_STYLE,
   GEOMETRY_PRESETS,
 } from '../renderer/stylePresets';
+import { containMapping } from '../rendering/composition';
+import { getDefaultCompositionProfile } from '../rendering/compositionRegistry';
 
 const CONTRACT_VERSION = '1.0.0' as const;
 const ASSET_VERSION = '1.0.0';
@@ -262,16 +264,13 @@ function scaleReferenceBoardRect(output: ProjectSpec['render']): {
   width: number;
   height: number;
 } {
-  const source = { width: 1064, height: 1788 };
-  const sourceRect = { x: 80, y: 309, width: 912, height: 912 };
-  const scale = Math.min(output.width / source.width, output.height / source.height);
-  const offsetX = (output.width - source.width * scale) / 2;
-  const offsetY = (output.height - source.height * scale) / 2;
+  const profile = getDefaultCompositionProfile();
+  const mapping = containMapping(profile.designResolution, { width: output.width, height: output.height });
   return {
-    x: Math.round(offsetX + sourceRect.x * scale),
-    y: Math.round(offsetY + sourceRect.y * scale),
-    width: Math.round(sourceRect.width * scale),
-    height: Math.round(sourceRect.height * scale),
+    x: Math.round(mapping.offsetX + profile.playfield.x * mapping.scale),
+    y: Math.round(mapping.offsetY + profile.playfield.y * mapping.scale),
+    width: Math.round(profile.playfield.width * mapping.scale),
+    height: Math.round(profile.playfield.height * mapping.scale),
   };
 }
 

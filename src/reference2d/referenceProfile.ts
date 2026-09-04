@@ -1,25 +1,8 @@
 import type { TileColor } from '../domain/types';
-import { DESIGN_RESOLUTION } from '../headless/coordinateMapping';
+import { blockPlacementLayoutProfile } from '../games/block-placement/profiles/layout';
 
-export const REFERENCE_CANVAS = DESIGN_RESOLUTION;
-
-export const REFERENCE_LAYOUT = {
-  hud: {
-    best: { x: 72, y: 48, width: 320, height: 86 },
-    scoreCenter: { x: 532, y: 213 },
-    controls: { x: 778, y: 48, width: 210, height: 88 },
-  },
-  board: {
-    outer: { x: 80, y: 309, size: 912, radius: 18 },
-    grid: { x: 91, y: 321, cell: 108, gap: 4, pitch: 112 },
-  },
-  rack: {
-    centersX: [238, 532, 826],
-    centerY: 1470,
-    cell: 50,
-    pickupLift: 145,
-  },
-} as const;
+export const REFERENCE_CANVAS = blockPlacementLayoutProfile.canvas;
+export const REFERENCE_LAYOUT = blockPlacementLayoutProfile;
 
 export interface ReferenceTilePalette {
   base: string;

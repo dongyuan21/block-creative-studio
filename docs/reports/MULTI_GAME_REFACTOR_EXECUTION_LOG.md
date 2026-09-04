@@ -63,6 +63,17 @@
 - 未知 Slot 以 `UNKNOWN_SLOT` 失败并带明确 path
 - Scene / Exporter / App / Capture 未改
 
+## R5 — Composition、Coordinate、Shot 与 Calibration Profile 化
+
+- 状态：PASS（自检，非人工审批）
+- 提交：`refactor(composition): profile coordinate shot and calibration data`
+- 门禁：`check` / `test` 169 / `typecheck` / `build`（169 modules）/ render-regression / golden-batch / pbr-runtime PASS
+- 1064×1788 / 1080×1920 / 80,309,912 仅存在于 Block Placement Profile
+- `designToVideoMapping()` 包装 `mapComposition(defaultComposition)`
+- 假 Composition Profile 通过通用映射，不改共享常量
+- Calibration Case 记录 composition/calibration profile id
+- 商业 Golden：BLOCKED；人工视觉批准：PENDING
+
 ## Remaining
 
-R5 → R8b 连续执行。R9 DEFERRED。
+R6 → R8b 连续执行。R9 DEFERRED。

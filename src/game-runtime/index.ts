@@ -46,6 +46,7 @@ export {
   slotRequirement,
   type GameRenderContract,
 } from './renderContract';
+export type { CalibrationProfile, CalibrationRoiSpec } from './calibrationProfile';
 export {
   detectStudioDocumentKind,
   parseGameProjectEnvelope,

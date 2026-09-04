@@ -9,6 +9,7 @@ import {
   BcsHeadlessError,
   compileMaterialRuntime,
   compileVariant,
+  DESIGN_RESOLUTION,
   expandGoldenSceneCases,
   renderGoldenReportHtml,
   runQualityGate,
@@ -257,7 +258,7 @@ async function commandGolden(args: ParsedArgs): Promise<unknown> {
     contract: 'bcs.golden-batch-report',
     contractVersion: '1.0.0',
     generatedAt: 'not-a-wall-clock-render',
-    designResolution: { width: 1064, height: 1788 },
+    designResolution: { width: DESIGN_RESOLUTION.width, height: DESIGN_RESOLUTION.height },
     cases: cases.map((item: CalibrationCase) => ({
       case: item,
       identity: `${item.id}:${item.correspondence}:${item.targetFrame}`,

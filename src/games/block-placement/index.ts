@@ -6,6 +6,24 @@ export {
   compileBlockPlacementFrameSource,
 } from './presentation/legacyPresentationAdapter';
 export { blockPlacementRenderContract } from './render/renderContract';
+export {
+  BLOCK_PLACEMENT_CALIBRATION_PROFILE_ID,
+  blockPlacementCalibrationProfile,
+} from './profiles/calibration';
+export {
+  BLOCK_PLACEMENT_COMPOSITION_PROFILE_ID,
+  blockPlacementCompositionProfile,
+} from './profiles/composition';
+export {
+  BLOCK_PLACEMENT_FIXED_CAMERA_PROFILE_ID,
+  BLOCK_PLACEMENT_SHOT_PROFILE_ID,
+  blockPlacementFixedCameraDraft,
+  blockPlacementShotProfile,
+} from './profiles/fixedCamera';
+export {
+  BLOCK_PLACEMENT_LAYOUT_PROFILE_ID,
+  blockPlacementLayoutProfile,
+} from './profiles/layout';
 export { blockPlacementLegacyRuntime, hashBlockPlacementState } from './legacyRuntime';
 export {
   BLOCK_PLACEMENT_ACTION_SCHEMA_ID,
