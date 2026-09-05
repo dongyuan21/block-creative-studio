@@ -1,21 +1,16 @@
-.tpt-studio {
-  --tpt-panel: #111927;
+.taptile-studio {
+  --tpt-panel: var(--panel);
   --tpt-panel-soft: #172235;
-  --tpt-line: rgba(255, 255, 255, 0.09);
-  --tpt-muted: #8d9bb0;
-  --tpt-text: #edf3fb;
+  --tpt-line: var(--line);
+  --tpt-muted: var(--muted);
+  --tpt-text: #f4f6ff;
   --tpt-accent: #6b74ff;
-  height: 100%;
-  min-height: 0;
-  background: #0a0f18;
-  color: var(--tpt-text);
-  font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
-  overflow: hidden;
 }
 
-.tpt-studio * { box-sizing: border-box; }
-.tpt-studio button, .tpt-studio input, .tpt-studio select { font: inherit; }
-.tpt-studio button { color: inherit; }
+.tpt-phone-stage,
+.tpt-stage-toolbar {
+  box-sizing: border-box;
+}
 
 .tpt-topbar {
   height: 66px;
@@ -96,7 +91,8 @@
   border-color: rgba(118, 127, 255, 0.55);
   background: rgba(118, 127, 255, 0.12);
 }
-.tpt-studio button:disabled { opacity: 0.35; cursor: not-allowed; }
+.taptile-studio .phone-frame button:disabled,
+.taptile-studio .tpt-stage-toolbar button:disabled { opacity: 0.35; cursor: not-allowed; }
 .tpt-actions .tpt-action-primary { border-color: #7780ff; background: #636bf0; font-weight: 700; }
 .tpt-actions .tpt-action-primary:hover:not(:disabled) { background: #747cff; }
 .tpt-actions .tpt-block-link { color: #9da8bb; }
@@ -1235,86 +1231,3 @@
   .tpt-stage-toolbar button { padding-inline: 7px; }
 }
 
-@media (max-width: 900px) {
-  .tpt-studio { overflow: auto; }
-  .tpt-topbar { height: auto; min-height: 66px; grid-template-columns: 1fr auto; padding-block: 8px; }
-  .tpt-project-name { display: none; }
-  .tpt-mode-switch { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }
-  .tpt-workspace { height: auto; min-height: 0; grid-template-columns: 180px minmax(400px, 1fr); }
-  .tpt-inspector-panel { display: none; }
-  .tpt-stage-column { min-height: 720px; }
-  .tpt-bottom-status { display: none; }
-}
-
-.taptile-studio .asset-panel {
-  display: flex;
-  flex-direction: column;
-  padding: 12px 12px 8px;
-}
-.taptile-studio .asset-panel section {
-  padding: 0 0 8px;
-  margin: 0 0 8px;
-}
-.taptile-studio .asset-panel .section-heading,
-.taptile-studio .asset-panel .tpt-section-title {
-  margin-bottom: 6px;
-}
-.taptile-studio .takes-section {
-  position: sticky;
-  bottom: 0;
-  margin-top: auto;
-  margin-bottom: 0;
-  min-height: 0;
-  padding-top: 8px;
-  padding-bottom: 2px;
-  background: var(--tpt-panel);
-  box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
-  z-index: 3;
-}
-.taptile-studio .phone-frame.tpt-phone-stage {
-  height: 100%;
-  max-height: 774px;
-  padding: 0;
-  background: inherit;
-}
-.taptile-studio .tpt-session-bar.play-session-bar {
-  position: relative;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  width: auto;
-  margin: 8px 12px 10px;
-}
-.taptile-studio .timeline {
-  min-height: 0;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr;
-  padding: 0;
-}
-.taptile-studio .stage-column.tpt-stage-column {
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  background: #0b111c;
-}
-.taptile-studio .inspector-panel {
-  display: flex;
-  flex-direction: column;
-}
-.taptile-studio .tpt-export-panel.export-section {
-  display: grid;
-  gap: 8px;
-  position: sticky;
-  bottom: 0;
-  margin-bottom: 0;
-  z-index: 4;
-  background: linear-gradient(145deg, rgba(74,66,151,.16), rgba(30,35,54,.42));
-  box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
-}
-.taptile-studio .tpt-empty-selection {
-  padding: 8px 0 2px;
-}
-.taptile-studio .tpt-empty-selection p {
-  margin: 4px 0 0;
-}

@@ -17,10 +17,8 @@ import {
   normalizeTile,
   STACK_STAGE,
   TEMPLATE_OPTIONS,
-  type SceneThemeId,
   type StackTemplateId,
   type StackTile,
-  type TileMaterialId,
 } from './stackModel';
 import {
   CHAIN_COMBO_UI_THEME_ID,
@@ -101,11 +99,12 @@ import {
   selectTapTileRegressionFrames,
 } from './render';
 import { ensureTapTileProductionDefaults } from './production';
-import { TapTileProductionPanel } from './production/TapTileProductionPanel';
 import { exportFixedFrameVideo, type FrameRenderProgress } from '../exporter/fixedFrameExporter';
 import { safeFileName } from '../utils/download';
 import { Toolbar } from '../components/Toolbar';
 import type { StudioSessionMode } from '../studio/sessionTypes';
+import { TapTileAssetPanel } from '../games/taptile-tray-match3/studio/TapTileAssetPanel';
+import { TapTileInspector } from '../games/taptile-tray-match3/studio/TapTileInspector';
 import { resolveTapTileBuiltinAssetUrl } from './assetUrl';
 import { tapTileBoardDownwardShiftPx } from './trayLayout';
 import {
@@ -113,6 +112,7 @@ import {
   type TapTileWorkspaceMode,
 } from './workspace/WorkspaceMode';
 import './taptile-studio.css';
+import '../games/taptile-tray-match3/studio/tapTileWorkspace.css';
 
 function toSessionMode(mode: TapTileWorkspaceMode): StudioSessionMode {
   if (mode === 'play') return 'play';
@@ -153,21 +153,12 @@ function agentBaseBeamWidth(profile: TapTileScenarioProfileId): number {
   return 260;
 }
 
-const ALIGNMENT_ACTIONS: Array<{
-  command: StackAlignmentCommand;
-  label: string;
-  shortLabel: string;
-  minimum: number;
-}> = [
-  { command: 'left', label: '左边缘对齐', shortLabel: '左对齐', minimum: 2 },
-  { command: 'center-x', label: '水平中心对齐', shortLabel: '水平居中', minimum: 2 },
-  { command: 'right', label: '右边缘对齐', shortLabel: '右对齐', minimum: 2 },
-  { command: 'top', label: '上边缘对齐', shortLabel: '顶对齐', minimum: 2 },
-  { command: 'center-y', label: '垂直中心对齐', shortLabel: '垂直居中', minimum: 2 },
-  { command: 'bottom', label: '下边缘对齐', shortLabel: '底对齐', minimum: 2 },
-  { command: 'distribute-x', label: '横向等距分布', shortLabel: '横向等距', minimum: 3 },
-  { command: 'distribute-y', label: '纵向等距分布', shortLabel: '纵向等距', minimum: 3 },
-];
+const STAGE_COPY = {
+  edit: { title: '拆解并设计 2D 牌面', callout: '先造局，再试玩。', hint: '左侧选择模板与匹配组；在舞台上拖动、叠层。' },
+  play: { title: '录制真人试玩', callout: '正在记录 Replay', hint: '点击可点牌进入 7 槽，只保存动作与 Seed。' },
+  replay: { title: '导演与固定帧重放', callout: '先看 Take，再导出。', hint: '左侧选择 Take；右侧调节节奏并生成 1080×1920 MP4。' },
+  render: { title: '导演与固定帧重放', callout: '正在导出成片', hint: '离线逐帧渲染进行中。' },
+} as const;
 
 interface HistoryState {
   past: TapTileProjectV2[];
@@ -370,11 +361,11 @@ export function TapTileStackStudio() {
   const [agentSearchStrength, setAgentSearchStrength] = useState<AgentSearchStrengthId>('standard');
   const [agentBusy, setAgentBusy] = useState(false);
   const [agentProgress, setAgentProgress] = useState<TapTileSolveProgress | null>(null);
-  const [agentRunSummary, setAgentRunSummary] = useState<AgentRunSummary | null>(null);
+  const [, setAgentRunSummary] = useState<AgentRunSummary | null>(null);
   const agentSearchAbortRef = useRef<AbortController | null>(null);
   const [replayAutoPlaying, setReplayAutoPlaying] = useState(false);
   const [directorFrame, setDirectorFrame] = useState(0);
-  const [directorZoom, setDirectorZoom] = useState(0.7);
+  const [directorPlaying, setDirectorPlaying] = useState(false);
   const [selectedDirectorActionId, setSelectedDirectorActionId] = useState<string | null>(null);
   const [directorPreviewState, setDirectorPreviewState] = useState<TapTileCanvasPreviewState | null>(null);
   const [tapTileExportProgress, setTapTileExportProgress] = useState<FrameRenderProgress | null>(null);
@@ -411,7 +402,6 @@ export function TapTileStackStudio() {
     () => project.takes.find((take) => take.id === project.selectedTakeId) ?? project.takes.at(-1) ?? null,
     [project.selectedTakeId, project.takes],
   );
-  const activeAgentRunSummary = agentRunSummary?.takeId === selectedDirectorTake?.id ? agentRunSummary : null;
   const selectedDirectorProfile = project.director.profiles[project.director.selectedProfileId] ?? null;
   const compiledDirector = useMemo(() => {
     if (!selectedDirectorTake || !selectedDirectorProfile) return null;
@@ -500,6 +490,18 @@ export function TapTileStackStudio() {
     if (!compiledDirector) return;
     setDirectorFrame((current) => Math.min(current, compiledDirector.totalFrames - 1));
   }, [compiledDirector]);
+
+  useEffect(() => {
+    if (!directorPlaying || !compiledDirector || sessionMode === 'play') return undefined;
+    if (directorFrame >= compiledDirector.totalFrames - 1) {
+      setDirectorPlaying(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      setDirectorFrame((current) => Math.min(compiledDirector.totalFrames - 1, current + 1));
+    }, 1000 / Math.max(1, project.render.fps));
+    return () => window.clearTimeout(timer);
+  }, [compiledDirector, directorFrame, directorPlaying, project.render.fps, sessionMode]);
 
   useEffect(() => {
     if (!replayAutoPlaying || workspaceMode !== 'replay' || !gameplay.replayValidation) return;
@@ -975,6 +977,32 @@ export function TapTileStackStudio() {
     });
   };
 
+  const patchDirectorTiming = (patch: Partial<TapTileDirectorTiming> & { betweenActionFrames?: number }): void => {
+    commit((draft) => {
+      const id = draft.director.selectedProfileId;
+      const current = draft.director.profiles[id];
+      if (!current) return;
+      const { betweenActionFrames, ...timingPatch } = patch;
+      draft.director.profiles[id] = {
+        ...current,
+        ...(betweenActionFrames !== undefined ? { betweenActionFrames } : {}),
+        timing: { ...current.timing, ...timingPatch },
+      };
+    });
+  };
+
+  const toggleDirectorPlayback = (): void => {
+    if (!compiledDirector) return;
+    if (!directorPlaying && directorFrame >= compiledDirector.totalFrames - 1) setDirectorFrame(0);
+    setDirectorPlaying((current) => !current);
+  };
+
+  const cancelPlay = (): void => {
+    clearLiveMatchEffects();
+    setWorkspaceMode('edit');
+    setNotice('已取消本次试玩，未保存 Take');
+  };
+
   const setRenderQuality = (quality: TapTileProjectV2['render']['quality']): void => {
     commit((draft) => {
       draft.render.quality = quality;
@@ -1247,12 +1275,6 @@ export function TapTileStackStudio() {
     }
   };
 
-  const toggleReplayAutoPlay = (): void => {
-    const finalReplayIndex = Math.max(0, (gameplay.replayValidation?.replay.states.length ?? 1) - 1);
-    if (!replayAutoPlaying && gameplay.replayIndex >= finalReplayIndex) gameplay.seekReplay(0);
-    setReplayAutoPlaying((current) => !current);
-  };
-
   const switchWorkspaceMode = (mode: TapTileWorkspaceMode): void => {
     if (mode !== 'replay') setReplayAutoPlaying(false);
     if (mode === 'play') {
@@ -1395,115 +1417,37 @@ export function TapTileStackStudio() {
         onImportProject={importProject}
       />
 
-      <main className="studio-workspace tpt-workspace">
-        <aside className="panel asset-panel tpt-panel tpt-library-panel">
-          <section>
-            <div className="tpt-section-title section-heading"><span>牌面</span><small>Board</small></div>
-            <div className="tpt-template-grid preset-grid preset-grid--two">
-              {TEMPLATE_OPTIONS.map((template) => (
-                <button
-                  key={template.id}
-                  type="button"
-                  className={project.authoring.templateId === template.id ? 'preset-card is-active' : 'preset-card'}
-                  disabled={workspaceMode !== 'edit'}
-                  onClick={() => chooseTemplate(template.id)}
-                >
-                  <i className={`template-glyph template-${template.id}`} aria-hidden="true" />
-                  <strong>{template.label}</strong>
-                  <span>{template.hint}</span>
-                </button>
-              ))}
+      <main className="studio-workspace">
+        <TapTileAssetPanel
+          project={project}
+          matchGroupPreviews={matchGroupPreviews}
+          selectedSkinCompatibility={selectedSkinCompatibility}
+          selectedTakeId={selectedDirectorTake?.id ?? null}
+          setupEditable={workspaceMode === 'edit'}
+          takesLocked={workspaceMode === 'play' || workspaceMode === 'export'}
+          lookLocked={workspaceMode === 'play' || workspaceMode === 'replay' || workspaceMode === 'direct'}
+          onTemplate={chooseTemplate}
+          onSceneTheme={(id) => setAuthoringOption('sceneTheme', id)}
+          onVisualTheme={setVisualTheme}
+          onRerollFaces={rerollChainComboFaces}
+          onMaterial={(id) => setAuthoringOption('material', id)}
+          onChooseFace={chooseFace}
+          onSelectTake={selectTake}
+          onDeleteTake={deleteTake}
+        />
+
+        <section className="stage-column">
+          <div className="stage-header">
+            <div>
+              <span className="eyebrow">REFERENCE-FIRST CREATIVE CANVAS</span>
+              <h1>{STAGE_COPY[sessionMode].title}</h1>
             </div>
-          </section>
-
-          <section>
-            <div className="tpt-section-title section-heading"><span>外观</span><small>Look</small></div>
-            <label className="tpt-field field-stack">
-              <span>背景风格</span>
-              <select disabled={workspaceMode === 'play' || workspaceMode === 'replay'} value={project.authoring.sceneTheme} onChange={(event) => setAuthoringOption('sceneTheme', event.target.value as SceneThemeId)}>
-                <option value="deep-ocean">深海蓝岛</option>
-                <option value="sunset">日落旷野</option>
-                <option value="candy">糖果乐园</option>
-                <option value="forest">薄雾森林</option>
-              </select>
-            </label>
-            <label className="tpt-field field-stack">
-              <span>牌面分组（不改玩法）</span>
-              <select data-face-group-select disabled={workspaceMode === 'play'} value={project.visuals.selectedThemeId} onChange={(event) => setVisualTheme(event.target.value)}>
-                {Object.values(project.visuals.themes).map((theme) => (
-                  <option key={theme.id} value={theme.id}>{theme.name}</option>
-                ))}
-              </select>
-              <small
-                className={selectedSkinCompatibility.valid ? 'tpt-skin-compat is-valid' : 'tpt-skin-compat is-invalid'}
-                data-skin-valid={selectedSkinCompatibility.valid ? 'true' : 'false'}
-                data-skin-theme={selectedSkinCompatibility.themeId}
-              >{selectedSkinCompatibility.valid ? `${selectedSkinCompatibility.coveredArchetypeIds.length} 个匹配组全部覆盖` : `${selectedSkinCompatibility.issues.filter((issue) => issue.severity === 'error').length} 个兼容错误`}</small>
-            </label>
-            {project.visuals.selectedThemeId === CHAIN_COMBO_UI_THEME_ID && (
-              <div className="tpt-face-group-actions" data-face-group={CHAIN_COMBO_UI_THEME_ID}>
-                <span>14 张原图 · 2 个完整方向变体 · 无双拼</span>
-                <button type="button" data-action="reroll-face-group" disabled={workspaceMode === 'play' || workspaceMode === 'replay'} onClick={rerollChainComboFaces}>重新随机</button>
-              </div>
-            )}
-            <label className="tpt-field field-stack">
-              <span>牌体材质</span>
-              <select disabled={workspaceMode === 'play' || workspaceMode === 'replay'} value={project.authoring.material} onChange={(event) => setAuthoringOption('material', event.target.value as TileMaterialId)}>
-                <option value="porcelain">经典休闲牌</option>
-                <option value="ice">冰瓷圆角</option>
-                <option value="jelly">透明果冻</option>
-                <option value="paper">磨砂纸牌</option>
-              </select>
-            </label>
-          </section>
-
-          <section className="tpt-face-section">
-            <div className="tpt-section-title section-heading"><span>匹配组</span><small>{FACE_LIBRARY.length} · {project.visuals.themes[project.visuals.selectedThemeId]?.name ?? 'MATCH KEYS'}</small></div>
-            <p className="tpt-helper">每种牌仍为 3 的倍数。这里会改变玩法与 Take 有效性；纯换皮请用上方外观。</p>
-            <div className="tpt-face-grid" data-match-group-theme={project.visuals.selectedThemeId}>
-              {matchGroupPreviews.map(({ face, index, visual, visibleName, label }) => (
-                <button
-                  key={face.id}
-                  title={`匹配分组 ${index + 1} · 当前牌面：${visibleName}`}
-                  disabled={workspaceMode !== 'edit'}
-                  data-match-key={face.id}
-                  data-preview-face-assembly={visual?.faceAssembly.id}
-                  style={{ '--face-accent': face.accent } as React.CSSProperties}
-                  onClick={() => chooseFace(face.id)}
-                >
-                  <span className="tpt-face-preview" aria-hidden="true">
-                    {visual ? <TileVisual visual={visual} /> : <span className="tpt-face-fallback">{face.glyph}</span>}
-                  </span>
-                  <small>{label}</small>
-                </button>
-              ))}
+            <div className="stage-metrics">
+              <span><strong>{tiles.length}</strong>牌块</span>
+              <span><strong>{usedLayers.length}</strong>层</span>
+              <span><strong>{selectedDirectorTake?.actions.length ?? gameplay.recordedActions.length}</strong>动作</span>
             </div>
-          </section>
-
-          <section className="takes-section">
-            <div className="tpt-section-title section-heading"><span>试玩 Take</span><small>{project.takes.length}</small></div>
-            <div className="take-list">
-              {project.takes.length === 0 && <p className="empty-copy">先进行真人试玩或机器试玩。</p>}
-              {project.takes.map((take) => (
-                <div key={take.id} className={selectedDirectorTake?.id === take.id ? 'take-row is-active' : 'take-row'}>
-                  <button type="button" disabled={workspaceMode === 'play' || workspaceMode === 'export'} onClick={() => selectTake(take.id)}>
-                    <strong>{take.name}</strong>
-                    <span>{take.actions.length} 步 · {take.actions[0]?.actor === 'human' ? '人类' : 'Agent'} · {take.result}</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-button"
-                    aria-label={`删除 ${take.name}`}
-                    disabled={workspaceMode === 'play' || workspaceMode === 'export'}
-                    onClick={() => deleteTake(take.id)}
-                  >×</button>
-                </div>
-              ))}
-            </div>
-          </section>
-        </aside>
-
-        <section className="stage-column tpt-stage-column">
+          </div>
           <div className="tpt-stage-toolbar">
             <div className="tpt-tool-group tpt-authoring-tools">
               <button disabled={workspaceMode !== 'edit' || history.past.length === 0} onClick={() => dispatch({ type: 'undo' })} title="Ctrl+Z">↶ 撤销</button>
@@ -1819,17 +1763,14 @@ export function TapTileStackStudio() {
               )}
             </div>
             {workspaceMode === 'edit' && (
-              <div className="tpt-snap-coach" aria-hidden="true">
-                <b>框选与智能轨道</b>
-                <span>空白处拖框 · Shift 追加 · 选中后整体拖动</span>
-                <small><kbd>Alt</kbd> 关闭吸附　<kbd>Shift</kbd> 锁定拖动方向</small>
+              <div className="stage-callout">
+                <strong>{STAGE_COPY.edit.callout}</strong>
+                <span>{STAGE_COPY.edit.hint}</span>
               </div>
             )}
-          </div>
-
           {workspaceMode === 'play' && gameplay.gameState && (
             <div
-              className="tpt-session-bar play-session-bar"
+              className="play-session-bar"
               data-mode="play"
               data-agent-busy={agentBusy ? 'true' : 'false'}
               data-agent-expanded-states={agentProgress?.expandedStates ?? 0}
@@ -1837,311 +1778,130 @@ export function TapTileStackStudio() {
               data-match-count={gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length}
               data-unlock-count={gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)}
             >
-              <div><span className={agentBusy ? 'tpt-agent-search-dot' : 'tpt-record-dot'} /><strong>{agentBusy ? 'Agent 正在规划' : '正在记录 Take'}</strong><small data-agent-progress={agentBusy ? 'true' : undefined}>{agentBusy && agentProgress
-                ? `深度 ${agentProgress.depth}/${agentProgress.maxDepth} · 已搜索 ${agentProgress.expandedStates.toLocaleString()} 状态 · 当前最佳消除 ${agentProgress.bestClearedTileCount}/${compiledLevel.initialBoardIds.length} · 槽位峰值 ${agentProgress.peakTrayOccupancy}/7 · ${(agentProgress.elapsedMs / 1000).toFixed(1)} 秒`
-                : `${gameplay.recordedActions.length} 个动作 · 三消 ${gameplay.transitions.filter((transition) => transition.matchedTileIds.length > 0).length} · 新解锁 ${gameplay.transitions.reduce((total, transition) => total + transition.newlyUnlockedTileIds.length, 0)} · 槽位 ${gameplay.gameState.trayIds.length}/7`}</small></div>
-              <div className="tpt-session-actions">
-                <label className="tpt-agent-profile"><span>Agent 剧情</span><select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)}>{TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}</select></label>
-                <label className="tpt-agent-profile"><span>搜索强度</span><select data-agent-search-strength value={agentSearchStrength} disabled={agentBusy} onChange={(event) => setAgentSearchStrength(event.target.value as AgentSearchStrengthId)}>{AGENT_SEARCH_STRENGTHS.map((strength) => <option key={strength.id} value={strength.id}>{strength.label}</option>)}</select></label>
-                <button data-action={agentBusy ? 'cancel-agent-take' : 'generate-agent-take'} data-active={agentBusy ? 'true' : undefined} onClick={generateAgentTake}>{agentBusy ? '停止并采用最佳' : agentProfile === 'max-clear' ? '规划最大消除' : 'Agent 生成'}</button>
-                <button onClick={() => { clearLiveMatchEffects(); gameplay.restart(); }}>重新开始</button>
-                <button className="tpt-action-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
+              <div>
+                <span className={agentBusy ? 'tpt-agent-search-dot' : 'recording-dot'} />
+                <strong>{agentBusy ? 'Agent 正在规划' : '正在记录 Replay'}</strong>
+                <span data-agent-progress={agentBusy ? 'true' : undefined}>
+                  {agentBusy && agentProgress
+                    ? `深度 ${agentProgress.depth}/${agentProgress.maxDepth} · ${agentProgress.expandedStates.toLocaleString()} 状态`
+                    : `${gameplay.recordedActions.length} 个动作 · 槽位 ${gameplay.gameState.trayIds.length}/7`}
+                </span>
+              </div>
+              <div>
+                <select data-agent-profile value={agentProfile} disabled={agentBusy} onChange={(event) => setAgentProfile(event.target.value as TapTileScenarioProfileId)} aria-label="Agent 剧情">
+                  {TAPTILE_SCENARIO_PROFILES.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
+                </select>
+                <select data-agent-search-strength value={agentSearchStrength} disabled={agentBusy} onChange={(event) => setAgentSearchStrength(event.target.value as AgentSearchStrengthId)} aria-label="搜索强度">
+                  {AGENT_SEARCH_STRENGTHS.map((strength) => <option key={strength.id} value={strength.id}>{strength.label}</option>)}
+                </select>
+                <button type="button" className="button-secondary" data-action={agentBusy ? 'cancel-agent-take' : 'generate-agent-take'} data-active={agentBusy ? 'true' : undefined} onClick={generateAgentTake}>
+                  {agentBusy ? '停止并采用最佳' : 'Agent 生成'}
+                </button>
+                <button type="button" className="button-secondary" onClick={() => { clearLiveMatchEffects(); gameplay.restart(); }}>重新开始</button>
+                <button type="button" className="button-secondary" onClick={cancelPlay}>取消</button>
+                <button type="button" className="button-primary" onClick={saveCurrentTake} disabled={gameplay.recordedActions.length === 0}>结束并保存 Take</button>
               </div>
             </div>
           )}
-
-          {workspaceMode === 'replay' && gameplay.replayValidation && (
-            <div className="tpt-session-bar play-session-bar" data-mode="replay" data-valid={gameplay.replayValidation.valid ? 'true' : 'false'} data-agent-termination={activeAgentRunSummary?.terminationReason}>
-              <div><strong>{gameplay.replayValidation.valid ? '确定性回放' : 'Take 校验失败'}</strong><small data-agent-clear-summary={activeAgentRunSummary ? 'true' : undefined}>{gameplay.replayValidation.issues[0]?.message ?? (activeAgentRunSummary
-                ? `最大消除 ${activeAgentRunSummary.clearedTileCount}/${activeAgentRunSummary.totalTileCount} · 理论上限 ${activeAgentRunSummary.theoreticalClearableTileCount} · 槽位峰值 ${activeAgentRunSummary.peakTrayOccupancy}/7 · ${activeAgentRunSummary.provedMaximum ? '已达上限' : `${activeAgentRunSummary.expandedStates} 状态内最佳`} · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`
-                : `finalStateHash 一致 · 动作 ${gameplay.replayIndex}/${Math.max(0, gameplay.replayValidation.replay.states.length - 1)}`)}</small></div>
-              <div className="tpt-replay-controls">
-                <button data-action="toggle-replay-autoplay" onClick={toggleReplayAutoPlay}>{replayAutoPlaying ? '暂停' : gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1 ? '重新播放' : '自动播放'}</button>
-                <button onClick={() => { setReplayAutoPlaying(false); gameplay.seekReplay(gameplay.replayIndex - 1); }} disabled={gameplay.replayIndex === 0}>上一步</button>
-                <input type="range" min={0} max={Math.max(0, gameplay.replayValidation.replay.states.length - 1)} value={gameplay.replayIndex} onChange={(event) => { setReplayAutoPlaying(false); gameplay.seekReplay(Number(event.target.value)); }} />
-                <button onClick={() => { setReplayAutoPlaying(false); gameplay.seekReplay(gameplay.replayIndex + 1); }} disabled={gameplay.replayIndex >= gameplay.replayValidation.replay.states.length - 1}>下一步</button>
-              </div>
-            </div>
-          )}
+          </div>
 
         </section>
 
-        <aside className="panel inspector-panel tpt-panel tpt-inspector-panel">
-          <section>
-            <div className="tpt-section-title section-heading"><span>局面状态</span><small>Live</small></div>
-            <div className="render-summary">
-              <div><strong>{tiles.length}</strong><span>牌块</span></div>
-              <div><strong>{liveTrayCount}/7</strong><span>槽位</span></div>
-              <div><strong>{compiledLevel.initialPlayableIds.length}</strong><span>可点</span></div>
-            </div>
-            <p className="empty-copy">
-              {TAPTILE_WORKSPACE_MODES.find((mode) => mode.id === workspaceMode)?.label ?? workspaceMode}
-              {' · '}
-              {liveStatus === 'won' ? '已过关' : liveStatus === 'lost' ? '失败终局' : compiledLevel.validation.valid ? '关卡有效' : '待修复'}
-              {' · '}
-              {selectedDirectorTake ? selectedDirectorTake.name : '尚无 Take'}
-            </p>
-          </section>
-
-          <section className="tpt-blocker-inspector">
-            <div className="tpt-section-title section-heading"><span>关卡与阻挡</span><small>{compiledLevel.validation.valid ? 'VALID' : 'ACTION REQUIRED'}</small></div>
-            <div className="tpt-validation-summary">
-              <strong>{compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length} 错误 · {compiledLevel.validation.issues.filter((issue) => issue.severity === 'warning').length} 警告</strong>
-              <span>{compiledLevel.initialPlayableIds.length} 张初始可点击牌</span>
-            </div>
-            {!compiledLevel.validation.valid && (
-              <div className="tpt-validation-issues">
-                {compiledLevel.validation.issues.filter((issue) => issue.severity !== 'info').slice(0, 8).map((issue, index) => (
-                  <button
-                    key={`${issue.code}-${index}`}
-                    className={`severity-${issue.severity}`}
-                    onClick={() => {
-                      const tileId = issue.objectIds.find((id) => tiles.some((tile) => tile.id === id));
-                      if (tileId) setSelectedIds([tileId]);
-                      setNotice(`${issue.code}：${issue.message}${issue.suggestion ? ` · ${issue.suggestion}` : ''}`);
-                    }}
-                  ><b>{issue.code}</b><span>{issue.message}</span></button>
-                ))}
-              </div>
-            )}
-            {primaryTile && (
-              <div className="tpt-blocker-detail" data-selected-tile={primaryTile.id}>
-                <b>{primaryTile.id}</b>
-                <span>{compiledLevel.initialBlockerCount[primaryTile.id] ?? 0} 个上层 blocker</span>
-                <small>阻挡它：{(compiledLevel.blockersByTile[primaryTile.id] ?? []).join('、') || '无'}</small>
-                <small>它阻挡：{(compiledLevel.dependentsByTile[primaryTile.id] ?? []).join('、') || '无'}</small>
-              </div>
-            )}
-            {selectedIds.length === 2 && (
-              <div className="tpt-override-actions">
-                <button onClick={() => updatePairOverride('ignored')}>忽略两牌阻挡</button>
-                <button onClick={() => updatePairOverride('forced')}>强制高层阻挡低层</button>
-              </div>
-            )}
-          </section>
-
-          <section>
-            <div className="tpt-section-title section-heading"><span>表现基线</span><small>Renderer</small></div>
-            <label className="tpt-field field-stack">
-              <span>渲染模式</span>
-              <select disabled value="fixed-camera-cinematic">
-                <option value="fixed-camera-cinematic">固定机位 Cinematic</option>
-              </select>
-              <small>设计坐标 432×768，映射到 1080×1920。左侧改牌面，中间堆叠编辑，右侧导出成片。</small>
-            </label>
-            <div className="tpt-toggle-row">
-              <label><input disabled={workspaceMode !== 'edit'} type="checkbox" checked={project.authoring.snap} onChange={(event) => setAuthoringOption('snap', event.target.checked)} /><span>智能吸附</span></label>
-              <label><input disabled={workspaceMode !== 'edit'} type="checkbox" checked={project.authoring.showLayerBadges} onChange={(event) => setAuthoringOption('showLayerBadges', event.target.checked)} /><span>显示层数</span></label>
-            </div>
-          </section>
-
-          <section>
-            <div className="tpt-section-title section-heading"><span>导演节奏</span><small>Rhythm</small></div>
-            <label className="tpt-field field-stack">
-              <span>Director Profile</span>
-              <select
-                data-director-profile
-                disabled={workspaceMode === 'play'}
-                value={project.director.selectedProfileId}
-                onChange={(event) => setDirectorProfile(event.target.value)}
-              >
-                {Object.values(project.director.profiles).map((profile) => (
-                  <option key={profile.id} value={profile.id}>{profile.name}</option>
-                ))}
-              </select>
-            </label>
-          </section>
-
-          <section>
-            <div className="tpt-section-title section-heading"><span>确定性</span><small>Seed</small></div>
-            <label className="tpt-field field-stack">
-              <span>局面随机种子</span>
-              <input
-                type="number"
-                min={0}
-                max={2_147_483_647}
-                step={1}
-                value={project.director.seed}
-                disabled={workspaceMode === 'play' || workspaceMode === 'export'}
-                onChange={(event) => setDirectorSeed(Number(event.currentTarget.value))}
-              />
-            </label>
-          </section>
-
-          <section
-            className="export-section tpt-export-panel"
-            data-export-phase={tapTileExportProgress?.phase ?? 'idle'}
-            data-export-frames={tapTileExportResult?.frameCount ?? 0}
-            data-export-bytes={tapTileExportResult?.bytes ?? 0}
-            data-export-duration={tapTileExportResult?.durationSeconds ?? 0}
-            data-export-verified-frame={tapTileExportResult?.verifiedFrame ?? -1}
-            data-export-verified-pixel-hash={tapTileExportResult?.verifiedPixelHash ?? ''}
-            data-export-render-identity={tapTileExportResult?.renderIdentityHash ?? ''}
-            data-export-container-verified={tapTileExportResult?.containerVerified ? 'true' : 'false'}
-            data-export-actual-fps={tapTileExportResult?.actualFps ?? 0}
-            data-export-actual-video-bitrate={tapTileExportResult?.actualVideoBitrate ?? 0}
-            data-export-minimum-psnr={tapTileExportResult?.minimumVisualPsnrDb ?? 0}
-            data-preview-parity={directorPreviewReady ? 'ready' : directorPreviewState?.status ?? 'pending'}
-            data-regression-frames={JSON.stringify(renderRegressionFrames)}
-          >
-            <div className="tpt-section-title section-heading"><span>高画质导出</span><small>Chrome offline</small></div>
-            <label className="tpt-field field-stack">
-              <span>质量档</span>
-              <select
-                disabled={workspaceMode === 'play'}
-                value={project.render.quality}
-                onChange={(event) => setRenderQuality(event.currentTarget.value as TapTileProjectV2['render']['quality'])}
-              >
-                <option value="preview">快速预览</option>
-                <option value="standard">标准成片</option>
-                <option value="cinematic">电影档</option>
-              </select>
-            </label>
-            <div className="render-summary">
-              <div><strong>1080×1920</strong><span>分辨率</span></div>
-              <div><strong>{project.render.fps} fps</strong><span>固定帧率</span></div>
-              <div><strong>{compiledDirector ? (compiledDirector.totalFrames / project.render.fps).toFixed(1) : '—'} s</strong><span>成片时长</span></div>
-            </div>
-            {compiledDirector && (
-              <label className="tpt-field field-stack">
-                <span>检查帧</span>
-                <input data-export-preview-seek type="range" min={0} max={compiledDirector.totalFrames - 1} value={directorPresentation?.frameNumber ?? 0} onChange={(event) => setDirectorFrame(Number(event.target.value))} />
-              </label>
-            )}
-            <span className={`tpt-parity-state${directorPreviewReady ? ' is-ready' : ''}`}>
-              {directorPreviewReady ? `当前帧已锁定 · ${directorPreviewState.proof?.pixelHash}` : compiledDirector ? (directorPreviewState?.status === 'error' ? '预览渲染失败' : '先点导演回放锁定画面') : '先保存一次人类或机器试玩 Take'}
-            </span>
-            {tapTileExportProgress && <div className="tpt-export-progress export-progress"><i style={{ width: `${tapTileExportProgress.ratio * 100}%` }} /><span>{tapTileExportProgress.message}</span></div>}
-            {tapTileExportError && <p className="tpt-export-error error-copy">{tapTileExportError}</p>}
-            {tapTileExportResult?.containerVerified && <div className="tpt-encode-verification"><b>✓ MP4 回读验收通过</b><span>{tapTileExportResult.frameCount} 帧 · {tapTileExportResult.actualFps.toFixed(3)}fps · {(tapTileExportResult.actualVideoBitrate / 1_000_000).toFixed(2)} Mbps · 代表帧最低 PSNR {tapTileExportResult.minimumVisualPsnrDb.toFixed(2)} dB</span></div>}
-            <div className="tpt-export-actions">
-              {tapTileExportAbortRef.current
-                ? <button type="button" className="export-button export-button--cancel" data-action="cancel-taptile-export" onClick={cancelTapTileExport}>取消本次渲染</button>
-                : <button type="button" className="export-button" data-action="start-taptile-export" disabled={!compiledDirector || !directorPreviewReady} onClick={() => void beginTapTileExport()}>生成 1080P MP4</button>}
-              {tapTileExportResult && <a data-export-download href={tapTileExportResult.url} download={tapTileExportResult.fileName}>下载 {tapTileExportResult.fileName}</a>}
-            </div>
-          </section>
-
-          {workspaceMode === 'export' && compiledDirector && (
-            <TapTileProductionPanel
-              project={project}
-              level={compiledLevel}
-              onChange={commit}
-              onImport={(next) => {
-                dispatch({ type: 'reset', value: fitProjectBelowTopTray(ensureTapTileProductionDefaults(next)) });
-                setSelectedIds([]);
-                setLayerFocus('all');
-              }}
-              onNotice={setNotice}
-            />
-          )}
-
-          <section className="tpt-selection-section">
-            <div className="tpt-section-title"><span>选中牌块</span><small>{selectedIds.length || 'NONE'}</small></div>
-            {!primaryTile ? (
-              <div className="tpt-empty-selection">
-                <span>◇</span>
-                <strong>点击或拖框选择牌块</strong>
-                <p>Shift 点击/框选可追加；选中后拖动任意一张即可整体移动。</p>
-              </div>
-            ) : (
-              <div className="tpt-selection-controls">
-                <div className="tpt-selected-preview">
-                  <span>{faceGlyph(project, primaryTile.faceId)}</span>
-                  <div><strong>{FACE_LIBRARY.find((face) => face.id === primaryTile.faceId)?.label}</strong><small>{selectedIds.length > 1 ? `同时选中 ${selectedIds.length} 张` : primaryTile.id}</small></div>
-                </div>
-                <div className="tpt-number-grid">
-                  <label><span>X</span><input type="number" value={Math.round(primaryTile.x)} onChange={(event) => {
-                    const delta = Number(event.target.value) - primaryTile.x;
-                    updateSelected((tile) => ({ ...tile, x: tile.x + delta }));
-                  }} /></label>
-                  <label><span>Y</span><input type="number" value={Math.round(primaryTile.y)} onChange={(event) => {
-                    const delta = Number(event.target.value) - primaryTile.y;
-                    updateSelected((tile) => ({ ...tile, y: tile.y + delta }));
-                  }} /></label>
-                  <label><span>层</span><input type="number" min={1} value={primaryTile.layer + 1} onChange={(event) => updateSelected((tile) => ({ ...tile, layer: Number(event.target.value) - 1 }))} /></label>
-                </div>
-                <div className="tpt-layer-stepper">
-                  <button
-                    onClick={() => updateSelected((tile) => ({ ...tile, layer: Math.max(0, tile.layer - 1) }))}
-                    disabled={selectedTiles.every((tile) => tile.layer === 0)}
-                    title="层数减一"
-                  >−</button>
-                  <span><b>第 {primaryTile.layer + 1} 层</b><small>层数越大，显示越靠上</small></span>
-                  <button onClick={() => updateSelected((tile) => ({ ...tile, layer: tile.layer + 1 }))} title="层数加一">＋</button>
-                </div>
-                {selectedIds.length > 1 && (
-                  <div className="tpt-align-tools">
-                    <div><b>多选对齐</b><small>{selectedIds.length} 张牌</small></div>
-                    <div className="tpt-align-grid">
-                      {ALIGNMENT_ACTIONS.map((action) => (
-                        <button
-                          key={action.command}
-                          disabled={selectedIds.length < action.minimum}
-                          onClick={() => alignSelection(action.command, action.label, action.minimum)}
-                          title={action.label}
-                        >{action.shortLabel}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <label className="tpt-range-field">
-                  <span><b>大小</b><output>{Math.round(primaryTile.scale * 100)}%</output></span>
-                  <input type="range" min={55} max={165} value={primaryTile.scale * 100} onChange={(event) => updateSelected((tile) => ({ ...tile, scale: Number(event.target.value) / 100 }))} />
-                </label>
-                <label className="tpt-range-field">
-                  <span><b>旋转</b><output>{Math.round(primaryTile.rotation)}°</output></span>
-                  <input type="range" min={-45} max={45} value={primaryTile.rotation} onChange={(event) => updateSelected((tile) => ({ ...tile, rotation: Number(event.target.value) }))} />
-                </label>
-                <div className="tpt-inspector-buttons">
-                  <button onClick={() => updateSelected((tile) => ({ ...tile, layer: highestLayer + 1 }))}>置于顶层</button>
-                  <button onClick={() => updateSelected((tile) => ({ ...tile, layer: 0 }))}>置于底层</button>
-                  <button onClick={() => updateSelected((tile) => ({ ...tile, locked: !tile.locked }))}>{selectedTiles.every((tile) => tile.locked) ? '解锁' : '锁定'}</button>
-                </div>
-              </div>
-            )}
-          </section>
-        </aside>
+        <TapTileInspector
+          project={project}
+          compiledLevel={compiledLevel}
+          liveTrayCount={liveTrayCount}
+          liveStatus={liveStatus}
+          workspaceMode={workspaceMode}
+          workspaceModeLabel={TAPTILE_WORKSPACE_MODES.find((mode) => mode.id === workspaceMode)?.label ?? workspaceMode}
+          selectedTake={selectedDirectorTake}
+          compiledDirector={compiledDirector}
+          directorFrame={directorPresentation?.frameNumber ?? directorFrame}
+          directorPreviewState={directorPreviewState}
+          directorPreviewReady={directorPreviewReady}
+          primaryTile={primaryTile}
+          selectedIds={selectedIds}
+          highestLayer={highestLayer}
+          setupEditable={workspaceMode === 'edit'}
+          locked={workspaceMode === 'play' || workspaceMode === 'export'}
+          exportProgress={tapTileExportProgress}
+          exportError={tapTileExportError}
+          exportResult={tapTileExportResult}
+          exportRunning={Boolean(tapTileExportAbortRef.current)}
+          renderRegressionFrames={renderRegressionFrames}
+          onDirectorProfile={setDirectorProfile}
+          onDirectorTiming={patchDirectorTiming}
+          onDirectorSeed={setDirectorSeed}
+          onRenderQuality={setRenderQuality}
+          onDirectorFrame={setDirectorFrame}
+          onExportVideo={beginTapTileExport}
+          onCancelExport={cancelTapTileExport}
+          onUpdateSelected={updateSelected}
+          onAlign={alignSelection}
+          onPairOverride={updatePairOverride}
+          onSelectIssueTile={(tileId, message) => {
+            setSelectedIds([tileId]);
+            setNotice(message);
+          }}
+          onSnap={(enabled) => setAuthoringOption('snap', enabled)}
+          onShowLayerBadges={(enabled) => setAuthoringOption('showLayerBadges', enabled)}
+          onCommitProject={commit}
+          onImportProject={(next) => {
+            dispatch({ type: 'reset', value: fitProjectBelowTopTray(ensureTapTileProductionDefaults(next)) });
+            setSelectedIds([]);
+            setLayerFocus('all');
+          }}
+          onNotice={setNotice}
+        />
       </main>
 
-      <section className="timeline" aria-label="导演时间线">
-        {compiledDirector ? (
-          <DirectorTimeline
-            compiled={compiledDirector}
-            currentFrame={directorPresentation?.frameNumber ?? 0}
-            zoom={directorZoom}
-            profiles={project.director.profiles}
-            selectedProfileId={project.director.selectedProfileId}
-            selectedActionId={selectedDirectorActionId}
-            actionOverrides={project.director.actionOverrides}
-            onSeek={setDirectorFrame}
-            onZoom={setDirectorZoom}
-            onProfileChange={setDirectorProfile}
-            onSelectAction={setSelectedDirectorActionId}
-            onTimingOverride={setDirectorTimingOverride}
-            onResetOverride={resetDirectorTimingOverride}
-          />
-        ) : (
+      {compiledDirector ? (
+        <DirectorTimeline
+          compiled={compiledDirector}
+          currentFrame={directorPresentation?.frameNumber ?? 0}
+          playing={directorPlaying}
+          locked={workspaceMode === 'play' || workspaceMode === 'export'}
+          selectedActionId={selectedDirectorActionId}
+          actionOverrides={project.director.actionOverrides}
+          onSeek={setDirectorFrame}
+          onToggle={toggleDirectorPlayback}
+          onSelectAction={setSelectedDirectorActionId}
+          onTimingOverride={setDirectorTimingOverride}
+          onResetOverride={resetDirectorTimingOverride}
+        />
+      ) : (
+        <section className="timeline" aria-label="Replay 事件时间线">
           <div className="timeline-controls">
+            <button type="button" disabled aria-label="播放">▶</button>
             <div>
               <strong>Replay Director</strong>
               <span>尚未选择 Take</span>
             </div>
           </div>
-        )}
-      </section>
+          <div className="timeline-track-wrap">
+            <div className="timeline-ruler">
+              {Array.from({ length: 7 }, (_, index) => (
+                <span key={index} style={{ left: `${(index / 6) * 100}%` }}>0s</span>
+              ))}
+            </div>
+            <div className="timeline-track">
+              <div className="timeline-playhead" style={{ left: '0%' }} />
+            </div>
+          </div>
+        </section>
+      )}
 
       <footer className="status-bar">
         <span className="status-dot" />
-        <strong>{TAPTILE_WORKSPACE_MODES.find((mode) => mode.id === workspaceMode)?.label ?? workspaceMode}</strong>
+        <strong>{{ edit: '编辑牌面', play: '真人试玩', replay: '导演回放', render: '导出成片' }[sessionMode]}</strong>
         <span>{tiles.length} 张牌</span>
         <span>{usedLayers.length} 层</span>
         <span>{overlapPairs} 处遮挡</span>
         {selectedIds.length > 0 && <span>{selectedIds.length} 已选</span>}
         <span className="status-spacer" />
         <span>{autosaveLabel}</span>
+        <span>Canvas 2D</span>
         <span>432×768 → 1080×1920</span>
-        <span>{notice}</span>
       </footer>
     </div>
   );

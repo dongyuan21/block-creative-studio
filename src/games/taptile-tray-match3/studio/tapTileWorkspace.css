@@ -1,0 +1,149 @@
+.taptile-studio .asset-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 8px;
+}
+
+.taptile-studio .asset-panel section {
+  padding: 0 0 8px;
+  margin: 0 0 8px;
+}
+
+.taptile-studio .asset-panel .section-heading {
+  margin-bottom: 6px;
+}
+
+.taptile-studio .asset-panel .preset-card {
+  min-height: 34px;
+  padding: 5px 6px;
+  gap: 6px;
+}
+
+.taptile-studio .asset-panel .preset-card strong {
+  font-size: 10px;
+}
+
+.taptile-studio .takes-section {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: 0;
+  min-height: 0;
+  padding-top: 8px;
+  padding-bottom: 2px;
+  background: var(--panel);
+  box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
+  z-index: 3;
+}
+
+.taptile-studio .inspector-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.taptile-studio .export-section {
+  position: sticky;
+  bottom: 0;
+  margin-bottom: 0;
+  z-index: 4;
+  box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
+}
+
+.taptile-match-grid {
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 6px;
+}
+
+.taptile-match-grid .shape-card {
+  height: auto;
+  min-height: 44px;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 2px 4px;
+}
+
+.taptile-match-preview {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.taptile-match-preview .tpt-tile-visual {
+  transform: scale(0.42);
+}
+
+.taptile-match-grid small {
+  color: var(--muted);
+  font-size: 7px;
+  line-height: 1.1;
+}
+
+.taptile-scene-swatch--deep-ocean { background: linear-gradient(145deg, #3aa0ff, #12325c); }
+.taptile-scene-swatch--sunset { background: linear-gradient(145deg, #ff9a62, #7a2450); }
+.taptile-scene-swatch--candy { background: linear-gradient(145deg, #ff8ad3, #7a4dff); }
+.taptile-scene-swatch--forest { background: linear-gradient(145deg, #7bd389, #1d4a32); }
+
+.taptile-material-swatch--porcelain { background: linear-gradient(145deg, #fff4e4, #d7c4a4); }
+.taptile-material-swatch--ice { background: linear-gradient(145deg, #d9f4ff, #7fb7d6); }
+.taptile-material-swatch--jelly { background: linear-gradient(145deg, #ffb8e0, #8d6bff); }
+.taptile-material-swatch--paper { background: linear-gradient(145deg, #efe6d4, #b7a48a); }
+
+.taptile-selected-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.taptile-selected-copy strong { font-size: 11px; }
+.taptile-selected-copy span { color: var(--muted); font-size: 8px; }
+
+.taptile-issue-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.taptile-issue-list .button-secondary {
+  padding: 4px 7px;
+  font-size: 9px;
+}
+
+.taptile-studio .stage-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.taptile-studio .stage-frame {
+  flex: 1;
+  min-height: 0;
+}
+
+.taptile-studio .tpt-stage-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px 10px;
+}
+
+.taptile-studio .tpt-stage-toolbar button {
+  min-height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 10px;
+}
+
+.taptile-studio .play-session-bar.tpt-session-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  width: min(660px, 96%);
+}

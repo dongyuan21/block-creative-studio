@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createHeadlessPlatform } from '../src/bootstrap/gamePackage';
+import { ensureDefaultHeadlessPlatform } from '../src/bootstrap/headlessBootstrap';
 import {
   TAPTILE_TRAY_MATCH3_GAME_ID,
   tapTileTrayMatch3Package,
@@ -31,6 +32,14 @@ describe('TapTile game package integration', () => {
     expect(definition.runtime.hashState(next)).not.toBe(definition.runtime.hashState(state));
     expect(platform.presentations.require(TAPTILE_TRAY_MATCH3_GAME_ID).gameId).toBe(TAPTILE_TRAY_MATCH3_GAME_ID);
     expect(platform.renderContracts.list().some((item) => item.gameId === TAPTILE_TRAY_MATCH3_GAME_ID)).toBe(true);
+  });
+
+  it('reuses one default headless platform so HMR does not re-register backends', () => {
+    const first = ensureDefaultHeadlessPlatform();
+    const second = ensureDefaultHeadlessPlatform();
+    expect(first).toBe(second);
+    expect(first.games.require(TAPTILE_TRAY_MATCH3_GAME_ID).manifest.gameId).toBe(TAPTILE_TRAY_MATCH3_GAME_ID);
+    expect(first.presentations.require(TAPTILE_TRAY_MATCH3_GAME_ID).gameId).toBe(TAPTILE_TRAY_MATCH3_GAME_ID);
   });
 
   it('exposes the formal layered-planar 7-slot ruleset identity', () => {
