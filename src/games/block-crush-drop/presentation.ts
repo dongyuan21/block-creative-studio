@@ -12,12 +12,34 @@ import { BLOCK_CRUSH_DROP_GAME_ID, BLOCK_CRUSH_DROP_MODULE_VERSION } from './man
 import { cloneCrushWoodBoard, crushWoodRuntime, hashCrushWoodState } from './runtime';
 import { crushWoodActionSchema, crushWoodStateSchema } from './schemas';
 import type {
+  CrushWoodActivePieceFrame,
   CrushWoodDirectorProfile,
   CrushWoodPhase,
+  CrushWoodPieceId,
   CrushWoodPresentationPayload,
   CrushWoodResolution,
   CrushWoodState,
 } from './types';
+
+type CrushWoodCompileInput = Parameters<PresentationCompilerAdapter['compile']>[0];
+
+export interface CrushWoodActionTrack {
+  index: number;
+  startFrame: number;
+  endFrame: number;
+  clearStartFrame: number | null;
+  pieceId: CrushWoodPieceId;
+  clearedRowCount: number;
+}
+
+interface CrushWoodCompileProgram {
+  initialState: CrushWoodState;
+  finalState: CrushWoodState;
+  steps: CompiledCrushWoodStep[];
+  profile: CrushWoodDirectorProfile;
+  totalFrames: number;
+  frameCursor: number;
+}
 
 export const CRUSH_WOOD_PRESENTATION_SCHEMA_ID = 'bcs.block-crush.presentation-frame.v1';
 
@@ -265,24 +287,100 @@ export function crushWoodPayloadFromPacket(packet: PresentationPacket): CrushWoo
   return packet.payload as CrushWoodPresentationPayload;
 }
 
+export function liveCrushWoodPacket(
+  state: CrushWoodState,
+  options: {
+    takeId?: string;
+    fps?: number;
+    phase?: CrushWoodPhase;
+    activePiece?: CrushWoodActivePieceFrame | null;
+  } = {},
+): PresentationPacket {
+  const payload: CrushWoodPresentationPayload = {
+    phase: options.phase ?? 'idle',
+    phaseProgress: 1,
+    actionIndex: state.turn - 1,
+    board: cloneCrushWoodBoard(state.board),
+    beforeBoard: cloneCrushWoodBoard(state.board),
+    placedBoard: cloneCrushWoodBoard(state.board),
+    afterBoard: cloneCrushWoodBoard(state.board),
+    activePiece: options.activePiece ?? null,
+    clearedRows: [],
+    clearedCells: [],
+    collapseMoves: [],
+    queue: [...state.queue],
+    queueIndex: state.queueIndex,
+    score: state.score,
+    scoreDelta: 0,
+    targetScore: state.targetScore,
+    linesCleared: state.linesCleared,
+    remainingTimeMs: state.remainingTimeMs,
+    status: state.status,
+    skinId: state.skinId,
+    debrisSeed: 0,
+  };
+  return {
+    contract: PRESENTATION_PACKET_CONTRACT,
+    contractVersion: PRESENTATION_PACKET_CONTRACT_VERSION,
+    identity: {
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      moduleVersion: BLOCK_CRUSH_DROP_MODULE_VERSION,
+      takeId: options.takeId ?? 'live',
+      frameIndex: 0,
+      fps: options.fps ?? 30,
+      totalFrames: 1,
+      stateHash: hashCrushWoodState(state),
+      presentationHash: stableHash(payload),
+    },
+    semanticEvents: [],
+    feedback: { cameraPunch: 0, screenShake: { x: 0, y: 0 }, exposurePulse: 0 },
+    payloadSchemaId: CRUSH_WOOD_PRESENTATION_SCHEMA_ID,
+    payload,
+  };
+}
+
+function compileCrushWoodProgram(input: CrushWoodCompileInput): CrushWoodCompileProgram {
+  const initialState = crushWoodStateSchema.parse(input.project.initialState.data);
+  const profile = resolveCrushWoodDirectorProfile(input.directorProfile);
+  let cursor = initialState;
+  let frameCursor = profile.leadInFrames;
+  const steps: CompiledCrushWoodStep[] = [];
+  for (const [index, envelope] of input.replay.actions.entries()) {
+    const action = crushWoodActionSchema.parse(envelope.action);
+    const resolution = crushWoodRuntime.resolve(cursor, action, { seed: input.replay.seed, stepIndex: index });
+    const duration = actionDuration(profile, resolution);
+    steps.push({ index, startFrame: frameCursor, endFrame: frameCursor + duration, resolution });
+    cursor = crushWoodRuntime.stateAfter(resolution);
+    frameCursor += duration;
+  }
+  return {
+    initialState,
+    finalState: cursor,
+    steps,
+    profile,
+    frameCursor,
+    totalFrames: Math.max(1, frameCursor + profile.tailFrames),
+  };
+}
+
+export function compileCrushWoodActionTracks(input: CrushWoodCompileInput): CrushWoodActionTrack[] {
+  const program = compileCrushWoodProgram(input);
+  return program.steps.map((step) => ({
+    index: step.index,
+    startFrame: step.startFrame,
+    endFrame: step.endFrame,
+    clearStartFrame: step.resolution.clearedRows.length > 0
+      ? step.startFrame + program.profile.fallFrames + program.profile.impactFrames
+      : null,
+    pieceId: step.resolution.action.pieceId,
+    clearedRowCount: step.resolution.clearedRows.length,
+  }));
+}
+
 export const crushWoodPresentationAdapter: PresentationCompilerAdapter = {
   gameId: BLOCK_CRUSH_DROP_GAME_ID,
   compile(input): CompiledFrameSource {
-    const initialState = crushWoodStateSchema.parse(input.project.initialState.data);
-    const profile = resolveCrushWoodDirectorProfile(input.directorProfile);
-    let cursor = initialState;
-    let frameCursor = profile.leadInFrames;
-    const steps: CompiledCrushWoodStep[] = [];
-    for (const [index, envelope] of input.replay.actions.entries()) {
-      const action = crushWoodActionSchema.parse(envelope.action);
-      const resolution = crushWoodRuntime.resolve(cursor, action, { seed: input.replay.seed, stepIndex: index });
-      const duration = actionDuration(profile, resolution);
-      steps.push({ index, startFrame: frameCursor, endFrame: frameCursor + duration, resolution });
-      cursor = crushWoodRuntime.stateAfter(resolution);
-      frameCursor += duration;
-    }
-    const finalState = cursor;
-    const totalFrames = Math.max(1, frameCursor + profile.tailFrames);
+    const { initialState, finalState, steps, profile, totalFrames, frameCursor } = compileCrushWoodProgram(input);
     const frameSourceHash = stableHash({
       replay: frameReplayIdentity(input.replay, { rhythm: profile, fps: input.fps, totalFrames }),
       initialStateHash: hashCrushWoodState(initialState),

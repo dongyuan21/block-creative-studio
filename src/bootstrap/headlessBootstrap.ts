@@ -7,17 +7,21 @@ import { tapTileTrayMatch3Definition } from '../games/taptile-tray-match3/defini
 import { GameRegistry } from '../game-runtime/gameRegistry';
 import { createHeadlessPlatform, type HeadlessPlatform } from './gamePackage';
 
-let defaultPlatform: HeadlessPlatform | undefined;
+declare global {
+  // Vite HMR re-evaluates this module and would otherwise re-register global
+  // backends/compositions against a still-alive registry.
+  var __bcsDefaultHeadlessPlatform: HeadlessPlatform | undefined;
+}
 
 export function ensureDefaultHeadlessPlatform(): HeadlessPlatform {
-  if (!defaultPlatform) {
-    defaultPlatform = createHeadlessPlatform([
+  if (!globalThis.__bcsDefaultHeadlessPlatform) {
+    globalThis.__bcsDefaultHeadlessPlatform = createHeadlessPlatform([
       blockPlacementPackage,
       tapTileTrayMatch3Package,
       blockCrushDropPackage,
     ]);
   }
-  return defaultPlatform;
+  return globalThis.__bcsDefaultHeadlessPlatform;
 }
 
 export function createDefaultGameRegistry(): GameRegistry {

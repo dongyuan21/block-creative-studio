@@ -336,6 +336,24 @@ export class CrushWoodCanvasScene {
     // The scene owns no external GPU or media resources.
   }
 
+  hitTestCell(clientX: number, clientY: number, rows: number, columns: number): CrushWoodPoint | null {
+    const bounds = this.canvas.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0 || rows <= 0 || columns <= 0) return null;
+    const localX = ((clientX - bounds.left) / bounds.width) * this.logicalWidth;
+    const localY = ((clientY - bounds.top) / bounds.height) * this.logicalHeight;
+    const scale = Math.min(this.logicalWidth / DESIGN_WIDTH, this.logicalHeight / DESIGN_HEIGHT);
+    if (scale <= 0) return null;
+    const offsetX = (this.logicalWidth - DESIGN_WIDTH * scale) / 2;
+    const offsetY = (this.logicalHeight - DESIGN_HEIGHT * scale) / 2;
+    const x = (localX - offsetX) / scale;
+    const y = (localY - offsetY) / scale;
+    if (x < GRID.x || y < GRID.y || x >= GRID.x + GRID.width || y >= GRID.y + GRID.height) return null;
+    const col = Math.floor((x - GRID.x) / (GRID.width / columns));
+    const row = Math.floor((y - GRID.y) / (GRID.height / rows));
+    if (row < 0 || col < 0 || row >= rows || col >= columns) return null;
+    return { row, col };
+  }
+
   private drawBackground(payload: CrushWoodPresentationPayload, palette: Palette): void {
     const context = this.context;
     const gradient = context.createLinearGradient(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT);

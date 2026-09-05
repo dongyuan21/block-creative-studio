@@ -61,15 +61,19 @@ function parseGameState(value: unknown): TapTileGameState {
   };
 }
 
+export const TAPTILE_CONFIG_SCHEMA_ID = 'taptile-tray-match3.project' as const;
+export const TAPTILE_STATE_SCHEMA_ID = 'taptile-tray-match3.state' as const;
+export const TAPTILE_ACTION_SCHEMA_ID = 'taptile-tray-match3.action' as const;
+
 export const tapTileProjectSchema: RuntimeSchema<TapTileProjectV2> = {
-  id: 'taptile-tray-match3.project',
+  id: TAPTILE_CONFIG_SCHEMA_ID,
   version: '2.0.0',
   parse: parseTapTileProjectV2,
   serialize: (value) => structuredClone(value),
 };
 
 export const tapTileRuntimeStateSchema: RuntimeSchema<TapTileRuntimeState> = {
-  id: 'taptile-tray-match3.state',
+  id: TAPTILE_STATE_SCHEMA_ID,
   version: '1.0.0',
   parse(value) {
     const source = object(value, 'state');
@@ -92,7 +96,7 @@ export const tapTileRuntimeStateSchema: RuntimeSchema<TapTileRuntimeState> = {
 };
 
 export const tapTileRuntimeActionSchema: RuntimeSchema<TapTileRuntimeAction> = {
-  id: 'taptile-tray-match3.action',
+  id: TAPTILE_ACTION_SCHEMA_ID,
   version: '1.0.0',
   parse(value) {
     const source = object(value, 'action');

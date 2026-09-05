@@ -38,4 +38,64 @@ describe('studio shell modularization', () => {
     expect(typeof StudioShell).toBe('function');
     expect(registry.get('vita-mahjong-solitaire')?.Workspace).toBeUndefined();
   });
+
+  it('keeps the shared Toolbar on the platform session mode instead of first-game domain types', () => {
+    expect(source('src/components/Toolbar.tsx')).not.toMatch(/domain\/types/);
+    expect(source('src/components/Toolbar.tsx')).toMatch(/StudioSessionMode/);
+  });
+
+  it('hosts Crush Wood in the same studio-app chrome as Block Placement', () => {
+    const crushWorkspace = source('src/games/block-crush-drop/studio/CrushWoodWorkspace.tsx');
+    const crushAssets = source('src/games/block-crush-drop/studio/CrushWoodAssetPanel.tsx');
+    const crushInspector = source('src/games/block-crush-drop/studio/CrushWoodInspector.tsx');
+    const crushCss = source('src/games/block-crush-drop/studio/crushWoodWorkspace.css');
+    const blockWorkspace = source('src/games/block-placement/studio/BlockPlacementWorkspace.tsx');
+
+    expect(blockWorkspace).toMatch(/studio-app/);
+    expect(crushWorkspace).toMatch(/studio-app crush-studio/);
+    expect(crushWorkspace).toMatch(/onEdit=\{studio.enterEdit\}/);
+    expect(crushWorkspace).toMatch(/onPlay=\{studio.beginHumanPlay\}/);
+    expect(crushWorkspace).toMatch(/onAgent=\{studio.runAgent\}/);
+    expect(crushWorkspace).toMatch(/className="timeline"/);
+    expect(crushWorkspace).toMatch(/className="status-bar"/);
+    expect(crushWorkspace).toMatch(/phone-frame/);
+    expect(crushAssets).toMatch(/panel asset-panel/);
+    expect(crushInspector).toMatch(/panel inspector-panel/);
+    expect(crushCss).not.toMatch(/\.crush-workspace\s*\{/);
+    expect(crushCss).not.toMatch(/#160b07/);
+    expect(crushCss).toMatch(/\.crush-studio \.takes-section[\s\S]*position:\s*sticky/);
+    expect(crushCss).toMatch(/height:\s*136px/);
+  });
+
+  it('hosts TapTile in the same studio-app chrome as Block Placement', () => {
+    const tapWorkspace = source('src/games/taptile-tray-match3/studio/TapTileWorkspace.tsx');
+    const tapStudio = source('src/taptile/TapTileStackStudio.tsx');
+    const tapAssets = source('src/games/taptile-tray-match3/studio/TapTileAssetPanel.tsx');
+    const tapInspector = source('src/games/taptile-tray-match3/studio/TapTileInspector.tsx');
+    const tapCss = source('src/games/taptile-tray-match3/studio/tapTileWorkspace.css');
+    const tapLegacyCss = source('src/taptile/taptile-studio.css');
+    const blockWorkspace = source('src/games/block-placement/studio/BlockPlacementWorkspace.tsx');
+
+    expect(blockWorkspace).toMatch(/studio-app/);
+    expect(tapWorkspace).not.toMatch(/onOpenBlockStudio|game-market-card/);
+    expect(tapStudio).toMatch(/studio-app taptile-studio/);
+    expect(tapStudio).toMatch(/onEdit=\{/);
+    expect(tapStudio).toMatch(/onPlay=\{beginPlay\}/);
+    expect(tapStudio).toMatch(/onAgent=\{/);
+    expect(tapStudio).toMatch(/className="status-bar"/);
+    expect(source('src/taptile/director/DirectorTimeline.tsx')).toMatch(/className="timeline"/);
+    expect(tapStudio).toMatch(/phone-frame/);
+    expect(tapStudio).toMatch(/stage-header/);
+    expect(tapStudio).toMatch(/studio-workspace/);
+    expect(tapStudio).not.toMatch(/tpt-workspace/);
+    expect(tapStudio).not.toMatch(/Block Studio/);
+    expect(tapAssets).toMatch(/panel asset-panel/);
+    expect(tapAssets).toMatch(/试玩 Take/);
+    expect(tapInspector).toMatch(/panel inspector-panel/);
+    expect(tapInspector).toMatch(/高画质导出/);
+    expect(tapCss).toMatch(/\.taptile-studio \.takes-section[\s\S]*position:\s*sticky/);
+    expect(tapCss).toMatch(/\.taptile-studio \.export-section[\s\S]*position:\s*sticky/);
+    expect(tapLegacyCss).not.toMatch(/min-height:\s*100vh/);
+    expect(tapLegacyCss).not.toMatch(/\.tpt-inspector-panel \{ display: none/);
+  });
 });
