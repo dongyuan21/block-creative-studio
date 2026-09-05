@@ -5,8 +5,13 @@ import { blockCrushDropPackage } from '../../../src/games/block-crush-drop/packa
 import {
   CRUSH_WOOD_PRESENTATION_SCHEMA_ID,
   crushWoodPayloadFromPacket,
+  DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE,
 } from '../../../src/games/block-crush-drop/presentation';
-import { createCrushWoodReferenceDocument, CRUSH_WOOD_REFERENCE_TAKE_ID } from '../../../src/games/block-crush-drop/project';
+import {
+  compileCrushWoodStudioSession,
+  createCrushWoodReferenceDocument,
+  CRUSH_WOOD_REFERENCE_TAKE_ID,
+} from '../../../src/games/block-crush-drop/project';
 
 describe('Crush Wood project and presentation contract', () => {
   it('validates as Studio Project V2 and compiles deterministic phase packets', () => {
@@ -47,5 +52,28 @@ describe('Crush Wood project and presentation contract', () => {
     expect(final.status).toBe('won');
     expect(final.score).toBe(900);
     expect(final.linesCleared).toBe(9);
+  });
+
+  it('emits nine director tracks aligned with the reference clear sequence', () => {
+    const session = compileCrushWoodStudioSession();
+    expect(session.tracks).toHaveLength(9);
+    expect(session.tracks.map((track) => track.clearedRowCount)).toEqual([2, 1, 1, 1, 1, 0, 1, 1, 1]);
+    expect(session.tracks[5]?.clearStartFrame).toBeNull();
+    expect(session.tracks[0]?.clearStartFrame).toBeGreaterThan(session.tracks[0]!.startFrame);
+    expect(session.document.takes[0]?.takeId).toBe(CRUSH_WOOD_REFERENCE_TAKE_ID);
+  });
+
+  it('persists custom name, seed, rhythm and quality into the Studio Project V2 document', () => {
+    const document = createCrushWoodReferenceDocument('classic-maple', {
+      name: 'Maple Director',
+      seed: 12,
+      quality: 'preview',
+      directorProfile: { ...DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE, fallFrames: 20 },
+    });
+    expect(document.name).toBe('Maple Director');
+    expect(document.takes[0]?.seed).toBe(12);
+    expect(document.production.output.quality).toBe('preview');
+    expect((document.direction?.rhythm as { fallFrames: number }).fallFrames).toBe(20);
+    expect(document.game.config.data).toMatchObject({ skinId: 'classic-maple' });
   });
 });

@@ -17,7 +17,11 @@ import {
   BLOCK_CRUSH_DROP_MODULE_VERSION,
   BLOCK_CRUSH_DROP_RULESET_ID,
 } from './manifest';
-import { crushWoodPresentationAdapter, DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE } from './presentation';
+import {
+  compileCrushWoodActionTracks,
+  crushWoodPresentationAdapter,
+  DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE,
+} from './presentation';
 import { crushWoodRuntime, hashCrushWoodState } from './runtime';
 import {
   CRUSH_WOOD_ACTION_SCHEMA_ID,
@@ -57,17 +61,26 @@ export function createCrushWoodReferenceReplay(
   };
 }
 
+export interface CrushWoodReferenceDocumentOptions {
+  name?: string;
+  seed?: number;
+  directorProfile?: CrushWoodDirectorProfile;
+  quality?: 'preview' | 'standard' | 'cinematic';
+}
+
 export function createCrushWoodReferenceDocument(
   skinId: CrushWoodSkinId = 'golden-embossed',
+  options: CrushWoodReferenceDocumentOptions = {},
 ): StudioProjectDocumentV2 {
+  const seed = options.seed ?? 29_980;
   const config = createCrushWoodReferenceConfig(skinId);
-  const initialState = crushWoodRuntime.createInitialState(config, 29_980);
+  const initialState = crushWoodRuntime.createInitialState(config, seed);
   const initialStateHash = hashCrushWoodState(initialState);
   return {
     format: STUDIO_PROJECT_V2_FORMAT,
     version: STUDIO_PROJECT_V2_VERSION,
     id: `crush-wood-${skinId}`,
-    name: `Crush Wooood · ${skinId}`,
+    name: options.name ?? `Crush Wooood · ${skinId}`,
     game: {
       contract: GAME_PROJECT_CONTRACT,
       contractVersion: GAME_PROJECT_CONTRACT_VERSION,
@@ -91,11 +104,11 @@ export function createCrushWoodReferenceDocument(
       layoutProfileRef: { id: 'layout.crush-wood.vertical-9x16', version: '1.0.0', kind: 'ui-theme' },
       cameraProfileRef: { id: 'camera.crush-wood.reference-fixed', version: '1.0.0', kind: 'camera-profile' },
       lookPackRef: { id: `look.crush-wood.${skinId}`, version: '1.0.0', kind: 'look-pack' },
-      output: { width: 1080, height: 1920, fps: 30, quality: 'cinematic' },
+      output: { width: 1080, height: 1920, fps: 30, quality: options.quality ?? 'cinematic' },
     },
-    takes: [createCrushWoodReferenceReplay(initialStateHash)],
+    takes: [createCrushWoodReferenceReplay(initialStateHash, seed)],
     direction: {
-      rhythm: { ...DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE },
+      rhythm: { ...(options.directorProfile ?? DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE) },
       style: { skinId, camera: 'reference-fixed', fracture: 'wood-chips' },
     },
   };
@@ -106,13 +119,27 @@ export function compileCrushWoodReferenceFrameSource(
   directorProfile: CrushWoodDirectorProfile = DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE,
   fps = 30,
 ): CompiledFrameSource {
-  const document = createCrushWoodReferenceDocument(skinId);
+  return compileCrushWoodStudioSession(skinId, { directorProfile, fps }).frameSource;
+}
+
+export function compileCrushWoodStudioSession(
+  skinId: CrushWoodSkinId = 'golden-embossed',
+  options: CrushWoodReferenceDocumentOptions & { fps?: number } = {},
+) {
+  const fps = options.fps ?? 30;
+  const directorProfile = options.directorProfile ?? DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE;
+  const document = createCrushWoodReferenceDocument(skinId, { ...options, directorProfile });
   const replay = document.takes[0];
   if (!replay) throw new Error('Crush Wood reference document must contain one take.');
-  return crushWoodPresentationAdapter.compile({
+  const input = {
     project: document.game,
     replay,
     directorProfile,
     fps,
-  });
+  };
+  return {
+    document,
+    frameSource: crushWoodPresentationAdapter.compile(input),
+    tracks: compileCrushWoodActionTracks(input),
+  };
 }

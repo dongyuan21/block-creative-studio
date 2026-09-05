@@ -1,56 +1,21 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { executeVideoRenderJob, type RenderProgress } from '../../../rendering/renderJob';
-import { downloadBlob } from '../../../utils/download';
-import { CRUSH_WOOD_SKINS } from '../levels';
-import { compileCrushWoodReferenceFrameSource, createCrushWoodReferenceDocument } from '../project';
-import { crushWoodPayloadFromPacket } from '../presentation';
-import { createCrushWoodCinematicBackendAdapter } from '../render/cinematicBackendAdapter';
+import { useEffect, useRef } from 'react';
+import { Toolbar } from '../../../components/Toolbar';
+import { CRUSH_WOOD_REFERENCE_TAKE_ID } from '../project';
 import { CrushWoodCanvasScene } from '../render/CrushWoodCanvasScene';
-import type { CrushWoodPhase, CrushWoodSkinId } from '../types';
+import { CrushWoodAssetPanel } from './CrushWoodAssetPanel';
+import { CrushWoodInspector } from './CrushWoodInspector';
+import { CRUSH_WOOD_PHASE_LABELS, CRUSH_WOOD_STUDIO_FPS, useCrushWoodModel } from './useCrushWoodModel';
 import './crushWoodWorkspace.css';
 
-const FPS = 30;
-
-const PHASE_LABELS: Record<CrushWoodPhase, string> = {
-  idle: '待机',
-  fall: '落块',
-  impact: '撞击',
-  crush: '粉碎',
-  collapse: '坍落',
-  settle: '稳定',
-  outcome: '结算',
-};
-
-function progressLabel(progress: RenderProgress | null): string {
-  if (!progress) return '导出 1080×1920 MP4';
-  if (progress.phase === 'done') return '视频已生成';
-  return `${progress.message} ${Math.round(progress.ratio * 100)}%`;
-}
-
 export function CrushWoodWorkspace() {
-  const [skinId, setSkinId] = useState<CrushWoodSkinId>('golden-embossed');
-  const [frame, setFrame] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [exporting, setExporting] = useState(false);
-  const [renderProgress, setRenderProgress] = useState<RenderProgress | null>(null);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const studio = useCrushWoodModel();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const sceneRef = useRef<CrushWoodCanvasScene | null>(null);
-  const playbackStartedAt = useRef<number | null>(null);
-  const playbackStartedFrame = useRef(0);
-
-  const frameSource = useMemo(() => compileCrushWoodReferenceFrameSource(skinId), [skinId]);
-  const packet = useMemo(() => frameSource.evaluate(frame), [frameSource, frame]);
-  const payload = useMemo(() => crushWoodPayloadFromPacket(packet), [packet]);
-
-  const drawFrame = useCallback(() => {
-    sceneRef.current?.renderAt(frameSource.evaluate(frame));
-  }, [frame, frameSource]);
-
-  useEffect(() => {
-    setFrame(0);
-    playbackStartedAt.current = null;
-  }, [frameSource]);
+  const frameSourceRef = useRef(studio.frameSource);
+  const frameRef = useRef(studio.frame);
+  const totalFrames = studio.frameSource.totalFrames;
+  frameSourceRef.current = studio.frameSource;
+  frameRef.current = studio.frame;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -60,7 +25,7 @@ export function CrushWoodWorkspace() {
     const resize = (): void => {
       const bounds = canvas.getBoundingClientRect();
       scene.resize(Math.max(1, bounds.width), Math.max(1, bounds.height), window.devicePixelRatio || 1);
-      scene.renderAt(frameSource.evaluate(frame));
+      scene.renderAt(frameSourceRef.current.evaluate(frameRef.current));
     };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
@@ -70,213 +35,168 @@ export function CrushWoodWorkspace() {
       scene.dispose();
       sceneRef.current = null;
     };
-  }, [frameSource]);
+  }, [studio.frameSource]);
 
   useEffect(() => {
-    drawFrame();
-  }, [drawFrame]);
-
-  useEffect(() => {
-    if (!playing || exporting) {
-      playbackStartedAt.current = null;
-      return undefined;
-    }
-    let animationFrame = 0;
-    const tick = (now: number): void => {
-      if (playbackStartedAt.current === null) {
-        playbackStartedAt.current = now;
-        playbackStartedFrame.current = frame;
-      }
-      const elapsedFrames = Math.floor(((now - playbackStartedAt.current) / 1_000) * FPS);
-      const next = playbackStartedFrame.current + elapsedFrames;
-      if (next >= frameSource.totalFrames) {
-        setFrame(frameSource.totalFrames - 1);
-        setPlaying(false);
-        playbackStartedAt.current = null;
-        return;
-      }
-      setFrame(next);
-      animationFrame = requestAnimationFrame(tick);
-    };
-    animationFrame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [exporting, frame, frameSource.totalFrames, playing]);
-
-  const seek = (next: number): void => {
-    setFrame(Math.max(0, Math.min(frameSource.totalFrames - 1, Math.round(next))));
-    playbackStartedAt.current = null;
-  };
-
-  const togglePlayback = (): void => {
-    if (frame >= frameSource.totalFrames - 1) setFrame(0);
-    setPlaying((value) => !value);
-    playbackStartedAt.current = null;
-  };
-
-  const nextBeat = (): void => {
-    const currentPhase = payload.phase;
-    for (let candidate = frame + 1; candidate < frameSource.totalFrames; candidate += 1) {
-      const nextPayload = crushWoodPayloadFromPacket(frameSource.evaluate(candidate));
-      if (nextPayload.phase !== currentPhase) {
-        seek(candidate);
-        setPlaying(false);
-        return;
-      }
-    }
-    seek(frameSource.totalFrames - 1);
-    setPlaying(false);
-  };
-
-  const exportProject = (): void => {
-    const document = createCrushWoodReferenceDocument(skinId);
-    downloadBlob(
-      new Blob([JSON.stringify(document, null, 2)], { type: 'application/json' }),
-      `crush-wood-${skinId}.bcs.json`,
-    );
-  };
-
-  const exportVideo = async (): Promise<void> => {
-    setPlaying(false);
-    setExporting(true);
-    setExportError(null);
-    setRenderProgress(null);
-    try {
-      const result = await executeVideoRenderJob({
-        frameSource,
-        backend: createCrushWoodCinematicBackendAdapter(),
-        output: { width: 1080, height: 1920, fps: FPS, quality: 'cinematic' },
-        projectName: 'Crush Wooood',
-        takeName: `${skinId}-reference`,
-        resourcePolicy: {
-          mode: 'procedural-no-assets',
-          reason: 'Crush Wood reference skin is generated deterministically by its game-owned cinematic renderer.',
-        },
-        onProgress: setRenderProgress,
-      });
-      downloadBlob(result.blob, result.fileName);
-    } catch (error) {
-      setExportError(error instanceof Error ? error.message : String(error));
-    } finally {
-      setExporting(false);
-    }
-  };
+    sceneRef.current?.renderAt(studio.frameSource.evaluate(studio.frame));
+  }, [studio.frame, studio.frameSource]);
 
   return (
-    <div className="crush-workspace">
-      <header className="crush-workspace__header">
-        <div>
-          <span className="crush-eyebrow">REFERENCE-DRIVEN GAME PACKAGE</span>
-          <h1>Crush Wooood!</h1>
-          <p>21×34 预制木块关卡 · 纵向落块 · 满行粉碎 · 上层坍落 · 确定性视频导出</p>
-        </div>
-        <div className="crush-workspace__header-actions">
-          <button type="button" className="button-secondary" onClick={exportProject}>导出 BCS JSON</button>
-          <button type="button" className="button-primary" onClick={() => void exportVideo()} disabled={exporting}>
-            {progressLabel(renderProgress)}
-          </button>
-        </div>
-      </header>
+    <div className="studio-app crush-studio">
+      <Toolbar
+        projectName={studio.projectName}
+        mode={studio.mode}
+        hasTake
+        editEnabled={false}
+        playEnabled={false}
+        agentEnabled={false}
+        onProjectName={studio.setProjectName}
+        onEdit={() => undefined}
+        onPlay={() => undefined}
+        onReplay={() => undefined}
+        onAgent={() => undefined}
+        onExportProject={studio.exportProject}
+        onImportProject={studio.importProject}
+      />
 
-      <main className="crush-workspace__body">
-        <aside className="crush-panel crush-panel--left">
-          <section>
-            <span className="crush-panel__label">REFERENCE SKIN</span>
-            <div className="crush-skin-list">
-              {CRUSH_WOOD_SKINS.map((skin) => (
-                <button
-                  type="button"
-                  key={skin.id}
-                  className={`crush-skin-card${skin.id === skinId ? ' is-active' : ''}`}
-                  onClick={() => setSkinId(skin.id)}
-                >
-                  <span className={`crush-skin-swatch crush-skin-swatch--${skin.id}`} />
-                  <span>
-                    <strong>{skin.label}</strong>
-                    <small>{skin.description}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+      <main className="studio-workspace">
+        <CrushWoodAssetPanel
+          skinId={studio.skinId}
+          queue={studio.payload.queue}
+          queueIndex={studio.payload.queueIndex}
+          takeName={CRUSH_WOOD_REFERENCE_TAKE_ID}
+          actionCount={studio.tracks.length}
+          seed={studio.seed}
+          locked={studio.locked}
+          onSkinId={studio.setSkinId}
+        />
 
-          <section className="crush-contract-card">
-            <span className="crush-panel__label">GAME CONTRACT</span>
-            <dl>
-              <div><dt>Topology</dt><dd>21 × 34 Grid</dd></div>
-              <div><dt>Rule</dt><dd>Drop → Full Row → Collapse</dd></div>
-              <div><dt>Score</dt><dd>100 / line</dd></div>
-              <div><dt>Replay</dt><dd>9 deterministic actions</dd></div>
-              <div><dt>Output</dt><dd>1080 × 1920 · 30 fps</dd></div>
-            </dl>
-          </section>
-        </aside>
-
-        <section className="crush-stage-column">
-          <div className="crush-stage-toolbar">
+        <section className="stage-column">
+          <div className="stage-header">
             <div>
-              <strong>{PHASE_LABELS[payload.phase]}</strong>
-              <span>Frame {frame + 1} / {frameSource.totalFrames}</span>
+              <span className="eyebrow">REFERENCE-FIRST CREATIVE CANVAS</span>
+              <h1>导演与固定帧重放</h1>
             </div>
-            <div className="crush-stage-toolbar__buttons">
-              <button type="button" className="button-secondary" onClick={() => seek(0)}>重置</button>
-              <button type="button" className="button-primary" onClick={togglePlayback}>{playing ? '暂停' : '播放'}</button>
-              <button type="button" className="button-secondary" onClick={nextBeat}>下一节拍</button>
+            <div className="stage-metrics">
+              <span><strong>21×34</strong>棋盘</span>
+              <span><strong>{studio.payload.queue.length}</strong>候选块</span>
+              <span><strong>{studio.tracks.length}</strong>动作</span>
             </div>
           </div>
 
-          <div className="crush-phone-shell">
-            <canvas ref={canvasRef} className="crush-canvas" aria-label="Crush Wood deterministic preview" />
-          </div>
-
-          <div className="crush-timeline">
-            <input
-              type="range"
-              min={0}
-              max={frameSource.totalFrames - 1}
-              value={frame}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => {
-                setPlaying(false);
-                seek(Number(event.currentTarget.value));
-              }}
-              aria-label="Crush Wood playback frame"
-            />
-            <div className="crush-timeline__ticks">
-              <span>START</span>
-              <span>DROP</span>
-              <span>CRUSH</span>
-              <span>COLLAPSE</span>
-              <span>OUTCOME</span>
+          <div className="stage-frame">
+            <div className="phone-frame">
+              <div className="viewport-shell">
+                <div className="viewport-badges">
+                  <span>{CRUSH_WOOD_PHASE_LABELS[studio.payload.phase]}</span>
+                  <span>{studio.frame + 1} / {totalFrames}</span>
+                </div>
+                <canvas
+                  ref={canvasRef}
+                  className="studio-canvas crush-studio-canvas"
+                  aria-label="Crush Wood deterministic preview"
+                />
+              </div>
+            </div>
+            <div className="stage-callout">
+              <strong>先看参考 Take，再导出。</strong>
+              <span>左侧选择外观与队列；右侧调节节奏并生成 1080×1920 MP4。</span>
             </div>
           </div>
         </section>
 
-        <aside className="crush-panel crush-panel--right">
-          <section className="crush-live-card">
-            <span className="crush-panel__label">LIVE STATE</span>
-            <div className="crush-score">{payload.score}</div>
-            <span className="crush-score__caption">SCORE / {payload.targetScore}</span>
-            <div className="crush-progress-track"><span style={{ width: `${Math.min(100, payload.score / payload.targetScore * 100)}%` }} /></div>
-            <dl>
-              <div><dt>Phase</dt><dd>{PHASE_LABELS[payload.phase]}</dd></div>
-              <div><dt>Action</dt><dd>{Math.max(0, payload.actionIndex + 1)} / 9</dd></div>
-              <div><dt>Lines</dt><dd>{payload.linesCleared}</dd></div>
-              <div><dt>Queue</dt><dd>{payload.queue[payload.queueIndex % payload.queue.length] ?? '—'}</dd></div>
-              <div><dt>Time</dt><dd>{Math.ceil(payload.remainingTimeMs / 1_000)}s</dd></div>
-              <div><dt>Status</dt><dd>{payload.status}</dd></div>
-            </dl>
-          </section>
-
-          <section className="crush-quality-card">
-            <span className="crush-panel__label">PIXEL REGRESSION ANCHORS</span>
-            <p>设计坐标 720×1280，经 1.5× 映射到附件的 1080×1920。</p>
-            <code>well: (16,140) 688×1125</code>
-            <code>cell: 32.76×33.09</code>
-            <code>seed: 29980</code>
-          </section>
-
-          {exportError && <div className="crush-error" role="alert">{exportError}</div>}
-        </aside>
+        <CrushWoodInspector
+          payload={studio.payload}
+          skinId={studio.skinId}
+          seed={studio.seed}
+          directorProfile={studio.directorProfile}
+          quality={studio.quality}
+          totalFrames={totalFrames}
+          fps={CRUSH_WOOD_STUDIO_FPS}
+          locked={studio.locked}
+          exportState={studio.exportState}
+          onSeed={studio.setSeed}
+          onDirectorProfile={studio.setDirectorProfile}
+          onQuality={studio.setQuality}
+          onExportVideo={studio.exportVideo}
+          onCancelExport={studio.cancelExport}
+        />
       </main>
+
+      <section className="timeline" aria-label="Replay 事件时间线">
+        <div className="timeline-controls">
+          <button
+            type="button"
+            onClick={studio.togglePlayback}
+            disabled={studio.locked}
+            aria-label={studio.playing ? '暂停' : '播放'}
+          >
+            {studio.playing ? 'Ⅱ' : '▶'}
+          </button>
+          <div>
+            <strong>Replay Director</strong>
+            <span>
+              {(studio.frame / CRUSH_WOOD_STUDIO_FPS).toFixed(2)}
+              {' / '}
+              {(totalFrames / CRUSH_WOOD_STUDIO_FPS).toFixed(2)} 秒
+            </span>
+          </div>
+        </div>
+        <div className="timeline-track-wrap">
+          <div className="timeline-ruler">
+            {Array.from({ length: 7 }, (_, index) => (
+              <span key={index} style={{ left: `${(index / 6) * 100}%` }}>
+                {((totalFrames / CRUSH_WOOD_STUDIO_FPS) * (index / 6)).toFixed(1)}s
+              </span>
+            ))}
+          </div>
+          <div className="timeline-track">
+            {studio.tracks.map((track) => {
+              const left = (track.startFrame / totalFrames) * 100;
+              const width = Math.max(1.2, ((track.endFrame - track.startFrame) / totalFrames) * 100);
+              const clearLeft = track.clearStartFrame === null
+                ? null
+                : ((track.clearStartFrame - track.startFrame) / Math.max(1, track.endFrame - track.startFrame)) * 100;
+              return (
+                <button
+                  key={track.index}
+                  type="button"
+                  className="timeline-action"
+                  style={{ left: `${left}%`, width: `${width}%` }}
+                  disabled={studio.locked}
+                  onClick={() => studio.seek(track.startFrame)}
+                  title={`第 ${track.index + 1} 步 · ${track.pieceId}`}
+                >
+                  <span>{track.index + 1}</span>
+                  {clearLeft !== null && <i style={{ left: `${Math.min(92, Math.max(5, clearLeft))}%` }} />}
+                </button>
+              );
+            })}
+            <div className="timeline-playhead" style={{ left: `${(studio.frame / totalFrames) * 100}%` }} />
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, totalFrames - 1)}
+            value={Math.min(studio.frame, totalFrames - 1)}
+            disabled={studio.locked}
+            onChange={(event) => studio.seek(Number(event.currentTarget.value))}
+            aria-label="回放帧"
+          />
+        </div>
+      </section>
+
+      <footer className="status-bar">
+        <span className="status-dot" />
+        <strong>导演回放</strong>
+        <span>回合 {Math.max(0, studio.payload.actionIndex + 1)}</span>
+        <span>得分 {studio.payload.score}</span>
+        <span>消行 {studio.payload.linesCleared}</span>
+        <span className="status-spacer" />
+        <span>Canvas 2D</span>
+        <span>固定时间步</span>
+        <span>Schema 1.0.0</span>
+      </footer>
     </div>
   );
 }

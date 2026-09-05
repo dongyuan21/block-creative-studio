@@ -38,4 +38,28 @@ describe('studio shell modularization', () => {
     expect(typeof StudioShell).toBe('function');
     expect(registry.get('vita-mahjong-solitaire')?.Workspace).toBeUndefined();
   });
+
+  it('keeps the shared Toolbar on the platform session mode instead of first-game domain types', () => {
+    expect(source('src/components/Toolbar.tsx')).not.toMatch(/domain\/types/);
+    expect(source('src/components/Toolbar.tsx')).toMatch(/StudioSessionMode/);
+  });
+
+  it('hosts Crush Wood in the same studio-app chrome as Block Placement', () => {
+    const crushWorkspace = source('src/games/block-crush-drop/studio/CrushWoodWorkspace.tsx');
+    const crushAssets = source('src/games/block-crush-drop/studio/CrushWoodAssetPanel.tsx');
+    const crushInspector = source('src/games/block-crush-drop/studio/CrushWoodInspector.tsx');
+    const crushCss = source('src/games/block-crush-drop/studio/crushWoodWorkspace.css');
+    const blockWorkspace = source('src/games/block-placement/studio/BlockPlacementWorkspace.tsx');
+
+    expect(blockWorkspace).toMatch(/studio-app/);
+    expect(crushWorkspace).toMatch(/studio-app crush-studio/);
+    expect(crushWorkspace).toMatch(/<Toolbar/);
+    expect(crushWorkspace).toMatch(/className="timeline"/);
+    expect(crushWorkspace).toMatch(/className="status-bar"/);
+    expect(crushWorkspace).toMatch(/phone-frame/);
+    expect(crushAssets).toMatch(/panel asset-panel/);
+    expect(crushInspector).toMatch(/panel inspector-panel/);
+    expect(crushCss).not.toMatch(/\.crush-workspace\s*\{/);
+    expect(crushCss).not.toMatch(/#160b07/);
+  });
 });
