@@ -2,13 +2,18 @@
   cursor: default;
 }
 
+.crush-studio .asset-panel .preset-card {
+  min-height: 44px;
+}
+
 .crush-board-mini {
   display: grid;
   grid-template-columns: repeat(21, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 11px;
-  padding: 7px;
-  aspect-ratio: 21 / 34;
+  width: 126px;
+  height: 204px;
+  margin-top: 10px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: #111521;
@@ -37,13 +42,11 @@
   background-size: 10px 10px;
 }
 
-.crush-piece-id {
-  align-self: center;
-  color: var(--muted);
-  font-size: 8px;
-  letter-spacing: 0.04em;
-}
-
 .crush-take-row {
   grid-template-columns: minmax(0, 1fr);
+}
+
+.crush-studio .shape-card.is-active {
+  border-color: rgba(125, 117, 255, 0.75);
+  background: rgba(125, 117, 255, 0.12);
 }

@@ -104,18 +104,17 @@ export function CrushWoodAssetPanel({
           <span>落块队列</span>
           <small>Piece queue</small>
         </div>
-        <div className="piece-slots">
+        <div className="shape-grid">
           {queue.map((pieceId, index) => (
-            <div
+            <button
               key={`${pieceId}-${index}`}
-              className={index === queueIndex % queue.length ? 'piece-slot is-active' : 'piece-slot'}
+              type="button"
+              className={index === queueIndex % queue.length ? 'shape-card is-active' : 'shape-card'}
+              disabled
+              title={`第 ${index + 1} 块 · ${pieceId}`}
             >
-              <button type="button" className="piece-slot__select" disabled>
-                <CrushPieceMini pieceId={pieceId} />
-                <span>槽位 {index + 1}</span>
-              </button>
-              <span className="crush-piece-id">{pieceId}</span>
-            </div>
+              <CrushPieceMini pieceId={pieceId} compact />
+            </button>
           ))}
         </div>
       </section>

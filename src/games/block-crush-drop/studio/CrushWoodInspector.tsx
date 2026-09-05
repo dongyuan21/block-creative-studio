@@ -100,7 +100,7 @@ export function CrushWoodInspector({
           <select disabled value="fixed-camera-cinematic">
             <option value="fixed-camera-cinematic">固定机位 Cinematic</option>
           </select>
-          <small>Crush Wooood 使用游戏自有确定性 2.5D 木块后端，不进入 Block Placement 的 Three.js 材质链。</small>
+          <small>Crush Wooood 使用游戏自有确定性 2.5D 木块后端，输出锁定 1080×1920。</small>
         </label>
         <div className="lookdev-status-card">
           <strong>{skinId}</strong>
