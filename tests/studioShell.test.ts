@@ -88,5 +88,6 @@ describe('studio shell modularization', () => {
     expect(tapStudio).not.toMatch(/Block Studio/);
     expect(tapCss).not.toMatch(/min-height:\s*100vh/);
     expect(tapCss).toMatch(/\.taptile-studio \.takes-section[\s\S]*position:\s*sticky/);
+    expect(tapCss).toMatch(/\.taptile-studio \.tpt-export-panel\.export-section[\s\S]*position:\s*sticky/);
   });
 });

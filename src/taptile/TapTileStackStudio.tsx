@@ -1889,20 +1889,21 @@ export function TapTileStackStudio() {
               <strong>{compiledLevel.validation.issues.filter((issue) => issue.severity === 'error').length} 错误 · {compiledLevel.validation.issues.filter((issue) => issue.severity === 'warning').length} 警告</strong>
               <span>{compiledLevel.initialPlayableIds.length} 张初始可点击牌</span>
             </div>
-            <div className="tpt-validation-issues">
-              {compiledLevel.validation.issues.filter((issue) => issue.severity !== 'info').slice(0, 8).map((issue, index) => (
-                <button
-                  key={`${issue.code}-${index}`}
-                  className={`severity-${issue.severity}`}
-                  onClick={() => {
-                    const tileId = issue.objectIds.find((id) => tiles.some((tile) => tile.id === id));
-                    if (tileId) setSelectedIds([tileId]);
-                    setNotice(`${issue.code}：${issue.message}${issue.suggestion ? ` · ${issue.suggestion}` : ''}`);
-                  }}
-                ><b>{issue.code}</b><span>{issue.message}</span></button>
-              ))}
-              {compiledLevel.validation.issues.every((issue) => issue.severity === 'info') && <p>没有阻塞问题；可以直接开始试玩。</p>}
-            </div>
+            {!compiledLevel.validation.valid && (
+              <div className="tpt-validation-issues">
+                {compiledLevel.validation.issues.filter((issue) => issue.severity !== 'info').slice(0, 8).map((issue, index) => (
+                  <button
+                    key={`${issue.code}-${index}`}
+                    className={`severity-${issue.severity}`}
+                    onClick={() => {
+                      const tileId = issue.objectIds.find((id) => tiles.some((tile) => tile.id === id));
+                      if (tileId) setSelectedIds([tileId]);
+                      setNotice(`${issue.code}：${issue.message}${issue.suggestion ? ` · ${issue.suggestion}` : ''}`);
+                    }}
+                  ><b>{issue.code}</b><span>{issue.message}</span></button>
+                ))}
+              </div>
+            )}
             {primaryTile && (
               <div className="tpt-blocker-detail" data-selected-tile={primaryTile.id}>
                 <b>{primaryTile.id}</b>
@@ -1911,10 +1912,12 @@ export function TapTileStackStudio() {
                 <small>它阻挡：{(compiledLevel.dependentsByTile[primaryTile.id] ?? []).join('、') || '无'}</small>
               </div>
             )}
-            <div className="tpt-override-actions">
-              <button onClick={() => updatePairOverride('ignored')} disabled={selectedIds.length !== 2}>忽略两牌阻挡</button>
-              <button onClick={() => updatePairOverride('forced')} disabled={selectedIds.length !== 2}>强制高层阻挡低层</button>
-            </div>
+            {selectedIds.length === 2 && (
+              <div className="tpt-override-actions">
+                <button onClick={() => updatePairOverride('ignored')}>忽略两牌阻挡</button>
+                <button onClick={() => updatePairOverride('forced')}>强制高层阻挡低层</button>
+              </div>
+            )}
           </section>
 
           <section>
@@ -2097,21 +2100,6 @@ export function TapTileStackStudio() {
                 </div>
               </div>
             )}
-          </section>
-
-          <section className="tpt-shortcuts">
-            <div className="tpt-section-title"><span>快捷操作</span><small>SHORTCUTS</small></div>
-            <dl>
-              <div><dt>移动</dt><dd>拖动 / 方向键</dd></div>
-              <div><dt>框选</dt><dd>空白处拖动</dd></div>
-              <div><dt>追加多选</dt><dd>Shift + 点击 / 框选</dd></div>
-              <div><dt>全选</dt><dd>Ctrl + A</dd></div>
-              <div><dt>锁定方向</dt><dd>拖动中按 Shift</dd></div>
-              <div><dt>临时关闭吸附</dt><dd>Alt + 拖动</dd></div>
-              <div><dt>复制</dt><dd>Ctrl + D / 双击</dd></div>
-              <div><dt>大步微调</dt><dd>Shift + 方向键</dd></div>
-              <div><dt>撤销</dt><dd>Ctrl + Z</dd></div>
-            </dl>
           </section>
         </aside>
       </main>
