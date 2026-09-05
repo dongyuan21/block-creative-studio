@@ -154,35 +154,36 @@ export function CrushWoodAssetPanel({
           ))}
         </div>
         {setupEditable && (
-          <div className="crush-queue-actions">
-            <button
-              type="button"
-              className="button-secondary"
-              disabled={queue.length >= 24}
-              onClick={() => onAddQueuePiece(CRUSH_WOOD_PIECE_IDS[0]!)}
-            >＋ 添加</button>
-            <button
-              type="button"
-              className="button-secondary"
-              disabled={queue.length <= 1}
-              onClick={() => onRemoveQueuePiece(selectedQueueSlot)}
-            >删除槽位</button>
-          </div>
+          <>
+            <div className="crush-queue-actions">
+              <button
+                type="button"
+                className="button-secondary"
+                disabled={queue.length >= 24}
+                onClick={() => onAddQueuePiece(CRUSH_WOOD_PIECE_IDS[0]!)}
+              >＋ 添加</button>
+              <button
+                type="button"
+                className="button-secondary"
+                disabled={queue.length <= 1}
+                onClick={() => onRemoveQueuePiece(selectedQueueSlot)}
+              >删除槽位</button>
+            </div>
+            <div className="shape-grid">
+              {CRUSH_WOOD_PIECE_IDS.map((pieceId) => (
+                <button
+                  key={pieceId}
+                  type="button"
+                  className="shape-card"
+                  title={pieceId}
+                  onClick={() => onQueuePiece(selectedQueueSlot, pieceId)}
+                >
+                  <CrushPieceMini pieceId={pieceId} compact />
+                </button>
+              ))}
+            </div>
+          </>
         )}
-        <div className="shape-grid" style={{ marginTop: 10 }}>
-          {CRUSH_WOOD_PIECE_IDS.map((pieceId) => (
-            <button
-              key={pieceId}
-              type="button"
-              className="shape-card"
-              disabled={!setupEditable}
-              title={pieceId}
-              onClick={() => onQueuePiece(selectedQueueSlot, pieceId)}
-            >
-              <CrushPieceMini pieceId={pieceId} compact />
-            </button>
-          ))}
-        </div>
       </section>
 
       <section className="takes-section">

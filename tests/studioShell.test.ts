@@ -63,5 +63,7 @@ describe('studio shell modularization', () => {
     expect(crushInspector).toMatch(/panel inspector-panel/);
     expect(crushCss).not.toMatch(/\.crush-workspace\s*\{/);
     expect(crushCss).not.toMatch(/#160b07/);
+    expect(crushCss).toMatch(/\.crush-studio \.takes-section[\s\S]*position:\s*sticky/);
+    expect(crushCss).toMatch(/height:\s*136px/);
   });
 });

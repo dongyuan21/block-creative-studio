@@ -281,7 +281,7 @@ export function CrushWoodWorkspace() {
             ))}
           </div>
           <div className="timeline-track">
-            {studio.tracks.map((track) => {
+            {(studio.mode === 'play' ? [] : studio.tracks).map((track) => {
               const left = (track.startFrame / totalFrames) * 100;
               const width = Math.max(1.2, ((track.endFrame - track.startFrame) / totalFrames) * 100);
               const clearLeft = track.clearStartFrame === null
