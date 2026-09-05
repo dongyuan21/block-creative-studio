@@ -1,27 +1,23 @@
 import { createHeadlessPlatform } from '../../../src/bootstrap/gamePackage';
-import { blockPlacementPackage } from '../../../src/games/block-placement/package';
-import { compileFrameSourceFromDocument } from '../../../src/game-runtime/projectDocument';
-import { AssetRegistry } from '../../../src/headless/assetRegistry';
-import type { EffectPackManifest, LookPackManifest } from '../../../src/headless/contracts';
-import { compileVariantV2 } from '../../../src/headless/variantCompilerV2';
-import { buildCreativeMasterV2 } from '../../../src/headless/creativeMasterV2';
-import { createFrameRenderRequestV2 } from '../../../src/headless/frameRequestV2';
 import { captureStillV2 } from '../../../src/capture/v2/captureStill';
 import { requireCaptureSuite } from '../../../src/capture/captureSuiteRegistry';
-import { requireRenderBackend } from '../../../src/rendering/backendRegistry';
-import { readyRenderResources } from '../../../src/rendering/preparedRenderResources';
-import { bindPreparedResources } from '../../../src/rendering/resourcePolicy';
-import { makeFixture, ref } from '../../headlessFixtures';
+import { compileFrameSourceFromDocument } from '../../../src/game-runtime/projectDocument';
+import { blockCrushDropPackage } from '../../../src/games/block-crush-drop/package';
+import { BLOCK_CRUSH_DROP_GAME_ID, BLOCK_CRUSH_DROP_MODULE_VERSION } from '../../../src/games/block-crush-drop/manifest';
 import {
-  CRUSH_GAME_ID,
-  CRUSH_MODULE_VERSION,
-  CRUSH_PRESENTATION_SCHEMA_ID,
-  crushCompositionProfile,
-  crushDiagnosticBackend,
-  crushRenderContract,
-  createCrushDiagnosticDocument,
-  fakeCrushPackage,
-} from './fakeCrushPackage';
+  CRUSH_WOOD_PRESENTATION_SCHEMA_ID,
+  crushWoodPayloadFromPacket,
+} from '../../../src/games/block-crush-drop/presentation';
+import {
+  createCrushWoodReferenceDocument,
+  CRUSH_WOOD_REFERENCE_TAKE_ID,
+} from '../../../src/games/block-crush-drop/project';
+import { crushWoodCompositionProfile } from '../../../src/games/block-crush-drop/profiles/composition';
+import { CRUSH_WOOD_CINEMATIC_BACKEND_ID } from '../../../src/games/block-crush-drop/render/cinematicBackendAdapter';
+import { crushWoodRenderContract } from '../../../src/games/block-crush-drop/render/renderContract';
+import type { CrushWoodPhase } from '../../../src/games/block-crush-drop/types';
+import { createFrameRenderRequestV2 } from '../../../src/headless/frameRequestV2';
+import { requireRenderBackend } from '../../../src/rendering/backendRegistry';
 
 interface CaptureReport {
   status: 'PASS' | 'FAIL';
@@ -40,7 +36,7 @@ interface CaptureReport {
 
 const statusEl = document.createElement('pre');
 statusEl.id = 'capture-status';
-statusEl.textContent = 'crush diagnostic capture starting…';
+statusEl.textContent = 'Crush Wooood reference capture starting…';
 document.body.style.margin = '0';
 document.body.style.background = '#12080a';
 document.body.style.color = '#f4f1ea';
@@ -81,10 +77,22 @@ async function postJson(path: string, body: unknown): Promise<void> {
   });
 }
 
+function phaseFrame(
+  frameSource: ReturnType<typeof compileFrameSourceFromDocument>,
+  phase: CrushWoodPhase,
+  minimumProgress = 0,
+): number {
+  for (let frame = 0; frame < frameSource.totalFrames; frame += 1) {
+    const payload = crushWoodPayloadFromPacket(frameSource.evaluate(frame));
+    if (payload.phase === phase && payload.phaseProgress >= minimumProgress) return frame;
+  }
+  throw new Error(`Unable to find ${phase} frame in Crush Wood reference take.`);
+}
+
 async function run(): Promise<CaptureReport> {
   const report: CaptureReport = {
     status: 'PASS',
-    mode: 'crush-diag',
+    mode: 'crush-reference',
     startedAt: new Date().toISOString(),
     browser: navigator.userAgent,
     webglRenderer: null,
@@ -96,118 +104,79 @@ async function run(): Promise<CaptureReport> {
     errors: [],
   };
   try {
-    const platform = createHeadlessPlatform([blockPlacementPackage, fakeCrushPackage]);
-    const project = createCrushDiagnosticDocument();
+    const platform = createHeadlessPlatform([blockCrushDropPackage]);
+    const project = createCrushWoodReferenceDocument();
     const frameSource = compileFrameSourceFromDocument(project, platform, {
-      takeId: 'drop-0',
-      directorProfile: {},
+      takeId: CRUSH_WOOD_REFERENCE_TAKE_ID,
+      directorProfile: project.direction?.rhythm ?? {},
       fps: 30,
     });
-    const fixture = makeFixture();
-    const crushEffect: EffectPackManifest = {
-      ...(fixture.assets.find((item) => item.id === 'effect.copper-clear') as EffectPackManifest),
-      id: 'effect.crush-impact',
-      supportedEvents: ['block-crush.impact', 'block-crush.crush-resolved', 'block-crush.collapse'],
-    };
-    const look: LookPackManifest = {
-      ...(fixture.assets.find((item) => item.id === 'look.copper') as LookPackManifest),
-      id: 'look.crush',
-      slots: {
-        'tile.material': ref('material.copper', 'material-pack', 'b'),
-        'clear.primary': {
-          id: 'effect.crush-impact',
-          version: '1.0.0',
-          kind: 'effect-pack',
-          contentHash: crushEffect.contentHash,
-        },
-        'crush.board': ref('background.dark', 'background', 'f'),
-      },
-    };
-    const assets = fixture.assets.filter((item) => item.id !== 'look.copper').concat(look, crushEffect);
-    const master = buildCreativeMasterV2(project, platform.games, {
-      id: 'master.crush',
-      takeId: 'drop-0',
-      renderContract: crushRenderContract,
-      fps: 30,
-      totalFrames: frameSource.totalFrames,
-      semanticHash: 'fnv1a32:crush',
-    });
-    const plan = compileVariantV2(
-      master,
-      {
-        ...fixture.recipe,
-        id: 'variant.crush',
-        masterId: 'master.crush',
-        lockMode: 'semantic',
-        lookPackRef: { id: 'look.crush', version: '1.0.0', kind: 'look-pack', contentHash: look.contentHash },
-      },
-      new AssetRegistry(assets),
-      crushRenderContract,
-      { renderer: 'fixed-camera-cinematic', requireHashes: true },
-    );
-    const backend = requireRenderBackend(crushDiagnosticBackend.id);
-    const resources = readyRenderResources(plan.planHash, {
-      slots: [
-        { slotId: 'tile.material', uri: 'mem:tile', contentHash: 'sha256:b', readiness: 'ready' },
-        { slotId: 'clear.primary', uri: 'mem:fx', contentHash: crushEffect.contentHash ?? 'sha256:c', readiness: 'ready' },
-        { slotId: 'crush.board', uri: 'mem:board', contentHash: 'sha256:f', readiness: 'ready' },
-      ],
-    });
-    const request = createFrameRenderRequestV2({
-      gameId: CRUSH_GAME_ID,
-      moduleVersion: CRUSH_MODULE_VERSION,
-      renderContract: crushRenderContract,
-      presentationSchemaId: CRUSH_PRESENTATION_SCHEMA_ID,
-      composition: crushCompositionProfile,
-      planId: plan.id,
-      planHash: plan.planHash,
-      takeId: frameSource.takeId,
-      frameIndex: 0,
-      fps: frameSource.fps,
-      renderer: backend.renderer,
-      coordinateSpace: 'design',
-    });
-    const canvas = document.createElement('canvas');
-    const captured = await captureStillV2(canvas, {
-      request,
-      frameSource,
-      backend,
-      composition: crushCompositionProfile,
-      renderContract: crushRenderContract,
-      resourcePolicy: bindPreparedResources({
-        plan,
-        resources,
-        renderContract: crushRenderContract,
+    const backend = requireRenderBackend(CRUSH_WOOD_CINEMATIC_BACKEND_ID);
+    const suite = requireCaptureSuite(BLOCK_CRUSH_DROP_GAME_ID);
+    const anchors = [
+      { id: 'idle', phase: 'idle' as const, progress: 0 },
+      { id: 'fall', phase: 'fall' as const, progress: 0.62 },
+      { id: 'crush', phase: 'crush' as const, progress: 0.5 },
+      { id: 'collapse', phase: 'collapse' as const, progress: 0.72 },
+    ];
+
+    for (const anchor of anchors) {
+      const frameIndex = phaseFrame(frameSource, anchor.phase, anchor.progress);
+      const request = createFrameRenderRequestV2({
+        gameId: BLOCK_CRUSH_DROP_GAME_ID,
+        moduleVersion: BLOCK_CRUSH_DROP_MODULE_VERSION,
+        renderContract: crushWoodRenderContract,
+        presentationSchemaId: CRUSH_WOOD_PRESENTATION_SCHEMA_ID,
+        composition: crushWoodCompositionProfile,
+        planId: 'procedural.crush-wood.reference',
+        planHash: frameSource.frameSourceHash,
+        takeId: frameSource.takeId,
+        frameIndex,
+        fps: frameSource.fps,
+        renderer: backend.renderer,
+        coordinateSpace: 'video',
+      });
+      const canvas = document.createElement('canvas');
+      const captured = await captureStillV2(canvas, {
+        request,
+        frameSource,
         backend,
-      }),
-      plan,
-    });
-    if (captured.blob.size < 32) {
-      throw new Error(`crush PNG too small (${captured.blob.size} bytes)`);
+        composition: crushWoodCompositionProfile,
+        renderContract: crushWoodRenderContract,
+        resourcePolicy: {
+          mode: 'procedural-no-assets',
+          reason: 'Browser regression uses the deterministic game-owned Crush Wood renderer.',
+        },
+      });
+      if (captured.blob.size < 10_000) {
+        throw new Error(`${anchor.id} PNG too small (${captured.blob.size} bytes)`);
+      }
+      const header = new Uint8Array(await captured.blob.slice(0, 8).arrayBuffer());
+      const pngMagic = [137, 80, 78, 71, 13, 10, 26, 10];
+      if (pngMagic.some((byte, index) => header[index] !== byte)) {
+        throw new Error(`${anchor.id} capture did not produce a PNG signature`);
+      }
+      const path = `review-package/run/frames/crush-wood/${anchor.id}.png`;
+      const posted = await postArtifact(path, captured.blob, {
+        width: captured.width,
+        height: captured.height,
+        gameId: BLOCK_CRUSH_DROP_GAME_ID,
+        frameIndex,
+        phase: anchor.phase,
+        request: captured.request,
+        suite: suite.id,
+      });
+      const sha256 = posted.sha256 ?? await sha256Hex(await captured.blob.arrayBuffer());
+      report.frames.push({ id: `crush-${anchor.id}`, path, sha256, width: captured.width, height: captured.height });
+      log(`${anchor.id} f${frameIndex} ${captured.width}x${captured.height} ${sha256.slice(0, 12)}`);
     }
-    const header = new Uint8Array(await captured.blob.slice(0, 8).arrayBuffer());
-    const pngMagic = [137, 80, 78, 71, 13, 10, 26, 10];
-    if (pngMagic.some((byte, index) => header[index] !== byte)) {
-      throw new Error('crush capture did not produce a PNG signature');
-    }
-    const path = 'review-package/run/frames/diagnostic/crush-idle.png';
-    const posted = await postArtifact(path, captured.blob, {
-      width: captured.width,
-      height: captured.height,
-      gameId: CRUSH_GAME_ID,
-      request: captured.request,
-      suite: requireCaptureSuite(CRUSH_GAME_ID).id,
+
+    report.planHashes.push({ frameSourceHash: frameSource.frameSourceHash });
+    report.tests.push({
+      name: 'crush-reference-v2-pngs',
+      status: 'PASS',
+      detail: `${report.frames.length} deterministic 1080x1920 phase captures`,
     });
-    const sha256 = posted.sha256 ?? await sha256Hex(await captured.blob.arrayBuffer());
-    report.frames.push({
-      id: 'crush-idle',
-      path,
-      sha256,
-      width: captured.width,
-      height: captured.height,
-    });
-    report.tests.push({ name: 'crush-v2-png', status: 'PASS', detail: `${captured.width}x${captured.height} ${captured.blob.size}B` });
-    log(`crush-idle ${captured.width}x${captured.height} ${sha256.slice(0, 12)}`);
   } catch (error) {
     report.status = 'FAIL';
     report.errors.push(error instanceof Error ? error.stack ?? error.message : String(error));
@@ -229,5 +198,5 @@ declare global {
 if (autorun) {
   void run();
 } else {
-  statusEl.textContent = 'crush diagnostic capture loaded (autorun=0)';
+  statusEl.textContent = 'Crush Wooood reference capture loaded (autorun=0)';
 }

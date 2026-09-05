@@ -1,17 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { createHeadlessPlatform, registerGamePackage } from '../src/bootstrap/gamePackage';
+import { GameRegistryError } from '../src/game-runtime/errors';
 import { GameRegistry } from '../src/game-runtime/gameRegistry';
 import { PresentationRegistry } from '../src/game-runtime/presentationRegistry';
 import { RenderContractRegistry } from '../src/game-runtime/renderContractRegistry';
-import { GameRegistryError } from '../src/game-runtime/errors';
-import { getCompositionProfile } from '../src/rendering/compositionRegistry';
 import { getCaptureSuite } from '../src/capture/captureSuiteRegistry';
+import { getCompositionProfile } from '../src/rendering/compositionRegistry';
+import { blockCrushDropPackage } from '../src/games/block-crush-drop/package';
+import { BLOCK_CRUSH_DROP_GAME_ID } from '../src/games/block-crush-drop/manifest';
+import { crushWoodCaptureSuite } from '../src/games/block-crush-drop/capture/suite';
+import { crushWoodPresentationAdapter } from '../src/games/block-crush-drop/presentation';
 import { blockPlacementPackage } from '../src/games/block-placement/package';
-import {
-  CRUSH_GAME_ID,
-  crushPresentationAdapter,
-  fakeCrushPackage,
-} from './games/block-crush-drop/fakeCrushPackage';
 
 function emptyPlatform() {
   return {
@@ -25,25 +24,25 @@ describe('atomic game package registration', () => {
   it('preflights mismatched component gameIds before mutating the target registry', () => {
     const platform = emptyPlatform();
     const mismatched = {
-      ...fakeCrushPackage,
-      presentation: { ...crushPresentationAdapter, gameId: 'vita-mahjong-solitaire' },
+      ...blockCrushDropPackage,
+      presentation: { ...crushWoodPresentationAdapter, gameId: 'vita-mahjong-solitaire' },
     };
     expect(() => registerGamePackage(mismatched, platform)).toThrowError(GameRegistryError);
-    expect(platform.games.has(CRUSH_GAME_ID)).toBe(false);
-    expect(platform.presentations.has(CRUSH_GAME_ID)).toBe(false);
+    expect(platform.games.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
+    expect(platform.presentations.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
     expect(platform.presentations.has('vita-mahjong-solitaire')).toBe(false);
   });
 
-  it('rejects a colliding composition id without registering the second game', () => {
+  it('rejects a colliding composition id without registering the real Crush package', () => {
     const platform = createHeadlessPlatform([blockPlacementPackage]);
     const colliding = {
-      ...fakeCrushPackage,
+      ...blockCrushDropPackage,
       compositions: [
-        ...fakeCrushPackage.compositions ?? [],
+        ...(blockCrushDropPackage.compositions ?? []),
         {
           id: 'block-placement.composition.v1',
           version: '9.9.9',
-          gameId: CRUSH_GAME_ID,
+          gameId: BLOCK_CRUSH_DROP_GAME_ID,
           designResolution: { width: 1, height: 1 },
           videoResolution: { width: 2, height: 2 },
           playfield: { x: 0, y: 0, width: 1, height: 1 },
@@ -57,8 +56,9 @@ describe('atomic game package registration', () => {
       expect(error).toBeInstanceOf(GameRegistryError);
       expect((error as GameRegistryError).code).toBe('DUPLICATE_COMPOSITION');
     }
-    expect(platform.games.has(CRUSH_GAME_ID)).toBe(false);
+    expect(platform.games.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
     expect(getCompositionProfile('block-placement.composition.v1')?.gameId).toBe('block-placement');
-    expect(getCaptureSuite(CRUSH_GAME_ID)?.id === 'block-crush-drop.diag' || getCaptureSuite(CRUSH_GAME_ID) === undefined).toBe(true);
+    const suite = getCaptureSuite(BLOCK_CRUSH_DROP_GAME_ID);
+    expect(suite === undefined || suite.id === crushWoodCaptureSuite.id).toBe(true);
   });
 });

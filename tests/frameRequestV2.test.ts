@@ -4,7 +4,8 @@ import { createFrameRenderRequestV2, validateFrameRenderRequestV2 } from '../src
 import { REFERENCE_PASS_ORDER } from '../src/headless/contracts';
 import { blockPlacementCompositionProfile } from '../src/games/block-placement/profiles/composition';
 import { blockPlacementRenderContract } from '../src/games/block-placement/render/renderContract';
-import { crushCompositionProfile, crushRenderContract } from './games/block-crush-drop/fakeCrushPackage';
+import { crushWoodCompositionProfile } from '../src/games/block-crush-drop/profiles/composition';
+import { crushWoodRenderContract } from '../src/games/block-crush-drop/render/renderContract';
 
 describe('frame render request V1 vs V2', () => {
   it('keeps the V1 request bound to the default composition and Block pass list', () => {
@@ -21,31 +22,36 @@ describe('frame render request V1 vs V2', () => {
     expect(validateFrameRenderRequest(request)).toEqual([]);
   });
 
-  it('derives V2 pixels from the requested composition and rejects foreign passes', () => {
+  it('derives V2 pixels and passes from the requested production composition', () => {
     const request = createFrameRenderRequestV2({
-      gameId: crushRenderContract.gameId,
-      moduleVersion: crushRenderContract.version,
-      renderContract: crushRenderContract,
-      presentationSchemaId: crushRenderContract.backends['fixed-camera-cinematic']!.supportedPresentationSchemas[0]!,
-      composition: crushCompositionProfile,
+      gameId: crushWoodRenderContract.gameId,
+      moduleVersion: crushWoodRenderContract.version,
+      renderContract: crushWoodRenderContract,
+      presentationSchemaId: crushWoodRenderContract.backends['fixed-camera-cinematic']!.supportedPresentationSchemas[0]!,
+      composition: crushWoodCompositionProfile,
       planId: 'plan.crush',
       planHash: 'fnv1a32:crush',
-      takeId: 'drop-0',
+      takeId: 'reference-take',
       frameIndex: 0,
       fps: 30,
       renderer: 'fixed-camera-cinematic',
       coordinateSpace: 'video',
     });
-    expect(request.targetPixels).toEqual(crushCompositionProfile.videoResolution);
-    expect(request.passIds).toEqual(['crush-well']);
+    expect(request.targetPixels).toEqual(crushWoodCompositionProfile.videoResolution);
+    expect(request.passIds).toEqual([
+      'crush-background',
+      'crush-well',
+      'crush-fragments',
+      'crush-hud',
+    ]);
     expect(validateFrameRenderRequestV2(request, {
-      renderContract: crushRenderContract,
-      composition: crushCompositionProfile,
+      renderContract: crushWoodRenderContract,
+      composition: crushWoodCompositionProfile,
       renderer: 'fixed-camera-cinematic',
     })).toEqual([]);
     expect(validateFrameRenderRequestV2({ ...request, passIds: ['board', 'tray'] }, {
-      renderContract: crushRenderContract,
-      composition: crushCompositionProfile,
+      renderContract: crushWoodRenderContract,
+      composition: crushWoodCompositionProfile,
       renderer: 'fixed-camera-cinematic',
     }).some((issue) => issue.code === 'FRAME_PASS_UNKNOWN')).toBe(true);
     expect(validateFrameRenderRequestV2(request, {

@@ -1,3 +1,5 @@
+import { CrushWoodWorkspace } from '../games/block-crush-drop/studio/CrushWoodWorkspace';
+import { BLOCK_CRUSH_DROP_GAME_ID } from '../games/block-crush-drop/manifest';
 import { BlockPlacementWorkspace } from '../games/block-placement/studio/BlockPlacementWorkspace';
 import { BLOCK_PLACEMENT_GAME_ID } from '../games/block-placement/manifest';
 import { TAPTILE_TRAY_MATCH3_GAME_ID } from '../games/taptile-tray-match3/manifest';
@@ -6,16 +8,10 @@ import { GameStudioRegistry, type GameStudioModule } from '../studio/gameStudioR
 import { ensureDefaultHeadlessPlatform } from './headlessBootstrap';
 import type { HeadlessPlatform } from './gamePackage';
 
-export const BLOCK_CRUSH_DROP_GAME_ID = 'block-crush-drop';
+export { BLOCK_CRUSH_DROP_GAME_ID } from '../games/block-crush-drop/manifest';
 export const VITA_MAHJONG_SOLITAIRE_GAME_ID = 'vita-mahjong-solitaire';
 
 const comingSoon: GameStudioModule[] = [
-  {
-    gameId: BLOCK_CRUSH_DROP_GAME_ID,
-    displayName: 'crash wooooood!',
-    status: 'coming-soon',
-    description: 'Diagnostic Slice 完成后接入',
-  },
   {
     gameId: VITA_MAHJONG_SOLITAIRE_GAME_ID,
     displayName: 'Vita Mahjong',
@@ -44,6 +40,13 @@ export function createDefaultPlatform(): StudioPlatform {
       status: 'available',
       description: '分层牌堆、7 槽三消、Take 与固定帧导演',
       Workspace: TapTileWorkspace,
+    },
+    {
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      displayName: 'Crush Wooood!',
+      status: 'available',
+      description: '21×34 预制木块、纵向落块、满行粉碎与坍落视频导演',
+      Workspace: CrushWoodWorkspace,
     },
     ...comingSoon,
   ]);
