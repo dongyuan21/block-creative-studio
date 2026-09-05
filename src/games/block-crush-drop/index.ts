@@ -1,3 +1,4 @@
+export * from './agent';
 export * from './definition';
 export * from './levels';
 export * from './manifest';

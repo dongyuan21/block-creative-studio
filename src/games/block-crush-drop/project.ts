@@ -28,7 +28,7 @@ import {
   CRUSH_WOOD_CONFIG_SCHEMA_ID,
   CRUSH_WOOD_STATE_SCHEMA_ID,
 } from './schemas';
-import type { CrushWoodDirectorProfile, CrushWoodSkinId } from './types';
+import type { CrushWoodConfig, CrushWoodDirectorProfile, CrushWoodSkinId } from './types';
 
 export const CRUSH_WOOD_REFERENCE_TAKE_ID = 'reference-serpentine-clear';
 
@@ -61,26 +61,29 @@ export function createCrushWoodReferenceReplay(
   };
 }
 
-export interface CrushWoodReferenceDocumentOptions {
+export interface CrushWoodDocumentOptions {
   name?: string;
   seed?: number;
   directorProfile?: CrushWoodDirectorProfile;
   quality?: 'preview' | 'standard' | 'cinematic';
+  takes?: GameReplayEnvelope[];
+  id?: string;
 }
 
-export function createCrushWoodReferenceDocument(
-  skinId: CrushWoodSkinId = 'golden-embossed',
-  options: CrushWoodReferenceDocumentOptions = {},
+export function createCrushWoodDocument(
+  config: CrushWoodConfig,
+  options: CrushWoodDocumentOptions = {},
 ): StudioProjectDocumentV2 {
   const seed = options.seed ?? 29_980;
-  const config = createCrushWoodReferenceConfig(skinId);
   const initialState = crushWoodRuntime.createInitialState(config, seed);
   const initialStateHash = hashCrushWoodState(initialState);
+  const takes = (options.takes ?? [createCrushWoodReferenceReplay(initialStateHash, seed)])
+    .map((take) => ({ ...take, initialStateHash }));
   return {
     format: STUDIO_PROJECT_V2_FORMAT,
     version: STUDIO_PROJECT_V2_VERSION,
-    id: `crush-wood-${skinId}`,
-    name: options.name ?? `Crush Wooood · ${skinId}`,
+    id: options.id ?? `crush-wood-${config.skinId}`,
+    name: options.name ?? `Crush Wooood · ${config.skinId}`,
     game: {
       contract: GAME_PROJECT_CONTRACT,
       contractVersion: GAME_PROJECT_CONTRACT_VERSION,
@@ -103,15 +106,24 @@ export function createCrushWoodReferenceDocument(
     production: {
       layoutProfileRef: { id: 'layout.crush-wood.vertical-9x16', version: '1.0.0', kind: 'ui-theme' },
       cameraProfileRef: { id: 'camera.crush-wood.reference-fixed', version: '1.0.0', kind: 'camera-profile' },
-      lookPackRef: { id: `look.crush-wood.${skinId}`, version: '1.0.0', kind: 'look-pack' },
+      lookPackRef: { id: `look.crush-wood.${config.skinId}`, version: '1.0.0', kind: 'look-pack' },
       output: { width: 1080, height: 1920, fps: 30, quality: options.quality ?? 'cinematic' },
     },
-    takes: [createCrushWoodReferenceReplay(initialStateHash, seed)],
+    takes,
     direction: {
       rhythm: { ...(options.directorProfile ?? DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE) },
-      style: { skinId, camera: 'reference-fixed', fracture: 'wood-chips' },
+      style: { skinId: config.skinId, camera: 'reference-fixed', fracture: 'wood-chips' },
     },
   };
+}
+
+export type CrushWoodReferenceDocumentOptions = CrushWoodDocumentOptions;
+
+export function createCrushWoodReferenceDocument(
+  skinId: CrushWoodSkinId = 'golden-embossed',
+  options: CrushWoodReferenceDocumentOptions = {},
+): StudioProjectDocumentV2 {
+  return createCrushWoodDocument(createCrushWoodReferenceConfig(skinId), options);
 }
 
 export function compileCrushWoodReferenceFrameSource(
@@ -141,5 +153,26 @@ export function compileCrushWoodStudioSession(
     document,
     frameSource: crushWoodPresentationAdapter.compile(input),
     tracks: compileCrushWoodActionTracks(input),
+  };
+}
+
+export function compileCrushWoodTake(
+  document: StudioProjectDocumentV2,
+  takeId: string | undefined,
+  directorProfile: CrushWoodDirectorProfile = DEFAULT_CRUSH_WOOD_DIRECTOR_PROFILE,
+  fps = 30,
+) {
+  const replay = (takeId ? document.takes.find((take) => take.takeId === takeId) : document.takes[0]) ?? document.takes[0];
+  if (!replay) throw new Error('Crush Wood document has no take to compile.');
+  const input = {
+    project: document.game,
+    replay,
+    directorProfile,
+    fps,
+  };
+  return {
+    frameSource: crushWoodPresentationAdapter.compile(input),
+    tracks: compileCrushWoodActionTracks(input),
+    replay,
   };
 }

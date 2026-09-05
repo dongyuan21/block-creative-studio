@@ -1,4 +1,4 @@
-import type { CrushWoodAction, CrushWoodConfig, CrushWoodSkinId } from './types';
+import type { CrushWoodAction, CrushWoodConfig, CrushWoodPieceId, CrushWoodSkinId } from './types';
 
 /**
  * Pixel-calibrated from the stable board in CRUSHZR29980. `#` is a pre-built
@@ -53,6 +53,69 @@ export const CRUSH_WOOD_REFERENCE_ACTIONS = [
   { pieceId: 'I3', column: 12, rotation: 1 },
 ] as const satisfies readonly CrushWoodAction[];
 
+export const CRUSH_WOOD_COLUMNS = 21;
+export const CRUSH_WOOD_ROWS = 34;
+
+export type CrushWoodBoardPresetId = 'reference' | 'empty' | 'corridor';
+
+export const CRUSH_WOOD_BOARD_PRESETS: ReadonlyArray<{
+  id: CrushWoodBoardPresetId;
+  label: string;
+}> = [
+  { id: 'reference', label: '参考蛇形' },
+  { id: 'empty', label: '空井' },
+  { id: 'corridor', label: '双侧壁' },
+];
+
+export const CRUSH_WOOD_DEFAULT_QUEUE: CrushWoodPieceId[] = ['I4', 'O4', 'T4', 'L4', 'J4', 'S4', 'Z4', 'I3', 'L3'];
+
+export function emptyCrushWoodRows(): string[] {
+  return Array.from({ length: CRUSH_WOOD_ROWS }, () => '.'.repeat(CRUSH_WOOD_COLUMNS));
+}
+
+export function corridorCrushWoodRows(): string[] {
+  return Array.from({ length: CRUSH_WOOD_ROWS }, (_, row) => (
+    row < 4 ? '.'.repeat(CRUSH_WOOD_COLUMNS) : '##.................##'
+  ));
+}
+
+export function crushWoodRowsForPreset(id: CrushWoodBoardPresetId): string[] {
+  if (id === 'empty') return emptyCrushWoodRows();
+  if (id === 'corridor') return corridorCrushWoodRows();
+  return [...CRUSH_WOOD_REFERENCE_ROWS];
+}
+
+export function matchCrushWoodBoardPreset(rows: readonly string[]): CrushWoodBoardPresetId | null {
+  const joined = rows.join('\n');
+  if (joined === CRUSH_WOOD_REFERENCE_ROWS.join('\n')) return 'reference';
+  if (joined === emptyCrushWoodRows().join('\n')) return 'empty';
+  if (joined === corridorCrushWoodRows().join('\n')) return 'corridor';
+  return null;
+}
+
+export function setCrushWoodCell(
+  rows: readonly string[],
+  row: number,
+  col: number,
+  fill: '#' | '.',
+): string[] {
+  const current = rows[row];
+  if (!current || col < 0 || col >= current.length || current[col] === fill) {
+    return rows as string[];
+  }
+  const next = [...rows];
+  const cells = [...current];
+  cells[col] = fill;
+  next[row] = cells.join('');
+  return next;
+}
+
+export function toggleCrushWoodCell(rows: readonly string[], row: number, col: number): string[] {
+  const current = rows[row];
+  if (!current || col < 0 || col >= current.length) return [...rows];
+  return setCrushWoodCell(rows, row, col, current[col] === '#' ? '.' : '#');
+}
+
 export const CRUSH_WOOD_SKINS: ReadonlyArray<{
   id: CrushWoodSkinId;
   label: string;
@@ -69,8 +132,8 @@ export function createCrushWoodReferenceConfig(
 ): CrushWoodConfig {
   return {
     levelId: 'reference-serpentine-21x34',
-    columns: 21,
-    rows: 34,
+    columns: CRUSH_WOOD_COLUMNS,
+    rows: CRUSH_WOOD_ROWS,
     initialRows: [...CRUSH_WOOD_REFERENCE_ROWS],
     queue: CRUSH_WOOD_REFERENCE_ACTIONS.map((action) => action.pieceId),
     startingScore: 0,

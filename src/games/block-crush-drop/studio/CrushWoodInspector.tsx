@@ -42,13 +42,18 @@ export function CrushWoodInspector({
   payload,
   skinId,
   seed,
+  targetScore,
+  actionCount,
   directorProfile,
   quality,
   totalFrames,
   fps,
   locked,
+  setupEditable,
+  hasTake,
   exportState,
   onSeed,
+  onTargetScore,
   onDirectorProfile,
   onQuality,
   onExportVideo,
@@ -57,19 +62,26 @@ export function CrushWoodInspector({
   payload: CrushWoodPresentationPayload;
   skinId: CrushWoodSkinId;
   seed: number;
+  targetScore: number;
+  actionCount: number;
   directorProfile: CrushWoodDirectorProfile;
   quality: 'preview' | 'standard' | 'cinematic';
   totalFrames: number;
   fps: number;
   locked: boolean;
+  setupEditable: boolean;
+  hasTake: boolean;
   exportState: { running: boolean; progress: RenderProgress | null; error: string | null };
   onSeed(seed: number): void;
+  onTargetScore(score: number): void;
   onDirectorProfile(patch: Partial<CrushWoodDirectorProfile>): void;
   onQuality(quality: 'preview' | 'standard' | 'cinematic'): void;
   onExportVideo(): Promise<void>;
   onCancelExport(): void;
 }) {
-  const actionLabel = payload.actionIndex < 0 ? '—' : `${payload.actionIndex + 1} / 9`;
+  const actionLabel = actionCount === 0
+    ? '—'
+    : `${Math.max(0, payload.actionIndex + 1)} / ${actionCount}`;
   return (
     <aside className="panel inspector-panel">
       <section>
@@ -104,7 +116,7 @@ export function CrushWoodInspector({
         </label>
         <div className="lookdev-status-card">
           <strong>{skinId}</strong>
-          <span>设计坐标 720×1280，经 1.5× 映射到 1080×1920。well (16,140) 688×1125 · cell 32.76×33.09。</span>
+          <span>设计坐标 720×1280，经 1.5× 映射到 1080×1920。左侧改牌面，中间点格编辑，右侧导出成片。</span>
         </div>
       </section>
 
@@ -166,10 +178,22 @@ export function CrushWoodInspector({
             max={2_147_483_647}
             step={1}
             value={seed}
-            disabled={locked}
+            disabled={!setupEditable}
             onChange={(event) => onSeed(Math.max(0, Math.trunc(Number(event.currentTarget.value) || 0)))}
           />
-          <small>参考像素回归使用 29980。改变 Seed 只影响碎屑随机，不改写预制落点。</small>
+          <small>参考像素回归使用 29980。改牌面或队列会清空 Take。</small>
+        </label>
+        <label className="field-stack">
+          <span>过关目标分</span>
+          <input
+            type="number"
+            min={1}
+            max={10_000_000}
+            step={100}
+            value={targetScore}
+            disabled={!setupEditable}
+            onChange={(event) => onTargetScore(Number(event.currentTarget.value))}
+          />
         </label>
       </section>
 
@@ -193,14 +217,14 @@ export function CrushWoodInspector({
         <div className="render-summary">
           <div><strong>1080×1920</strong><span>分辨率</span></div>
           <div><strong>{fps} fps</strong><span>固定帧率</span></div>
-          <div><strong>{(totalFrames / fps).toFixed(1)} s</strong><span>成片时长</span></div>
+          <div><strong>{hasTake ? (totalFrames / fps).toFixed(1) : '—'} s</strong><span>成片时长</span></div>
         </div>
         {exportState.running ? (
           <button type="button" className="export-button export-button--cancel" onClick={onCancelExport}>
             取消本次渲染
           </button>
         ) : (
-          <button type="button" className="export-button" onClick={() => void onExportVideo()}>
+          <button type="button" className="export-button" disabled={!hasTake || locked} onClick={() => void onExportVideo()}>
             生成 1080P MP4
           </button>
         )}
@@ -211,6 +235,7 @@ export function CrushWoodInspector({
           </div>
         )}
         {exportState.error && <p className="error-copy">{exportState.error}</p>}
+        {!hasTake && <p className="empty-copy">先保存一次人类或机器试玩 Take。</p>}
       </section>
     </aside>
   );

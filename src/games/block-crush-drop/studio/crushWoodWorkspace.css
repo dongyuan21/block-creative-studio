@@ -1,5 +1,17 @@
-.crush-studio .studio-canvas {
-  cursor: default;
+.crush-studio.is-edit .studio-canvas,
+.crush-studio.is-play .studio-canvas {
+  cursor: crosshair;
+}
+
+.crush-queue-actions {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 2px;
+}
+
+.crush-queue-actions .button-secondary {
+  padding: 5px 8px;
+  font-size: 10px;
 }
 
 .crush-studio .asset-panel .preset-card {

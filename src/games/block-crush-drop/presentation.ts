@@ -12,6 +12,7 @@ import { BLOCK_CRUSH_DROP_GAME_ID, BLOCK_CRUSH_DROP_MODULE_VERSION } from './man
 import { cloneCrushWoodBoard, crushWoodRuntime, hashCrushWoodState } from './runtime';
 import { crushWoodActionSchema, crushWoodStateSchema } from './schemas';
 import type {
+  CrushWoodActivePieceFrame,
   CrushWoodDirectorProfile,
   CrushWoodPhase,
   CrushWoodPieceId,
@@ -284,6 +285,58 @@ export function crushWoodPayloadFromPacket(packet: PresentationPacket): CrushWoo
     throw new Error(`Expected ${CRUSH_WOOD_PRESENTATION_SCHEMA_ID}, received ${packet.payloadSchemaId}.`);
   }
   return packet.payload as CrushWoodPresentationPayload;
+}
+
+export function liveCrushWoodPacket(
+  state: CrushWoodState,
+  options: {
+    takeId?: string;
+    fps?: number;
+    phase?: CrushWoodPhase;
+    activePiece?: CrushWoodActivePieceFrame | null;
+  } = {},
+): PresentationPacket {
+  const payload: CrushWoodPresentationPayload = {
+    phase: options.phase ?? 'idle',
+    phaseProgress: 1,
+    actionIndex: state.turn - 1,
+    board: cloneCrushWoodBoard(state.board),
+    beforeBoard: cloneCrushWoodBoard(state.board),
+    placedBoard: cloneCrushWoodBoard(state.board),
+    afterBoard: cloneCrushWoodBoard(state.board),
+    activePiece: options.activePiece ?? null,
+    clearedRows: [],
+    clearedCells: [],
+    collapseMoves: [],
+    queue: [...state.queue],
+    queueIndex: state.queueIndex,
+    score: state.score,
+    scoreDelta: 0,
+    targetScore: state.targetScore,
+    linesCleared: state.linesCleared,
+    remainingTimeMs: state.remainingTimeMs,
+    status: state.status,
+    skinId: state.skinId,
+    debrisSeed: 0,
+  };
+  return {
+    contract: PRESENTATION_PACKET_CONTRACT,
+    contractVersion: PRESENTATION_PACKET_CONTRACT_VERSION,
+    identity: {
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      moduleVersion: BLOCK_CRUSH_DROP_MODULE_VERSION,
+      takeId: options.takeId ?? 'live',
+      frameIndex: 0,
+      fps: options.fps ?? 30,
+      totalFrames: 1,
+      stateHash: hashCrushWoodState(state),
+      presentationHash: stableHash(payload),
+    },
+    semanticEvents: [],
+    feedback: { cameraPunch: 0, screenShake: { x: 0, y: 0 }, exposurePulse: 0 },
+    payloadSchemaId: CRUSH_WOOD_PRESENTATION_SCHEMA_ID,
+    payload,
+  };
 }
 
 function compileCrushWoodProgram(input: CrushWoodCompileInput): CrushWoodCompileProgram {

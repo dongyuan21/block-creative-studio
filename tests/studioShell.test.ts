@@ -53,7 +53,9 @@ describe('studio shell modularization', () => {
 
     expect(blockWorkspace).toMatch(/studio-app/);
     expect(crushWorkspace).toMatch(/studio-app crush-studio/);
-    expect(crushWorkspace).toMatch(/<Toolbar/);
+    expect(crushWorkspace).toMatch(/onEdit=\{studio.enterEdit\}/);
+    expect(crushWorkspace).toMatch(/onPlay=\{studio.beginHumanPlay\}/);
+    expect(crushWorkspace).toMatch(/onAgent=\{studio.runAgent\}/);
     expect(crushWorkspace).toMatch(/className="timeline"/);
     expect(crushWorkspace).toMatch(/className="status-bar"/);
     expect(crushWorkspace).toMatch(/phone-frame/);
