@@ -66,4 +66,27 @@ describe('studio shell modularization', () => {
     expect(crushCss).toMatch(/\.crush-studio \.takes-section[\s\S]*position:\s*sticky/);
     expect(crushCss).toMatch(/height:\s*136px/);
   });
+
+  it('hosts TapTile in the same studio-app chrome as Block Placement', () => {
+    const tapWorkspace = source('src/games/taptile-tray-match3/studio/TapTileWorkspace.tsx');
+    const tapStudio = source('src/taptile/TapTileStackStudio.tsx');
+    const tapCss = source('src/taptile/taptile-studio.css');
+    const blockWorkspace = source('src/games/block-placement/studio/BlockPlacementWorkspace.tsx');
+
+    expect(blockWorkspace).toMatch(/studio-app/);
+    expect(tapWorkspace).not.toMatch(/onOpenBlockStudio|game-market-card/);
+    expect(tapStudio).toMatch(/studio-app taptile-studio/);
+    expect(tapStudio).toMatch(/onEdit=\{/);
+    expect(tapStudio).toMatch(/onPlay=\{beginPlay\}/);
+    expect(tapStudio).toMatch(/onAgent=\{/);
+    expect(tapStudio).toMatch(/className="timeline"/);
+    expect(tapStudio).toMatch(/className="status-bar"/);
+    expect(tapStudio).toMatch(/phone-frame/);
+    expect(tapStudio).toMatch(/panel asset-panel/);
+    expect(tapStudio).toMatch(/panel inspector-panel/);
+    expect(tapStudio).toMatch(/试玩 Take/);
+    expect(tapStudio).not.toMatch(/Block Studio/);
+    expect(tapCss).not.toMatch(/min-height:\s*100vh/);
+    expect(tapCss).toMatch(/\.taptile-studio \.takes-section[\s\S]*position:\s*sticky/);
+  });
 });

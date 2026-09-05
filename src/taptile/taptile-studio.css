@@ -5,7 +5,8 @@
   --tpt-muted: #8d9bb0;
   --tpt-text: #edf3fb;
   --tpt-accent: #6b74ff;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   background: #0a0f18;
   color: var(--tpt-text);
   font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
@@ -102,10 +103,9 @@
 .tpt-hidden-input { display: none; }
 
 .tpt-workspace {
-  height: calc(100vh - 94px);
-  min-height: 620px;
+  min-height: 0;
   display: grid;
-  grid-template-columns: 242px minmax(500px, 1fr) 268px;
+  grid-template-columns: 272px minmax(520px, 1fr) 310px;
   background: #090e17;
 }
 
@@ -126,12 +126,12 @@
 
 .tpt-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .tpt-template-grid button {
-  min-height: 89px;
+  min-height: 48px;
   display: grid;
   justify-items: start;
   align-content: end;
   gap: 2px;
-  padding: 9px;
+  padding: 7px;
   border: 1px solid var(--tpt-line);
   border-radius: 11px;
   background: #151f30;
@@ -143,7 +143,7 @@
 .tpt-template-grid button.is-active { border-color: #727aff; box-shadow: 0 0 0 1px rgba(114, 122, 255, 0.25) inset; background: #1b2441; }
 .tpt-template-grid strong { font-size: 11px; }
 .tpt-template-grid span { color: var(--tpt-muted); font-size: 8px; }
-.template-glyph { position: relative; width: 36px; height: 32px; margin-bottom: 5px; opacity: 0.9; }
+.template-glyph { position: relative; width: 28px; height: 24px; margin-bottom: 2px; opacity: 0.9; }
 .template-glyph::before, .template-glyph::after {
   content: "";
   position: absolute;
@@ -919,19 +919,19 @@
 .tpt-canvas-preview-status.is-error { color: #ffb2b9; background: #17283d; }
 
 .tpt-director-timeline {
-  flex: 0 0 184px;
-  min-height: 184px;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
   color: #cdd7e5;
-  border-top: 1px solid #263349;
-  background: #0c1421;
+  border: 0;
+  background: transparent;
 }
 .tpt-director-toolbar, .tpt-director-footer {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 38px;
-  padding: 5px 12px;
+  min-height: 28px;
+  padding: 2px 12px;
   background: #111c2b;
 }
 .tpt-director-toolbar > div { display: grid; gap: 1px; margin-right: auto; }
@@ -945,12 +945,12 @@
   color: #dfe8f5;
   background: #172337;
 }
-.tpt-director-scroll { height: 96px; overflow-x: auto; overflow-y: hidden; border-block: 1px solid #1e2a3d; }
-.tpt-director-canvas { position: relative; height: 94px; background-image: linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 42px 100%; }
+.tpt-director-scroll { height: 58px; overflow-x: auto; overflow-y: hidden; border-block: 1px solid #1e2a3d; }
+.tpt-director-canvas { position: relative; height: 56px; background-image: linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px); background-size: 42px 100%; }
 .tpt-director-ruler { position: absolute; inset: 0 0 auto; height: 19px; background: #0a111d; }
 .tpt-director-ruler i { position: absolute; top: 0; bottom: 0; width: 1px; background: #34425a; }
 .tpt-director-ruler i span { position: absolute; left: 4px; top: 3px; color: #65758c; font-size: 7px; font-style: normal; }
-.tpt-director-action-track { position: absolute; left: 18px; right: 0; top: 25px; height: 39px; }
+.tpt-director-action-track { position: absolute; left: 18px; right: 0; top: 20px; height: 22px; }
 .tpt-director-action {
   position: absolute;
   top: 0;
@@ -970,14 +970,14 @@
 .tpt-director-action .segment-pointer { left: 2px; width: 24%; background: #62a8ee; }
 .tpt-director-action .segment-flight { background: #62dbc7; }
 .tpt-director-action .segment-match { bottom: 15px; background: #ff9658; }
-.tpt-director-event-track { position: absolute; left: 18px; right: 0; top: 70px; height: 18px; }
+.tpt-director-event-track { position: absolute; left: 18px; right: 0; top: 44px; height: 10px; }
 .tpt-director-event-track i { position: absolute; width: 7px; height: 14px; border-radius: 2px; background: #ff9b52; }
 .tpt-director-event-track .event-tray-warning { background: #ffde62; }
 .tpt-director-event-track .event-game-won { background: #5ee5a6; }
 .tpt-director-event-track .event-game-lost { background: #ff6874; }
 .tpt-director-playhead { position: absolute; z-index: 8; top: 0; bottom: 0; width: 1px; padding: 0; border: 0; background: #f45bd0; box-shadow: 0 0 8px #f45bd0; pointer-events: none; }
 .tpt-director-playhead::before { content: ""; position: absolute; left: -4px; top: 0; border: 4px solid transparent; border-top-color: #f45bd0; }
-.tpt-director-footer { min-height: 48px; }
+.tpt-director-footer { min-height: 28px; }
 .tpt-director-footer > input[type="range"] { flex: 1 1 auto; min-width: 140px; accent-color: #e85ac9; }
 .tpt-director-footer button { min-height: 27px; border: 1px solid #2b3a50; border-radius: 7px; color: #dfe8f5; background: #172337; }
 .tpt-director-footer output { min-width: 72px; color: #8999ae; font-size: 8px; }
@@ -1240,8 +1240,69 @@
   .tpt-topbar { height: auto; min-height: 66px; grid-template-columns: 1fr auto; padding-block: 8px; }
   .tpt-project-name { display: none; }
   .tpt-mode-switch { grid-column: 1 / -1; justify-self: stretch; justify-content: center; }
-  .tpt-workspace { height: auto; min-height: calc(100vh - 94px); grid-template-columns: 180px minmax(400px, 1fr); }
+  .tpt-workspace { height: auto; min-height: 0; grid-template-columns: 180px minmax(400px, 1fr); }
   .tpt-inspector-panel { display: none; }
   .tpt-stage-column { min-height: 720px; }
   .tpt-bottom-status { display: none; }
+}
+
+.taptile-studio .asset-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 8px;
+}
+.taptile-studio .asset-panel section {
+  padding: 0 0 8px;
+  margin: 0 0 8px;
+}
+.taptile-studio .asset-panel .section-heading,
+.taptile-studio .asset-panel .tpt-section-title {
+  margin-bottom: 6px;
+}
+.taptile-studio .takes-section {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  margin-bottom: 0;
+  min-height: 0;
+  padding-top: 8px;
+  padding-bottom: 2px;
+  background: var(--tpt-panel);
+  box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
+  z-index: 3;
+}
+.taptile-studio .phone-frame.tpt-phone-stage {
+  height: 100%;
+  max-height: 774px;
+  padding: 0;
+  background: inherit;
+}
+.taptile-studio .tpt-session-bar.play-session-bar {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  transform: none;
+  width: auto;
+  margin: 8px 12px 10px;
+}
+.taptile-studio .timeline {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 1fr;
+  padding: 0;
+}
+.taptile-studio .stage-column.tpt-stage-column {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  background: #0b111c;
+}
+.taptile-studio .tpt-export-panel.export-section {
+  display: grid;
+  gap: 8px;
+}
+.taptile-studio .tpt-parity-state {
+  color: var(--tpt-muted);
+  font-size: 8px;
 }

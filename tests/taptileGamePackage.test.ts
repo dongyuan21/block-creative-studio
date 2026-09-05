@@ -29,6 +29,8 @@ describe('TapTile game package integration', () => {
     expect(next.game.turn).toBe(1);
     expect(next.game.boardIds).not.toContain(action!.tileId);
     expect(definition.runtime.hashState(next)).not.toBe(definition.runtime.hashState(state));
+    expect(platform.presentations.require(TAPTILE_TRAY_MATCH3_GAME_ID).gameId).toBe(TAPTILE_TRAY_MATCH3_GAME_ID);
+    expect(platform.renderContracts.list().some((item) => item.gameId === TAPTILE_TRAY_MATCH3_GAME_ID)).toBe(true);
   });
 
   it('exposes the formal layered-planar 7-slot ruleset identity', () => {
