@@ -34,6 +34,7 @@ import {
   upgradeLegacyBuiltInThemeGlyphs,
   type TapTileDirectorTiming,
   type TapTileProjectV2,
+  type TapTileTake,
 } from './project';
 import {
   alignStackTiles,
@@ -110,6 +111,8 @@ import { resolveTapTileBuiltinAssetUrl } from './assetUrl';
 import { tapTileBoardDownwardShiftPx } from './trayLayout';
 import {
   TAPTILE_WORKSPACE_MODES,
+  tapTileShowsPlayOverlay,
+  tapTileUsesDirectorCanvas,
   type TapTileWorkspaceMode,
 } from './workspace/WorkspaceMode';
 import './taptile-studio.css';
@@ -365,7 +368,6 @@ export function TapTileStackStudio() {
   const [agentProgress, setAgentProgress] = useState<TapTileSolveProgress | null>(null);
   const [, setAgentRunSummary] = useState<AgentRunSummary | null>(null);
   const agentSearchAbortRef = useRef<AbortController | null>(null);
-  const [replayAutoPlaying, setReplayAutoPlaying] = useState(false);
   const [directorFrame, setDirectorFrame] = useState(0);
   const [directorPlaying, setDirectorPlaying] = useState(false);
   const [selectedDirectorActionId, setSelectedDirectorActionId] = useState<string | null>(null);
@@ -494,7 +496,7 @@ export function TapTileStackStudio() {
   }, [compiledDirector]);
 
   useEffect(() => {
-    if (!directorPlaying || !compiledDirector || sessionMode === 'play') return undefined;
+    if (!directorPlaying || !compiledDirector || !tapTileUsesDirectorCanvas(workspaceMode)) return undefined;
     if (directorFrame >= compiledDirector.totalFrames - 1) {
       setDirectorPlaying(false);
       return undefined;
@@ -503,18 +505,7 @@ export function TapTileStackStudio() {
       setDirectorFrame((current) => Math.min(compiledDirector.totalFrames - 1, current + 1));
     }, 1000 / Math.max(1, project.render.fps));
     return () => window.clearTimeout(timer);
-  }, [compiledDirector, directorFrame, directorPlaying, project.render.fps, sessionMode]);
-
-  useEffect(() => {
-    if (!replayAutoPlaying || workspaceMode !== 'replay' || !gameplay.replayValidation) return;
-    const finalReplayIndex = Math.max(0, gameplay.replayValidation.replay.states.length - 1);
-    if (gameplay.replayIndex >= finalReplayIndex) {
-      setReplayAutoPlaying(false);
-      return;
-    }
-    const timer = window.setTimeout(() => gameplay.seekReplay(gameplay.replayIndex + 1), 420);
-    return () => window.clearTimeout(timer);
-  }, [gameplay.replayIndex, gameplay.replayValidation, gameplay.seekReplay, replayAutoPlaying, workspaceMode]);
+  }, [compiledDirector, directorFrame, directorPlaying, project.render.fps, workspaceMode]);
 
   useEffect(() => () => {
     tapTileExportAbortRef.current?.abort();
@@ -659,11 +650,19 @@ export function TapTileStackStudio() {
       const target = event.target;
       if (target instanceof HTMLElement && target.closest('input, textarea, select')) return;
       if (workspaceMode !== 'edit') {
-        if (workspaceMode === 'replay' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        if (tapTileUsesDirectorCanvas(workspaceMode) && compiledDirector && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+          event.preventDefault();
+          setDirectorPlaying(false);
+          setDirectorFrame((current) => Math.max(
+            0,
+            Math.min(compiledDirector.totalFrames - 1, current + (event.key === 'ArrowRight' ? 1 : -1)),
+          ));
+        } else if (workspaceMode === 'replay' && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
           event.preventDefault();
           gameplay.seekReplay(gameplay.replayIndex + (event.key === 'ArrowRight' ? 1 : -1));
         } else if (event.key === 'Escape') {
           event.preventDefault();
+          setDirectorPlaying(false);
           setWorkspaceMode('edit');
           setNotice('已返回编辑模式');
         }
@@ -717,7 +716,7 @@ export function TapTileStackStudio() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [clearSelection, deleteSelected, duplicateSelected, gameplay, selectAllVisible, updateSelected, workspaceMode]);
+  }, [clearSelection, compiledDirector, deleteSelected, duplicateSelected, gameplay, selectAllVisible, updateSelected, workspaceMode]);
 
   const chooseTemplate = (templateId: StackTemplateId): void => {
     if (workspaceMode !== 'edit') return;
@@ -995,14 +994,39 @@ export function TapTileStackStudio() {
     });
   };
 
+  const showDirectorTake = (take: TapTileTake, options?: { play?: boolean; notice?: string }): void => {
+    const validation = gameplay.openReplay(compiledLevel, take);
+    setWorkspaceMode('direct');
+    setDirectorFrame(0);
+    setDirectorPlaying(Boolean(options?.play) && validation.valid);
+    setNotice(options?.notice ?? (validation.valid
+      ? `导演时间线已打开：${take.name}`
+      : validation.issues[0]?.message ?? 'Take 无效'));
+  };
+
+  const seekDirectorFrame = (frame: number): void => {
+    if (!tapTileUsesDirectorCanvas(workspaceMode)) {
+      setWorkspaceMode('direct');
+      setDirectorPlaying(false);
+    }
+    setDirectorFrame(frame);
+  };
+
   const toggleDirectorPlayback = (): void => {
     if (!compiledDirector) return;
+    if (!tapTileUsesDirectorCanvas(workspaceMode)) {
+      setWorkspaceMode('direct');
+      if (directorFrame >= compiledDirector.totalFrames - 1) setDirectorFrame(0);
+      setDirectorPlaying(true);
+      return;
+    }
     if (!directorPlaying && directorFrame >= compiledDirector.totalFrames - 1) setDirectorFrame(0);
     setDirectorPlaying((current) => !current);
   };
 
   const cancelPlay = (): void => {
     clearLiveMatchEffects();
+    setDirectorPlaying(false);
     setWorkspaceMode('edit');
     setNotice('已取消本次试玩，未保存 Take');
   };
@@ -1019,11 +1043,7 @@ export function TapTileStackStudio() {
     commit((draft) => {
       draft.selectedTakeId = takeId;
     });
-    setReplayAutoPlaying(false);
-    gameplay.openReplay(compiledLevel, take);
-    setWorkspaceMode('direct');
-    setDirectorFrame(0);
-    setNotice(`已打开 Take：${take.name}`);
+    showDirectorTake(take, { notice: `已打开 Take：${take.name}` });
   };
 
   const deleteTake = (takeId: string): void => {
@@ -1039,18 +1059,16 @@ export function TapTileStackStudio() {
   };
 
   const enterDirectorReplay = (): void => {
-    if (project.takes.length === 0) {
+    const take = project.takes.find((candidate) => candidate.id === project.selectedTakeId) ?? project.takes.at(-1);
+    if (!take) {
       setNotice('还没有可回放的 Take；请先完成一次试玩并保存');
       return;
     }
-    if (compiledDirector) {
-      setReplayAutoPlaying(false);
-      setWorkspaceMode('direct');
-      setDirectorFrame(0);
-      setNotice(`导演时间线已编译：${compiledDirector.totalFrames} 帧`);
-      return;
-    }
-    openSelectedReplay();
+    showDirectorTake(take, {
+      notice: compiledDirector
+        ? `导演时间线已编译：${compiledDirector.totalFrames} 帧`
+        : `已打开 Take：${take.name}`,
+    });
   };
 
   const setDirectorTimingOverride = (
@@ -1093,6 +1111,7 @@ export function TapTileStackStudio() {
     setTapTileExportResult(null);
     setTapTileExportError('');
     setWorkspaceMode('export');
+    setDirectorPlaying(false);
     setTapTileExportProgress({ phase: 'preparing', currentFrame: 0, totalFrames: compiledDirector.totalFrames, ratio: 0, message: '正在核对导演画面与正式导出像素…' });
     const controller = new AbortController();
     tapTileExportAbortRef.current = controller;
@@ -1160,24 +1179,12 @@ export function TapTileStackStudio() {
       setNotice(firstError ? `${firstError.code}：${firstError.message}` : '当前视觉主题无法清楚表达匹配分组');
       return;
     }
-    setReplayAutoPlaying(false);
+    setDirectorPlaying(false);
     clearLiveMatchEffects();
     gameplay.begin(compiledLevel);
     setSelectedIds([]);
     setWorkspaceMode('play');
     setNotice(`试玩已冻结关卡 ${compiledLevel.levelHash}`);
-  };
-
-  const openSelectedReplay = (): void => {
-    const take = project.takes.find((candidate) => candidate.id === project.selectedTakeId) ?? project.takes.at(-1);
-    if (!take) {
-      setNotice('还没有可回放的 Take；请先完成一次试玩并保存');
-      return;
-    }
-    setReplayAutoPlaying(false);
-    const validation = gameplay.openReplay(compiledLevel, take);
-    setWorkspaceMode('replay');
-    setNotice(validation.valid ? `Take 已验证：${take.finalStateHash}` : validation.issues[0]?.message ?? 'Take 无效');
   };
 
   const saveCurrentTake = (): void => {
@@ -1191,9 +1198,9 @@ export function TapTileStackStudio() {
       draft.takes.push(take);
       draft.selectedTakeId = take.id;
     });
-    gameplay.openReplay(compiledLevel, take);
-    setWorkspaceMode('replay');
-    setNotice(`Take 已保存并通过确定性重放：${take.finalStateHash}`);
+    showDirectorTake(take, {
+      notice: `Take 已保存并通过确定性重放：${take.finalStateHash}`,
+    });
   };
 
   const generateAgentTake = async (): Promise<void> => {
@@ -1242,9 +1249,6 @@ export function TapTileStackStudio() {
         draft.takes.push(result.take!);
         draft.selectedTakeId = result.take!.id;
       });
-      gameplay.openReplay(compiledLevel, result.take);
-      setWorkspaceMode('replay');
-      setReplayAutoPlaying(true);
       if (agentProfile === 'max-clear' && result.metrics) {
         setAgentRunSummary({
           takeId: result.take.id,
@@ -1266,9 +1270,12 @@ export function TapTileStackStudio() {
           : result.metrics?.provedMaximum
             ? ' · 已证明达到数量上限'
             : ' · 当前搜索预算内最佳';
-      setNotice(agentProfile === 'max-clear' && result.metrics
-        ? `最大消除轨迹已生成：${result.metrics.clearedTileCount}/${compiledLevel.initialBoardIds.length} 张 · 理论上限 ${result.metrics.theoreticalClearableTileCount} · 槽位峰值 ${result.metrics.peakTrayOccupancy}/7${stoppedLabel}`
-        : `${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`);
+      showDirectorTake(result.take, {
+        play: true,
+        notice: agentProfile === 'max-clear' && result.metrics
+          ? `最大消除轨迹已生成：${result.metrics.clearedTileCount}/${compiledLevel.initialBoardIds.length} 张 · 理论上限 ${result.metrics.theoreticalClearableTileCount} · 槽位峰值 ${result.metrics.peakTrayOccupancy}/7${stoppedLabel}`
+          : `${result.take.name} 已由正式引擎重放验证 · ${result.expandedStates} 个展开状态`,
+      });
     } catch (error) {
       setNotice(error instanceof Error ? `Agent 搜索失败：${error.message}` : 'Agent 搜索失败');
     } finally {
@@ -1280,13 +1287,13 @@ export function TapTileStackStudio() {
   };
 
   const switchWorkspaceMode = (mode: TapTileWorkspaceMode): void => {
-    if (mode !== 'replay') setReplayAutoPlaying(false);
+    if (!tapTileUsesDirectorCanvas(mode)) setDirectorPlaying(false);
     if (mode === 'play') {
       beginPlay();
       return;
     }
     if (mode === 'replay') {
-      openSelectedReplay();
+      enterDirectorReplay();
       return;
     }
     clearLiveMatchEffects();
@@ -1566,8 +1573,8 @@ export function TapTileStackStudio() {
           <div className="stage-frame tpt-stage-shell">
             <div
               ref={stageRef}
-              className={`phone-frame tpt-phone-stage${(workspaceMode === 'direct' || workspaceMode === 'export') && compiledDirector && directorPresentation ? ' is-canvas-authoritative' : ''}`}
-              data-render-source={(workspaceMode === 'direct' || workspaceMode === 'export') && compiledDirector ? 'fixed-frame-canvas' : 'interactive-dom'}
+              className={`phone-frame tpt-phone-stage${tapTileUsesDirectorCanvas(workspaceMode) && compiledDirector && directorPresentation ? ' is-canvas-authoritative' : ''}`}
+              data-render-source={tapTileUsesDirectorCanvas(workspaceMode) && compiledDirector ? 'fixed-frame-canvas' : 'interactive-dom'}
               onPointerDown={workspaceMode === 'edit' ? beginMarquee : undefined}
               onPointerMove={workspaceMode === 'edit' ? moveMarquee : undefined}
               onPointerUp={workspaceMode === 'edit' ? finishMarquee : undefined}
@@ -1758,13 +1765,13 @@ export function TapTileStackStudio() {
                 );
               })}
               </div>
-              {displayState && (
+              {tapTileShowsPlayOverlay(workspaceMode) && displayState ? (
                 <GameplayStageOverlay
                   state={displayState}
                   warning={displayState.status === 'playing' && displayState.trayIds.length === 6}
                 />
-              )}
-              {(workspaceMode === 'direct' || workspaceMode === 'export') && compiledDirector && directorPresentation && (
+              ) : null}
+              {tapTileUsesDirectorCanvas(workspaceMode) && compiledDirector && directorPresentation && (
                 <TapTileCanvasPreview
                   project={project}
                   level={compiledLevel}
@@ -1845,7 +1852,7 @@ export function TapTileStackStudio() {
           onDirectorTiming={patchDirectorTiming}
           onDirectorSeed={setDirectorSeed}
           onRenderQuality={setRenderQuality}
-          onDirectorFrame={setDirectorFrame}
+          onDirectorFrame={seekDirectorFrame}
           onExportVideo={beginTapTileExport}
           onCancelExport={cancelTapTileExport}
           onUpdateSelected={updateSelected}
@@ -1875,7 +1882,7 @@ export function TapTileStackStudio() {
           locked={workspaceMode === 'play' || workspaceMode === 'export'}
           selectedActionId={selectedDirectorActionId}
           actionOverrides={project.director.actionOverrides}
-          onSeek={setDirectorFrame}
+          onSeek={seekDirectorFrame}
           onToggle={toggleDirectorPlayback}
           onSelectAction={setSelectedDirectorActionId}
           onTimingOverride={setDirectorTimingOverride}

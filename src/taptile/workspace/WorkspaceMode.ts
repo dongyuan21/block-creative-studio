@@ -8,3 +8,11 @@ export const TAPTILE_WORKSPACE_MODES: Array<{ id: TapTileWorkspaceMode; label: s
   { id: 'direct', label: '导演' },
   { id: 'export', label: '导出' },
 ];
+
+export function tapTileUsesDirectorCanvas(mode: TapTileWorkspaceMode): boolean {
+  return mode === 'direct' || mode === 'export';
+}
+
+export function tapTileShowsPlayOverlay(mode: TapTileWorkspaceMode): boolean {
+  return mode === 'play';
+}

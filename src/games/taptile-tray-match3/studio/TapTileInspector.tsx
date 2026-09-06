@@ -167,6 +167,7 @@ export function TapTileInspector({
 
   return (
     <aside className="panel inspector-panel">
+      <div className="inspector-scroll">
       <section>
         <div className="section-heading">
           <span>局面状态</span>
@@ -406,6 +407,17 @@ export function TapTileInspector({
         </label>
       </section>
 
+      {workspaceMode === 'export' && compiledDirector && (
+        <TapTileProductionPanel
+          project={project}
+          level={compiledLevel}
+          onChange={onCommitProject}
+          onImport={onImportProject}
+          onNotice={onNotice}
+        />
+      )}
+      </div>
+
       <section
         className="export-section"
         data-export-phase={exportProgress?.phase ?? 'idle'}
@@ -479,16 +491,6 @@ export function TapTileInspector({
         )}
         {exportResult && <a data-export-download href={exportResult.url} download={exportResult.fileName}>下载 {exportResult.fileName}</a>}
       </section>
-
-      {workspaceMode === 'export' && compiledDirector && (
-        <TapTileProductionPanel
-          project={project}
-          level={compiledLevel}
-          onChange={onCommitProject}
-          onImport={onImportProject}
-          onNotice={onNotice}
-        />
-      )}
     </aside>
   );
 }

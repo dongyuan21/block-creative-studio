@@ -39,13 +39,24 @@
 .taptile-studio .inspector-panel {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.taptile-studio .inspector-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .taptile-studio .export-section {
+  flex: 0 0 auto;
   position: sticky;
   bottom: 0;
+  margin-top: auto;
   margin-bottom: 0;
   z-index: 4;
+  background: var(--panel);
   box-shadow: 0 -12px 18px rgba(9, 11, 17, 0.95);
 }
 
