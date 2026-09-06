@@ -37,6 +37,7 @@ describe('TapTile director replay surface', () => {
     const css = source('src/games/taptile-tray-match3/studio/tapTileWorkspace.css');
     expect(inspector).toMatch(/className="inspector-scroll"/);
     expect(inspector).toMatch(/<\/div>\s*<section\s+className="export-section"/);
+    expect(inspector).toMatch(/导出成片/);
     expect(css).toMatch(/\.taptile-studio \.inspector-panel[\s\S]*overflow:\s*hidden/);
     expect(css).toMatch(/\.taptile-studio \.inspector-scroll[\s\S]*overflow-y:\s*auto/);
     expect(css).toMatch(/\.taptile-studio \.export-section[\s\S]*position:\s*sticky/);
