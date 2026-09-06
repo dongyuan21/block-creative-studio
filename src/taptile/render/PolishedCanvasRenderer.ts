@@ -5,6 +5,7 @@ import {
   TAPTILE_TRAY_CAPACITY,
   tapTileTraySlotRect,
 } from '../trayLayout';
+import { tapTileFacePartCenter } from '../faceOffset';
 import { resolveTileVisual, type ResolvedTileVisual } from '../visual';
 import { tapTileMaterialAppearance } from '../visual/materialAppearance';
 import {
@@ -165,8 +166,9 @@ function drawPolishedTile(
   for (const part of visual.renderedFace.parts) {
     const partWidth = Math.abs(part.transform.scaleX) * drawWidth;
     const partHeight = Math.abs(part.transform.scaleY) * drawHeight;
-    const x = (part.transform.x - 0.5) * drawWidth;
-    const y = (part.transform.y - 0.5) * drawHeight + faceOffsetY;
+    const center = tapTileFacePartCenter(part.transform, visual.faceNudge);
+    const x = (center.x - 0.5) * drawWidth;
+    const y = (center.y - 0.5) * drawHeight + faceOffsetY;
     context.save();
     context.globalAlpha *= part.transform.opacity;
     context.translate(round(x), round(y));

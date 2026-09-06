@@ -56,6 +56,7 @@ import {
   MIN_TAPTILE_SNAP_GAP_PX,
   normalizeTapTileSnapGapPx,
 } from './snapGap';
+import { normalizeTapTileFaceOffset } from './faceOffset';
 import {
   compileTapTileLevel,
   playableTapTileIds,
@@ -112,6 +113,7 @@ import {
   type TapTileWorkspaceMode,
 } from './workspace/WorkspaceMode';
 import './taptile-studio.css';
+import './taptile-polish.css';
 import '../games/taptile-tray-match3/studio/tapTileWorkspace.css';
 
 function toSessionMode(mode: TapTileWorkspaceMode): StudioSessionMode {
@@ -726,6 +728,8 @@ export function TapTileStackStudio() {
     next.authoring.snap = project.authoring.snap;
     next.authoring.snapGapPx = project.authoring.snapGapPx;
     next.authoring.showLayerBadges = project.authoring.showLayerBadges;
+    next.authoring.faceOffsetX = project.authoring.faceOffsetX;
+    next.authoring.faceOffsetY = project.authoring.faceOffsetY;
     next.visuals.selectedThemeId = project.visuals.selectedThemeId;
     dispatch({ type: 'commit', value: next });
     setSelectedIds([]);
@@ -1401,6 +1405,8 @@ export function TapTileStackStudio() {
       data-director-profile={compiledDirector?.profileId ?? ''}
       data-director-frame={directorPresentation?.frameNumber ?? ''}
       data-play-display-mode={playDisplayMode}
+      data-face-offset-x={project.authoring.faceOffsetX}
+      data-face-offset-y={project.authoring.faceOffsetY}
     >
       <Toolbar
         projectName={project.name}
@@ -1431,6 +1437,12 @@ export function TapTileStackStudio() {
           onVisualTheme={setVisualTheme}
           onRerollFaces={rerollChainComboFaces}
           onMaterial={(id) => setAuthoringOption('material', id)}
+          onFaceOffset={(axis, value) => {
+            setAuthoringOption(
+              axis === 'x' ? 'faceOffsetX' : 'faceOffsetY',
+              normalizeTapTileFaceOffset(value),
+            );
+          }}
           onChooseFace={chooseFace}
           onSelectTake={selectTake}
           onDeleteTake={deleteTake}

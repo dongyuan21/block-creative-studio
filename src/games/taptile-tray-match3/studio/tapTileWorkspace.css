@@ -90,6 +90,10 @@
 .taptile-material-swatch--jelly { background: linear-gradient(145deg, #ffb8e0, #8d6bff); }
 .taptile-material-swatch--paper { background: linear-gradient(145deg, #efe6d4, #b7a48a); }
 
+.taptile-face-nudge {
+  margin-top: 8px;
+}
+
 .taptile-selected-copy {
   display: flex;
   flex-direction: column;

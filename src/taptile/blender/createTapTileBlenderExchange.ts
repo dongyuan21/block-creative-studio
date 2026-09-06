@@ -11,6 +11,7 @@ import type {
 import { evaluateTapTileFrame, type CompiledTapTileTake, type TapTilePresentationFrame } from '../director';
 import { stableHash, type CompiledTapTile, type CompiledTapTileLevel, type TapTileProjectV2 } from '../project';
 import { normalizeTapTileTrayBounds, tapTileTraySlotCenter, tapTileTraySlotRect } from '../trayLayout';
+import { tapTileFacePartCenter } from '../faceOffset';
 import { resolveTileVisual } from '../visual';
 
 export interface CreateTapTileBlenderExchangeOptions {
@@ -137,7 +138,10 @@ function tileFace(
       source: part.source.kind === 'image'
         ? { kind: 'image' as const, assetId: part.source.assetId }
         : { kind: 'glyph' as const, value: part.source.value },
-      transform: { ...part.transform },
+      transform: {
+        ...part.transform,
+        ...tapTileFacePartCenter(part.transform, visual.faceNudge),
+      },
     };
   });
   return {

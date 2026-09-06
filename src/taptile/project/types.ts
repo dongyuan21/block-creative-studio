@@ -226,6 +226,9 @@ export interface TapTileAuthoringSettings {
   snapGapPx: number;
   showLayerBadges: boolean;
   debugView: 'normal' | 'playability' | 'blockers' | 'single-layer';
+  /** Normalized offset from tile-box center so glyphs sit on the 3D white face. */
+  faceOffsetX: number;
+  faceOffsetY: number;
 }
 
 export interface AudioCueRef {

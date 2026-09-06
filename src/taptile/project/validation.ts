@@ -9,6 +9,13 @@ import {
   MAX_TAPTILE_SNAP_GAP_PX,
   MIN_TAPTILE_SNAP_GAP_PX,
 } from '../snapGap';
+import {
+  DEFAULT_TAPTILE_FACE_OFFSET_X,
+  DEFAULT_TAPTILE_FACE_OFFSET_Y,
+  MAX_TAPTILE_FACE_OFFSET,
+  MIN_TAPTILE_FACE_OFFSET,
+  normalizeTapTileFaceOffset,
+} from '../faceOffset';
 import { normalizeTapTileTrayBounds } from '../trayLayout';
 
 export class TapTileProjectValidationError extends Error {
@@ -130,6 +137,16 @@ export function parseTapTileProjectV2(value: unknown): TapTileProjectV2 {
       fail('root.authoring.snapGapPx', `必须小于等于 ${MAX_TAPTILE_SNAP_GAP_PX}。`);
     }
   }
+  const readFaceOffset = (raw: unknown, path: string): number | undefined => {
+    if (raw === undefined) return undefined;
+    const value = finite(raw, path);
+    if (value < MIN_TAPTILE_FACE_OFFSET || value > MAX_TAPTILE_FACE_OFFSET) {
+      fail(path, `必须在 ${MIN_TAPTILE_FACE_OFFSET} 到 ${MAX_TAPTILE_FACE_OFFSET} 之间。`);
+    }
+    return value;
+  };
+  const faceOffsetX = readFaceOffset(authoring.faceOffsetX, 'root.authoring.faceOffsetX');
+  const faceOffsetY = readFaceOffset(authoring.faceOffsetY, 'root.authoring.faceOffsetY');
   const production = record(root.production, 'root.production');
   const audioPacks = record(production.audioPacks, 'root.production.audioPacks');
   const validateCue = (rawCue: unknown, path: string): void => {
@@ -208,5 +225,13 @@ export function parseTapTileProjectV2(value: unknown): TapTileProjectV2 {
   parsed.authoring.snapGapPx = authoring.snapGapPx === undefined
     ? DEFAULT_TAPTILE_SNAP_GAP_PX
     : authoring.snapGapPx as number;
+  parsed.authoring.faceOffsetX = normalizeTapTileFaceOffset(
+    faceOffsetX ?? DEFAULT_TAPTILE_FACE_OFFSET_X,
+    DEFAULT_TAPTILE_FACE_OFFSET_X,
+  );
+  parsed.authoring.faceOffsetY = normalizeTapTileFaceOffset(
+    faceOffsetY ?? DEFAULT_TAPTILE_FACE_OFFSET_Y,
+    DEFAULT_TAPTILE_FACE_OFFSET_Y,
+  );
   return parsed;
 }

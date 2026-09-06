@@ -24,11 +24,36 @@ describe('TapTile Project V2 migration', () => {
 
   it('defaults older V2 projects without a snap gap to edge contact', () => {
     const serialized = JSON.parse(JSON.stringify(migrateTapTileStackProjectV1(makeTemplateProject('free')))) as {
-      authoring: { snapGapPx?: number };
+      authoring: { snapGapPx?: number; faceOffsetX?: number; faceOffsetY?: number };
     };
     delete serialized.authoring.snapGapPx;
 
     expect(parseTapTileProjectV2(serialized).authoring.snapGapPx).toBe(0);
+  });
+
+  it('defaults missing face offsets to the optical-center nudge', () => {
+    const serialized = JSON.parse(JSON.stringify(migrateTapTileStackProjectV1(makeTemplateProject('free')))) as {
+      authoring: { faceOffsetX?: number; faceOffsetY?: number };
+    };
+    expect(serialized.authoring.faceOffsetX).toBe(-0.02);
+    expect(serialized.authoring.faceOffsetY).toBe(-0.04);
+    delete serialized.authoring.faceOffsetX;
+    delete serialized.authoring.faceOffsetY;
+
+    const parsed = parseTapTileProjectV2(serialized);
+    expect(parsed.authoring.faceOffsetX).toBe(-0.02);
+    expect(parsed.authoring.faceOffsetY).toBe(-0.04);
+  });
+
+  it('keeps an explicit geometric-center face offset of zero', () => {
+    const serialized = JSON.parse(JSON.stringify(migrateTapTileStackProjectV1(makeTemplateProject('free')))) as {
+      authoring: { faceOffsetX: number; faceOffsetY: number };
+    };
+    serialized.authoring.faceOffsetX = 0;
+    serialized.authoring.faceOffsetY = 0;
+    const parsed = parseTapTileProjectV2(serialized);
+    expect(parsed.authoring.faceOffsetX).toBe(0);
+    expect(parsed.authoring.faceOffsetY).toBe(0);
   });
 
   it('keeps gameplay hash invariant across visual theme and body changes', () => {

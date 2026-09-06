@@ -127,6 +127,13 @@ describe('TapTile SkinPack and presentation roles', () => {
     const ice = resolveTileVisual(iceProject, archetypeId, 'animals-v1', 'board');
     expect(ice.material).toBe('ice');
     expect(ice.identityHash).not.toBe(animals[0]!.identityHash);
+    expect(animals[0]!.faceNudge).toEqual({ x: -0.02, y: -0.04 });
+    const nudged = structuredClone(project);
+    nudged.authoring.faceOffsetX = 0.05;
+    nudged.authoring.faceOffsetY = -0.08;
+    const shifted = resolveTileVisual(nudged, archetypeId, 'animals-v1', 'board');
+    expect(shifted.faceNudge).toEqual({ x: 0.05, y: -0.08 });
+    expect(shifted.identityHash).not.toBe(animals[0]!.identityHash);
   });
 
   it('renders overlay, full-front and composed assemblies including repeats', () => {

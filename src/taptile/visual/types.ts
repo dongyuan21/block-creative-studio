@@ -47,6 +47,8 @@ export interface ResolvedTileVisual {
   bodyAsset?: ResolvedAsset;
   identityHash: string;
   roleScale: number;
+  /** Added to each face part's normalized x/y so the glyph tracks the white face. */
+  faceNudge: { x: number; y: number };
 }
 
 export type SkinCompatibilitySeverity = 'error' | 'warning' | 'info';

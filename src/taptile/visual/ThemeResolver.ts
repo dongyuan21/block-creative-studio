@@ -1,3 +1,8 @@
+import {
+  DEFAULT_TAPTILE_FACE_OFFSET_X,
+  DEFAULT_TAPTILE_FACE_OFFSET_Y,
+  normalizeTapTileFaceOffset,
+} from '../faceOffset';
 import { stableHash, type TapTilePresentationRole, type TapTileProjectV2 } from '../project';
 import { TapTileAssetRegistry } from './AssetRegistry';
 import { renderFaceAssembly } from './FaceAssemblyRenderer';
@@ -30,10 +35,15 @@ export function resolveTileVisual(
   const registry = new TapTileAssetRegistry(project.assets);
   const renderedFace = renderFaceAssembly(faceAssembly, registry);
   const bodyAsset = bodyStyle.bodyAssetId ? registry.resolve(bodyStyle.bodyAssetId) : undefined;
+  const faceNudge = {
+    x: normalizeTapTileFaceOffset(project.authoring.faceOffsetX, DEFAULT_TAPTILE_FACE_OFFSET_X),
+    y: normalizeTapTileFaceOffset(project.authoring.faceOffsetY, DEFAULT_TAPTILE_FACE_OFFSET_Y),
+  };
   const identityHash = stableHash({
     themeVariantId,
     archetypeId,
     material: project.authoring.material,
+    faceNudge,
     faceAssembly,
     bodyStyle,
     assetVersions: [
@@ -56,6 +66,7 @@ export function resolveTileVisual(
     ...(bodyAsset ? { bodyAsset } : {}),
     identityHash,
     roleScale: ROLE_SCALE[role],
+    faceNudge,
   };
 }
 

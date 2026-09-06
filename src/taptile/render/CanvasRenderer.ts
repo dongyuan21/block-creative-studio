@@ -7,6 +7,7 @@ import {
   tapTileTraySlotRect,
 } from '../trayLayout';
 import { resolveStageAssembly, resolveTileVisual, type ResolvedTileVisual } from '../visual';
+import { tapTileFacePartCenter } from '../faceOffset';
 import { tapTileMaterialAppearance } from '../visual/materialAppearance';
 import { TAPTILE_POINTER_ASSET_ID } from '../presentation/assets';
 import type { TapTileAssetCache } from './AssetCache';
@@ -340,8 +341,9 @@ function drawTile(
   for (const part of visual.renderedFace.parts) {
     const partWidth = Math.abs(part.transform.scaleX) * drawWidth;
     const partHeight = Math.abs(part.transform.scaleY) * drawHeight;
-    const x = (part.transform.x - 0.5) * drawWidth;
-    const y = (part.transform.y - 0.5) * drawHeight + surfaceOffsetY;
+    const center = tapTileFacePartCenter(part.transform, visual.faceNudge);
+    const x = (center.x - 0.5) * drawWidth;
+    const y = (center.y - 0.5) * drawHeight + surfaceOffsetY;
     context.save();
     context.globalAlpha *= part.transform.opacity;
     context.translate(round(x), round(y));

@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { tapTileFacePartCenter } from '../faceOffset';
 import { tapTileMaterialAppearance } from './materialAppearance';
 import type { ResolvedTileVisual } from './types';
 
@@ -29,12 +30,15 @@ export function TileVisual({ visual }: { visual: ResolvedTileVisual }) {
       data-visual-identity={visual.identityHash}
       data-face-assembly={visual.faceAssembly.id}
       data-body-style={visual.bodyStyle.id}
+      data-face-nudge-x={visual.faceNudge.x}
+      data-face-nudge-y={visual.faceNudge.y}
       style={style}
     >
       {visual.renderedFace.parts.map((part) => {
+        const center = tapTileFacePartCenter(part.transform, visual.faceNudge);
         const partStyle: CSSProperties = {
-          left: `${part.transform.x * 100}%`,
-          top: `${part.transform.y * 100}%`,
+          left: `${center.x * 100}%`,
+          top: `${center.y * 100}%`,
           width: `${Math.abs(part.transform.scaleX) * 100}%`,
           height: `${Math.abs(part.transform.scaleY) * 100}%`,
           opacity: part.transform.opacity,

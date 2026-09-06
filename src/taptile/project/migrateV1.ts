@@ -1,3 +1,7 @@
+import {
+  DEFAULT_TAPTILE_FACE_OFFSET_X,
+  DEFAULT_TAPTILE_FACE_OFFSET_Y,
+} from '../faceOffset';
 import { authoringToExportPoint, TAPTILE_EXPORT_SCALE } from '../pixelGeometry';
 import {
   FACE_LIBRARY,
@@ -379,6 +383,8 @@ export function migrateTapTileStackProjectV1(source: TapTileStackProject): TapTi
       snapGapPx: source.snapGapPx ?? 0,
       showLayerBadges: source.showLayerBadges,
       debugView: 'normal',
+      faceOffsetX: DEFAULT_TAPTILE_FACE_OFFSET_X,
+      faceOffsetY: DEFAULT_TAPTILE_FACE_OFFSET_Y,
     },
     production: createDefaultTapTileProductionSpec(),
   };
