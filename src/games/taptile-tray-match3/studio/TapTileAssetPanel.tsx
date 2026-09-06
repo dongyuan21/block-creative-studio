@@ -194,7 +194,7 @@ export function TapTileAssetPanel({
           <div className="crush-queue-actions">
             <button
               type="button"
-              className="button-secondary"
+              className={`button-secondary${project.authoring.faceOffsetX === DEFAULT_TAPTILE_FACE_OFFSET_X && project.authoring.faceOffsetY === DEFAULT_TAPTILE_FACE_OFFSET_Y ? ' is-active' : ''}`}
               disabled={lookLocked}
               onClick={() => {
                 onFaceOffset('x', DEFAULT_TAPTILE_FACE_OFFSET_X);
@@ -205,7 +205,7 @@ export function TapTileAssetPanel({
             </button>
             <button
               type="button"
-              className="button-secondary"
+              className={`button-secondary${project.authoring.faceOffsetX === 0 && project.authoring.faceOffsetY === 0 ? ' is-active' : ''}`}
               disabled={lookLocked}
               onClick={() => {
                 onFaceOffset('x', 0);
