@@ -1,3 +1,4 @@
+import { TAPTILE_OVERLAY_FACE_INSET } from '../faceFit';
 import { stableHash, type FaceAssembly, type FacePart, type TapTileProjectV2 } from '../project';
 import { TapTileAssetRegistry } from './AssetRegistry';
 import { renderFaceAssembly } from './FaceAssemblyRenderer';
@@ -40,7 +41,7 @@ function validateAssembly(
       issues.push({ code: 'FACE_REPEAT_OFFSETS_MISSING', severity: 'error', message: 'custom repeat 缺少逐项 offsets。', themeId, archetypeId, faceAssemblyId: assembly.id, partId: part.id });
     }
     const bounds = partBounds(part);
-    const safeInset = assembly.mode === 'overlay-on-body' ? 0.08 : 0;
+    const safeInset = assembly.mode === 'overlay-on-body' ? TAPTILE_OVERLAY_FACE_INSET : 0;
     if (bounds.left < safeInset || bounds.top < safeInset || bounds.right > 1 - safeInset || bounds.bottom > 1 - safeInset) {
       issues.push({
         code: assembly.mode === 'overlay-on-body' ? 'OVERLAY_OUTSIDE_SAFE_AREA' : 'FACE_PART_CLIPPED',

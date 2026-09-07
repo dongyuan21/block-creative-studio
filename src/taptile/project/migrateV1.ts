@@ -1,3 +1,4 @@
+import { TAPTILE_OVERLAY_FACE_SCALE } from '../faceFit';
 import {
   DEFAULT_TAPTILE_FACE_OFFSET_X,
   DEFAULT_TAPTILE_FACE_OFFSET_Y,
@@ -162,7 +163,7 @@ function makeFaceAssembly(id: string, name: string, glyph: string): FaceAssembly
     parts: [{
       id: `${id}-glyph`,
       source: { kind: 'glyph', value: glyph },
-      transform: { x: 0.5, y: 0.5, scaleX: 0.72, scaleY: 0.72, rotationDeg: 0, opacity: 1 },
+      transform: { x: 0.5, y: 0.5, scaleX: TAPTILE_OVERLAY_FACE_SCALE, scaleY: TAPTILE_OVERLAY_FACE_SCALE, rotationDeg: 0, opacity: 1 },
     }],
   };
 }
