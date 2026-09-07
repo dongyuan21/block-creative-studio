@@ -42,6 +42,15 @@ describe('Crush Wood runtime', () => {
     expect(play()).toBe(play());
   });
 
+  it('keeps skinId on state but out of the gameplay hash', () => {
+    const golden = crushWoodRuntime.createInitialState(createCrushWoodReferenceConfig('golden-embossed'), 1);
+    const maple = crushWoodRuntime.createInitialState(createCrushWoodReferenceConfig('classic-maple'), 1);
+    expect(golden.skinId).toBe('golden-embossed');
+    expect(maple.skinId).toBe('classic-maple');
+    expect(hashCrushWoodState(golden)).toBe(hashCrushWoodState(maple));
+    expect(hashCrushWoodState({ ...golden, score: golden.score + 1 })).not.toBe(hashCrushWoodState(golden));
+  });
+
   it('rejects a piece that does not match the authored queue', () => {
     const state = crushWoodRuntime.createInitialState(createCrushWoodReferenceConfig(), 1);
     expect(() => crushWoodRuntime.resolve(

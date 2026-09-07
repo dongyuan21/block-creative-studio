@@ -11,6 +11,11 @@
 - Clear-shard kinematics read `MaterialBehaviorProfile` instead of a wood-only scale hack. Not a G-buffer fracture claim.
 - Local verification prompt: `docs/verification/LOCAL_VERIFY_PROMPT.md`.
 
+### Changed
+
+- Crush Wood `skinId` is presentation-only. Gameplay state hash no longer includes it, so `skin apply` does not require re-running the agent.
+- Placement `look.copper` now drives document-render cinematic style (copper metal appearance + studio lighting). `look.candy-resin` keeps the previous candy-resin preset. PBR maps still require variant compile.
+
 ### Current boundary
 
 - Implementer does not visually approve wood grain, shard identity, or production framing.

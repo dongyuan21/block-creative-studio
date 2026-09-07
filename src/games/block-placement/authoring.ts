@@ -6,7 +6,11 @@ import {
   type GameAuthoringScaffoldRequest,
 } from '../../game-runtime/authoringAdapter';
 import { BLOCK_PLACEMENT_GAME_ID } from './manifest';
-import { createBlockPlacementDocument, BLOCK_PLACEMENT_LOOK_COPPER } from './project';
+import {
+  createBlockPlacementDocument,
+  BLOCK_PLACEMENT_LOOK_CANDY_RESIN,
+  BLOCK_PLACEMENT_LOOK_COPPER,
+} from './project';
 import { BOARD_PRESETS } from './runtime/boardPresets';
 import { parseBlockPlacementConfig } from './schemas';
 
@@ -15,7 +19,12 @@ const SKINS = [
   {
     id: BLOCK_PLACEMENT_LOOK_COPPER,
     label: 'Copper look pack',
-    notes: 'Builtin 9:16 look. Gameplay hash is unchanged; the look is attached on the studio document.',
+    notes: 'Document render uses copper metal appearance. Gameplay hash is unchanged. PBR maps still need variant compile.',
+  },
+  {
+    id: BLOCK_PLACEMENT_LOOK_CANDY_RESIN,
+    label: 'Candy resin look',
+    notes: 'Previous cinematic default: candy-resin tiles and soft-candy lighting. Gameplay hash is unchanged.',
   },
 ];
 
@@ -24,7 +33,9 @@ function catalog(): GameAuthoringCatalog {
 }
 
 function resolveLookId(skinId: string): string {
-  return skinId === 'copper' ? BLOCK_PLACEMENT_LOOK_COPPER : skinId;
+  if (skinId === 'copper') return BLOCK_PLACEMENT_LOOK_COPPER;
+  if (skinId === 'candy' || skinId === 'candy-resin') return BLOCK_PLACEMENT_LOOK_CANDY_RESIN;
+  return skinId;
 }
 
 export const blockPlacementAuthoring: GameAuthoringAdapter = {
@@ -42,6 +53,7 @@ export const blockPlacementAuthoring: GameAuthoringAdapter = {
       notes: [
         `Board preset ${templateId}.`,
         'Look pack is applied when emitting the studio document; gameplay config stays board/pieces only.',
+        'Document render reads production.lookPackRef.id. look.copper is copper metal; look.candy-resin keeps candy resin.',
       ],
     };
   },
@@ -50,7 +62,7 @@ export const blockPlacementAuthoring: GameAuthoringAdapter = {
     return {
       config: parseBlockPlacementConfig(config),
       skinId: resolved,
-      notes: ['Placement look is attached at document emit via production.lookPackRef.'],
+      notes: ['Placement look is attached at document emit via production.lookPackRef and drives cinematic style.'],
     };
   },
   emitDocument(request: GameAuthoringDocumentRequest) {

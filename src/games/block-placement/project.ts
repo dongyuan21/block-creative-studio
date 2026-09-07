@@ -21,6 +21,7 @@ import {
 import { parseBlockPlacementConfig, type BlockPlacementConfig } from './schemas';
 
 export const BLOCK_PLACEMENT_LOOK_COPPER = 'look.copper';
+export const BLOCK_PLACEMENT_LOOK_CANDY_RESIN = 'look.candy-resin';
 
 export interface BlockPlacementDocumentOptions {
   name?: string;

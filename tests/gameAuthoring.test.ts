@@ -9,9 +9,14 @@ import {
   commandProjectScaffold,
   commandSkin,
 } from '../src/cli/commands/authoring';
+import { commandAgent } from '../src/cli/commands/agent';
+import { commandTake } from '../src/cli/commands/take';
 import { ensureDefaultHeadlessPlatform } from '../src/bootstrap/headlessBootstrap';
+import { compileFrameSourceFromDocument } from '../src/game-runtime/projectDocument';
+import type { GameReplayEnvelope } from '../src/game-runtime/replayEnvelope';
 import { BCS_CAPABILITIES } from '../src/headless/capabilities';
 import { BLOCK_CRUSH_DROP_GAME_ID } from '../src/games/block-crush-drop/manifest';
+import type { CrushWoodPresentationPayload } from '../src/games/block-crush-drop/types';
 import { BLOCK_PLACEMENT_GAME_ID } from '../src/games/block-placement/manifest';
 import { TAPTILE_TRAY_MATCH3_GAME_ID } from '../src/games/taptile-tray-match3/manifest';
 import { compileTapTileLevel } from '../src/taptile/gameplay';
@@ -31,6 +36,8 @@ describe('authoring adapters and produce pipeline', () => {
     const taptile = catalog.games.find((item) => item.gameId === TAPTILE_TRAY_MATCH3_GAME_ID)!;
     expect(taptile.templates.map((item) => item.id)).toEqual(['hourglass', 't-shape', 'terraces', 'free']);
     expect(taptile.skins.map((item) => item.id)).toEqual(['animals-v1', 'food-v1', 'chain-combo-ui-v1']);
+    const placementCatalog = catalog.games.find((item) => item.gameId === BLOCK_PLACEMENT_GAME_ID)!;
+    expect(placementCatalog.skins.map((item) => item.id)).toEqual(['look.copper', 'look.candy-resin']);
     expect(BCS_CAPABILITIES.commands).toEqual(expect.arrayContaining([
       'project scaffold',
       'skin apply',
@@ -100,11 +107,61 @@ describe('authoring adapters and produce pipeline', () => {
     expect(produced.rendered).toBe(false);
     expect(produced.frames?.totalFrames).toBeGreaterThan(0);
     expect(produced.renderRequest.rendered).toBe(false);
-    expect(JSON.parse(readFileSync(produced.files.document, 'utf8')).takes).toHaveLength(1);
+    const producedDocument = JSON.parse(readFileSync(produced.files.document, 'utf8')) as {
+      takes: unknown[];
+      production: { lookPackRef: { id: string } };
+    };
+    expect(producedDocument.takes).toHaveLength(1);
+    expect(producedDocument.production.lookPackRef.id).toBe('look.copper');
     const compiled = await commandDocumentCompile({
       document: JSON.parse(readFileSync(produced.files.document, 'utf8')),
     }) as { ok: boolean; frames: { takeId: string; totalFrames: number } };
     expect(compiled.ok).toBe(true);
     expect(compiled.frames.totalFrames).toBe(produced.frames?.totalFrames);
+  });
+
+  it('keeps a Crush take valid after a palette swap and compiles the new skin', async () => {
+    const platform = ensureDefaultHeadlessPlatform();
+    const authoring = platform.authoring.require(BLOCK_CRUSH_DROP_GAME_ID);
+    const scaffold = authoring.scaffold({ seed: 29_980, template: 'reference', skin: 'golden-embossed' });
+    const run = await commandAgent({
+      action: 'run',
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      config: scaffold.config,
+      seed: 29_980,
+      maxMoves: 4,
+    }) as { ok: boolean; replay: GameReplayEnvelope };
+    expect(run.ok).toBe(true);
+
+    const skinned = await commandSkin({
+      action: 'apply',
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      config: scaffold.config,
+      skin: 'classic-maple',
+    }) as { skinId: string; config: { skinId: string } };
+    expect(skinned.skinId).toBe('classic-maple');
+    expect(skinned.config.skinId).toBe('classic-maple');
+
+    const validated = await commandTake({
+      action: 'validate',
+      gameId: BLOCK_CRUSH_DROP_GAME_ID,
+      take: run.replay,
+      config: skinned.config,
+    }) as { ok: boolean };
+    expect(validated.ok).toBe(true);
+
+    const document = authoring.emitDocument({
+      config: skinned.config,
+      seed: 29_980,
+      takes: [run.replay],
+      skin: skinned.skinId,
+    });
+    expect(document.game.config.data).toMatchObject({ skinId: 'classic-maple' });
+    const source = compileFrameSourceFromDocument(document, platform, {
+      takeId: document.takes[0]!.takeId,
+      directorProfile: document.direction?.rhythm ?? {},
+      fps: 30,
+    });
+    expect((source.evaluate(0).payload as CrushWoodPresentationPayload).skinId).toBe('classic-maple');
   });
 });

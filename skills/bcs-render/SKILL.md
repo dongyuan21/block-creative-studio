@@ -24,7 +24,7 @@ node dist-cli/cli/bcs.js render \
 node dist-cli/cli/bcs.js produce --game <gameId> --out-dir <dir> --render --quality preview
 ```
 
-成功时目录里有 `video.mp4`、`preview.png`，`render-request.json` 的 `rendered` 为 `true`，`encoder` 为 `chrome-webcodecs`。
+成功时目录里有 `video.mp4`、`preview.png`，`render-request.json` 的 `rendered` 为 `true`，`encoder` 为 `chrome-webcodecs`。Placement 工程的 `production.lookPackRef.id` 会进入电影后端：`look.copper` 是铜金属外观，`look.candy-resin` 是原先的糖果树脂。这不是 plan-bound PBR 贴图绑定。
 
 找不到 Chrome 时：`ok` 为 false，`recoverable` 为 true，`code` 为 `CHROME_NOT_FOUND`，**不会**把 `rendered` 写成 true。不要用 Node 假装已经出片。
 

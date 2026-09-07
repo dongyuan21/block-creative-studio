@@ -4,6 +4,11 @@ import { compileFrameSourceFromDocument } from '../src/game-runtime/projectDocum
 import { CRUSH_WOOD_PRESENTATION_SCHEMA_ID } from '../src/games/block-crush-drop/presentation';
 import { BLOCK_CRUSH_DROP_GAME_ID } from '../src/games/block-crush-drop/manifest';
 import { BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID } from '../src/games/block-placement/render/cinematicBackendAdapter';
+import {
+  BLOCK_PLACEMENT_LOOK_CANDY_RESIN,
+  BLOCK_PLACEMENT_LOOK_COPPER,
+} from '../src/games/block-placement/project';
+import { resolveBlockPlacementCinematicStyle } from '../src/games/block-placement/render/cinematicLooks';
 import { BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID } from '../src/games/block-placement/presentation/legacyPresentationAdapter';
 import { BLOCK_PLACEMENT_GAME_ID } from '../src/games/block-placement/manifest';
 import { TAPTILE_PRESENTATION_SCHEMA_ID } from '../src/games/taptile-tray-match3/presentation';
@@ -62,6 +67,40 @@ describe('document render setup', () => {
       expect(setup.renderContract.gameId).toBe(item.gameId);
       expect(setup.resourcePolicy.mode).toBe('procedural-no-assets');
     }
+  });
+
+  it('passes look.copper into Placement cinematic resources', () => {
+    const platform = ensureDefaultHeadlessPlatform();
+    const copper = resolveDocumentRenderSetup({
+      gameId: BLOCK_PLACEMENT_GAME_ID,
+      presentationSchemaId: BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID,
+      renderContracts: platform.renderContracts.list(),
+      lookPackId: BLOCK_PLACEMENT_LOOK_COPPER,
+    });
+    expect(copper.backend.id).toBe(BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID);
+    expect(copper.resourcePolicy).toMatchObject({
+      mode: 'procedural-no-assets',
+      runtimeAssets: { lookPackId: BLOCK_PLACEMENT_LOOK_COPPER },
+    });
+
+    const candy = resolveDocumentRenderSetup({
+      gameId: BLOCK_PLACEMENT_GAME_ID,
+      presentationSchemaId: BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID,
+      renderContracts: platform.renderContracts.list(),
+      lookPackId: BLOCK_PLACEMENT_LOOK_CANDY_RESIN,
+    });
+    expect(candy.resourcePolicy).toMatchObject({
+      runtimeAssets: { lookPackId: BLOCK_PLACEMENT_LOOK_CANDY_RESIN },
+    });
+
+    const copperStyle = resolveBlockPlacementCinematicStyle(BLOCK_PLACEMENT_LOOK_COPPER);
+    const candyStyle = resolveBlockPlacementCinematicStyle(BLOCK_PLACEMENT_LOOK_CANDY_RESIN);
+    expect(copperStyle.materialRuntime?.baseColor).toBe('#b76e45');
+    expect(copperStyle.materialRuntime?.metalness).toBe(0.88);
+    expect(copperStyle.lighting).toBe('clean-studio');
+    expect(candyStyle.materialRuntime).toBeUndefined();
+    expect(candyStyle.material).toBe('candy-resin');
+    expect(candyStyle.lighting).toBe('soft-candy');
   });
 
   it('limits a compiled frame source without changing the original hash', async () => {

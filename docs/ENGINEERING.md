@@ -69,6 +69,7 @@ BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 L
 - 结构、确定性、权限和资源预算型 Quality Gate；
 - 机器可读的 `bcs` CLI 与 JSON Schema；
 - 按 `gameId` 调度的出题、换皮、机器试玩、工程文档和 Chrome 出片；
+- Crush 换皮不改玩法哈希；Placement `look.copper` 进入 document-render 电影镜头（参数铜金属，不是 plan-bound PBR 贴图）；
 - `skills/` 组合入口，给外部 Agent 用，不内嵌 LLM；
 - 批量矩阵编译时单变体失败隔离。
 

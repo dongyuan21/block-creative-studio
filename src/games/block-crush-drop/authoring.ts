@@ -21,7 +21,7 @@ const TEMPLATES = CRUSH_WOOD_BOARD_PRESETS.map((preset) => ({ id: preset.id, lab
 const SKINS = CRUSH_WOOD_SKINS.map((skin) => ({
   id: skin.id,
   label: skin.label,
-  notes: 'Canvas palette swap. skinId is part of Crush Wood state hash.',
+  notes: 'Canvas palette swap. Gameplay hash is unchanged; skinId stays on state for presentation.',
 }));
 
 function catalog(): GameAuthoringCatalog {
@@ -54,7 +54,7 @@ export const blockCrushDropAuthoring: GameAuthoringAdapter = {
       catalog: catalog(),
       notes: [
         `Board preset ${templateId} with skin ${skinId}.`,
-        'Changing skinId changes Crush Wood initialStateHash; re-run the agent after a skin swap.',
+        'skinId is presentation-only. Existing takes stay valid after a skin swap.',
       ],
     };
   },
@@ -66,7 +66,7 @@ export const blockCrushDropAuthoring: GameAuthoringAdapter = {
     return {
       config: parsed,
       skinId: resolved,
-      notes: ['skinId is hashed into Crush Wood state. Existing takes must be regenerated.'],
+      notes: ['skinId is presentation-only. Existing takes stay valid; document emit uses the new palette.'],
     };
   },
   emitDocument(request: GameAuthoringDocumentRequest) {

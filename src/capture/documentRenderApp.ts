@@ -143,10 +143,12 @@ async function run(): Promise<CaptureReport> {
       ? limitCompiledFrameSource(compiled, job.maxFrames)
       : compiled;
     const warmup = source.evaluate(0);
+    const lookPackId = project.production.lookPackRef.id;
     const setup = resolveDocumentRenderSetup({
       gameId: source.gameId,
       presentationSchemaId: warmup.payloadSchemaId,
       renderContracts: platform.renderContracts.list(),
+      ...(lookPackId ? { lookPackId } : {}),
     });
     report.gameId = source.gameId;
     report.takeId = source.takeId;

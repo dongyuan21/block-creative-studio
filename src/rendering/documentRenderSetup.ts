@@ -16,6 +16,7 @@ export function resolveDocumentRenderSetup(input: {
   presentationSchemaId: string;
   renderContracts: readonly GameRenderContract[];
   renderer?: string;
+  lookPackId?: string;
 }): DocumentRenderSetup {
   const renderer = input.renderer ?? 'fixed-camera-cinematic';
   const schemaMatches = listRenderBackends().filter((backend) => (
@@ -56,13 +57,21 @@ export function resolveDocumentRenderSetup(input: {
     );
   }
 
+  const reason = `Document render uses registered backend ${backend.id} with game-owned procedural resources (no plan-bound material set).`;
+  const lookPackId = input.lookPackId?.trim();
   return {
     backend,
     composition,
     renderContract,
-    resourcePolicy: {
-      mode: 'procedural-no-assets',
-      reason: `Document render uses registered backend ${backend.id} with game-owned procedural resources (no plan-bound material set).`,
-    },
+    resourcePolicy: lookPackId
+      ? {
+          mode: 'procedural-no-assets',
+          reason,
+          runtimeAssets: { lookPackId },
+        }
+      : {
+          mode: 'procedural-no-assets',
+          reason,
+        },
   };
 }

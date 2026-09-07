@@ -22,7 +22,23 @@ function boardFromRows(config: CrushWoodConfig): CrushWoodBoard {
 }
 
 export function hashCrushWoodState(state: CrushWoodState): string {
-  return stableHash(state);
+  return stableHash({
+    levelId: state.levelId,
+    columns: state.columns,
+    rows: state.rows,
+    board: state.board,
+    queue: state.queue,
+    queueIndex: state.queueIndex,
+    score: state.score,
+    targetScore: state.targetScore,
+    scorePerLine: state.scorePerLine,
+    linesCleared: state.linesCleared,
+    combo: state.combo,
+    turn: state.turn,
+    remainingTimeMs: state.remainingTimeMs,
+    moveTimeMs: state.moveTimeMs,
+    status: state.status,
+  });
 }
 
 function fits(

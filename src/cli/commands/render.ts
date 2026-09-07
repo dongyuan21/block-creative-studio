@@ -166,10 +166,12 @@ export async function commandRender(input: RenderCommandInput): Promise<unknown>
       fps,
     });
     const warmup = source.evaluate(0);
+    const lookPackId = document.production.lookPackRef.id;
     const setup = resolveDocumentRenderSetup({
       gameId: source.gameId,
       presentationSchemaId: warmup.payloadSchemaId,
       renderContracts: platform.renderContracts.list(),
+      ...(lookPackId ? { lookPackId } : {}),
     });
     const output = {
       width: setup.composition.videoResolution.width,

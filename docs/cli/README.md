@@ -109,6 +109,8 @@ Registered demo games: `block-placement`, `taptile-tray-match3`, `block-crush-dr
 
 This is puzzle authoring and **in-game** visuals (tile theme / wood skin / look pack). It does not replace Studio chrome.
 
+Crush `skinId` and TapTile themes do not change gameplay hashes, so an existing take stays valid after `skin apply`. Placement `look.copper` / `look.candy-resin` live on `document.production.lookPackRef`; `bcs render` reads that id. `look.copper` drives copper metal in the cinematic backend. PBR texture maps still require `variant compile`.
+
 ```bash
 node dist-cli/cli/bcs.js authoring catalog --game taptile-tray-match3
 node dist-cli/cli/bcs.js project scaffold \
