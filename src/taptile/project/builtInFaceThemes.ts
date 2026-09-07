@@ -79,13 +79,13 @@ const CHAIN_COMBO_FACE_TREATMENTS: readonly ChainComboFaceTreatment[] = Object.f
     id: 'chain-combo-maple-diagonal',
     name: '斜向枫叶',
     assetId: 'chain-combo-maple-leaf',
-    transform: { x: 0.5, y: 0.51, scaleX: 0.58, scaleY: 0.58, rotationDeg: -38, opacity: 1 },
+    transform: { x: 0.5, y: 0.51, scaleX: 0.46, scaleY: 0.46, rotationDeg: -38, opacity: 1 },
   },
   {
     id: 'chain-combo-blue-fruit-sideways',
     name: '横向蓝色海果',
     assetId: 'chain-combo-blue-fruit',
-    transform: { x: 0.5, y: 0.51, scaleX: 0.58, scaleY: 0.58, rotationDeg: 90, opacity: 1 },
+    transform: { x: 0.5, y: 0.51, scaleX: 0.46, scaleY: 0.46, rotationDeg: 90, opacity: 1 },
   },
 ]);
 

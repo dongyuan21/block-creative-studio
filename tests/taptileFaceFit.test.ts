@@ -11,7 +11,7 @@ import { renderFaceAssembly, TapTileAssetRegistry, validateSkinPack } from '../s
 describe('TapTile overlay face fit', () => {
   it('keeps default overlay faces inside the porcelain rim', () => {
     expect(TAPTILE_OVERLAY_FACE_SCALE).toBeLessThan(TAPTILE_OVERLAY_FACE_MAX_SCALE);
-    expect(TAPTILE_OVERLAY_FACE_INSET).toBeGreaterThan(0.1);
+    expect(TAPTILE_OVERLAY_FACE_INSET).toBeGreaterThan(0.18);
     const project = createDefaultTapTileProject('hourglass');
     for (const themeId of ['animals-v1', 'food-v1']) {
       const report = validateSkinPack(project, themeId);

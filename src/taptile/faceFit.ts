@@ -1,9 +1,9 @@
 import type { FacePartTransform } from './project/types';
 
 /** Keep a porcelain / body rim around overlay-on-body faces. */
-export const TAPTILE_OVERLAY_FACE_INSET = 0.16;
+export const TAPTILE_OVERLAY_FACE_INSET = 0.22;
 export const TAPTILE_OVERLAY_FACE_MAX_SCALE = 1 - 2 * TAPTILE_OVERLAY_FACE_INSET;
-export const TAPTILE_OVERLAY_FACE_SCALE = 0.64;
+export const TAPTILE_OVERLAY_FACE_SCALE = 0.52;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));

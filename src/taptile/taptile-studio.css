@@ -723,10 +723,10 @@
 .tile-face {
   display: grid;
   place-items: center;
-  width: 64%;
-  height: 64%;
+  width: 52%;
+  height: 52%;
   container-type: size;
-  font-size: 78cqmin;
+  font-size: 68cqmin;
   line-height: 1;
   filter:
     drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72))
@@ -792,7 +792,7 @@
 .tpt-face-part { position: absolute; z-index: 2; display: grid; place-items: center; transform-origin: center; container-type: size; }
 .tpt-face-part img { width: 100%; height: 100%; object-fit: contain; }
 .mode-full-front .tpt-face-part img { object-fit: cover; }
-.tpt-face-glyph { font-size: 78cqmin; line-height: 1; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72)) drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28)); }
+.tpt-face-glyph { font-size: 68cqmin; line-height: 1; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.72)) drop-shadow(0 2px 1px rgba(28, 36, 48, 0.28)); }
 .tpt-gameplay-tray .tpt-tile-visual { inset: 0; border-width: 1px; }
 .tpt-gameplay-tray .tpt-tile-visual::after { display: none; }
 .tpt-gameplay-tray .tpt-tile-visual.material-porcelain {
