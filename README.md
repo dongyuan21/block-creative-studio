@@ -8,7 +8,9 @@ Block Creative Studio（BCS）从可复现的二维玩法真值出发，把游�
 
 当前版本：`0.3.0-alpha.4`  
 当前演示游戏：**Block Placement**、**TapTile Tray Match3**、**crash wooooood!**  
-规划接入：**Mahjong**
+规划接入：**Mahjong**（Studio Coming Soon；没有 Agent / 出题 / 出片适配器）
+
+本版能力交付：**原子 CLI** + **官方组合 Skill** + 三款演示游戏的出题 / 换皮 / 试玩 / Chrome 出片。请先审再合 `main`，不要在 draft 上无限叠功能。
 
 ---
 
@@ -147,10 +149,10 @@ flowchart LR
 
 | 游戏 | 玩法真值 | 主要动作 | Resolve / Reconfigure | 当前状态 |
 |---|---|---|---|---|
-| **Block Placement** | 8×8 二维格阵 | 从三个候选块中拖拽落子 | 满行、满列同步清除；通常不发生整体移动 | **可运行、可编辑、可导出**；CLI 可出题 / 试玩 / 出片 |
-| **TapTile Tray Match3** | 分层叠牌 + 底栏托盘三消 | 点选可用牌飞入托盘 | 三消清除、解锁被压牌、托盘满则失败 | **演示游戏已接入**；CLI 可出题 / 换皮 / 试玩 / 出片 |
-| **crash wooooood!** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | **演示游戏已接入**；CLI 可出题 / 换皮 / 试玩 / 出片 |
-| **Mahjong** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | 架构已预留，正式游戏模块未实现 |
+| **Block Placement** | 8×8 二维格阵 | 从三个候选块中拖拽落子 | 满行、满列同步清除；通常不发生整体移动 | Studio 可编辑 / 可导出；CLI 可出题 / 换皮 / 试玩 / 出片。人工视觉评审仍以本游戏为主 |
+| **TapTile Tray Match3** | 分层叠牌 + 底栏托盘三消 | 点选可用牌飞入托盘 | 三消清除、解锁被压牌、托盘满则失败 | Studio 演示已接入；CLI 可出题 / 换皮 / 试玩 / 出片。CLI 短预览 ≠ 商业画质 |
+| **crash wooooood!** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | Studio 演示已接入；CLI 可出题 / 换皮 / 试玩 / 出片。换皮不改玩法哈希。CLI 短预览 ≠ 商业画质 |
+| **Mahjong** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | Studio Coming Soon；`gameId` 为 `mahjong-solitaire`。没有 Agent / authoring / render，不要对它跑 `agent run` |
 
 未来的新游戏不要求共享同一种 Board 或 Action；只需要遵守统一的生产协议。
 
@@ -158,7 +160,16 @@ flowchart LR
 
 ## 当前可运行能力
 
-### Block Placement 玩法与 Replay
+两条入口，不要混评：
+
+| 入口 | 给谁 | 现在能做什么 |
+|---|---|---|
+| **Studio** | 人类在 Chrome 里编辑、试玩、导演、导出 | Placement 是完整工作台与人工视觉片单；TapTile / Crush 可打开演示；Mahjong 为 Coming Soon |
+| **CLI + Skill** | 外部 Agent、CI、后续后端 | 三款演示游戏共用原子命令；官方 Skill 只编排这些命令；本机有 Chrome 时才能真正出片 |
+
+系统本身不内置 LLM。它提供适合 Agent 调用的稳定协议，而不是把 Prompt 面板硬塞进创作流程。
+
+### Studio：Block Placement 玩法与 Replay
 
 - 8×8 棋盘、三个候选块、18 种基础形状和七色 Token；
 - 合法落子、重叠拒绝、满行满列同步清除、候选刷新和失败判断；
@@ -167,27 +178,35 @@ flowchart LR
 - 语义 Action、归一化指针轨迹、Seed、Take 与确定性 Replay；
 - 多套导演节奏，可在不重下的情况下改变演出速度和停顿。
 
-### Reference 2D 与固定机位成片
+### Studio：Reference 2D 与固定机位成片
 
 - Reference 2D 用于锁定棋盘、HUD、候选区、事件时序和 Golden 校准；
-- 固定机位 Cinematic Backend 提供厚度、倒角、PBR 材质、灯光、阴影、碎片和后处理；
+- 固定机位 Cinematic Backend 提供厚度、倒角、PBR 材质、灯光、阴影、碎片和后处理（这是当前 Placement 生产路径，不是「下一阶段」占位）；
 - 不锈钢、橡木与参数化 Aurora 材质示例；
 - Albedo、Roughness、Metalness 等诊断视图；
 - 原生设计分辨率 Capture 与 1080×1920 H.264/MP4 导出；
 - 固定时间步逐帧重演，导出速度可以慢于实时，但动作帧位不会随机器负载漂移。
 
-### 资产、变体与 Agent 接口
+人工视觉评审请按 [`docs/LOCAL_REVIEW_AND_FEEDBACK.md`](docs/LOCAL_REVIEW_AND_FEEDBACK.md) 的 Placement Studio 五条片执行。
+
+### Agent CLI：三款演示游戏
+
+- `gameId`：`block-placement`、`taptile-tray-match3`、`block-crush-drop`；
+- 出题（`project scaffold`）、换皮（`skin apply`）、机器试玩（`agent run`）、校验（`take validate`）、收工程（`document emit`）、出片（`render`）；
+- 统一输出 `GameReplayEnvelope`；人和机器共用各游戏自己的语义 Action，不靠截图猜棋盘；
+- Crush 换皮不改玩法哈希，同一份 Take 换皮后仍可通过 `take validate`；
+- Placement `look.copper` / `look.candy-resin` 写在工程 `lookPackRef` 上，`bcs render` 会读；`look.copper` 是参数铜金属，不是 plan-bound PBR 贴图；
+- `bcs produce` 是便捷 CLI，不是唯一合法路径，也不要给它加多皮矩阵开关；
+- Node **不得**在没编码的情况下写 `rendered: true`。没有 Chrome 时返回可恢复的 `CHROME_NOT_FOUND`。
+
+### 资产、变体与官方 Skill
 
 - 浏览器 IndexedDB Asset Store，二进制资产按 SHA-256 持久化；
 - 上传背景、牌面、材质贴图及其他版本化资产；
 - `CreativeMaster + VariantRecipe → ResolvedRenderPlan`；
 - 材质外观与材质行为分离，Effect Pack 可校验材质兼容性；
 - Plan-bound Prepared Resources，正式渲染前校验 Plan Hash 和 Required Slots；
-- Agent-neutral Headless Core、机器可读 CLI，以及 `skills/` 官方组合配方；
-- CLI 提供原子命令；Skill 负责编排。外部 Agent 可以改官方 Skill，也可以按同一套 CLI 自写 Skill；
-- 外部 Agent 可以从出题、换皮、机器试玩一直调度到 Chrome/WebCodecs 出片。
-
-系统本身不内置 LLM。它提供的是适合 Agent 调用的稳定协议，而不是把 Prompt 面板硬塞进创作流程。
+- CLI 提供原子命令；`skills/` 提供可改的官方组合配方。外部 Agent 可以改官方 Skill，也可以按同一套 CLI 自写 Skill。
 
 ---
 
@@ -198,6 +217,8 @@ flowchart LR
 - Node.js `22.12+`
 - npm `10+`
 - 近期桌面版 Chrome
+
+### 入口 A：Studio（人类工作台）
 
 ```bash
 git clone https://github.com/dongyuan21/block-creative-studio.git
@@ -221,6 +242,34 @@ examples/demo-cross-clear.block-creative.json
 然后进入 **导演回放**，分别尝试 Reference 2D 与固定机位 Cinematic Look，再导出 1080×1920 MP4。
 
 本机视觉评审请按 [`docs/LOCAL_REVIEW_AND_FEEDBACK.md`](docs/LOCAL_REVIEW_AND_FEEDBACK.md) 的统一片单执行，避免不同输入之间无法对比。
+
+### 入口 B：CLI + Skill（外部 Agent）
+
+GitHub Pages 只部署前端；CLI 在本地或后续后端跑。先构建可执行文件，再按官方配方编排，不要把 Skill 当成第二套实现。
+
+```bash
+npm run build:cli
+node dist-cli/cli/bcs.js capabilities
+node dist-cli/cli/bcs.js agent list
+```
+
+从出题到可选出片，跟 [`skills/bcs-from-puzzle-to-mp4/SKILL.md`](skills/bcs-from-puzzle-to-mp4/SKILL.md)。同一份 Take 换多套局内皮，跟 [`skills/bcs-remix-looks/SKILL.md`](skills/bcs-remix-looks/SKILL.md)。
+
+```bash
+node dist-cli/cli/bcs.js produce \
+  --game block-placement \
+  --template showcase \
+  --skin look.copper \
+  --seed 7 \
+  --max-moves 8 \
+  --out-dir /tmp/placement-produce
+node dist-cli/cli/bcs.js render \
+  --out-dir /tmp/placement-produce \
+  --quality preview \
+  --max-frames 8
+```
+
+`--max-frames` 只截断预览。CLI 短预览不要和 Studio 五条评审片混在一个印象里。
 
 ---
 
@@ -316,10 +365,12 @@ skills/                        # 官方 Skill：原子命令的 1:1 说明 + 可
 | 项目 | 状态 |
 |---|---|
 | 多游戏平台 R0–R8b | 已完成并合入 `main` |
-| Block Placement / TapTile / crash wooooood! | 三款演示游戏可 Studio 打开，也可走 Agent CLI 出题 / 试玩 / 出片 |
-| Mahjong | 尚未作为正式模块接入 |
+| Block Placement / TapTile / crash wooooood! | 三款演示游戏可 Studio 打开，也可走 Agent CLI 出题 / 换皮 / 试玩 / 出片 |
+| 原子 CLI + 官方组合 Skill | **本版已交付**：CLI 保持原子，Skill 负责编排。不是「Skills deferred」 |
+| Mahjong | Studio Coming Soon；尚未作为正式模块接入，CLI 不可调度 |
+| MCP / 云端托管 CLI | 仍延后。GitHub Pages 只部署前端 |
 | 商业参考 Golden | `BLOCKED`：公共仓库不包含商业源视频 |
-| 人工视觉批准 | `PENDING` |
+| 人工视觉批准 | `PENDING`（片单仍是 Placement Studio 五条 MP4） |
 | 音频、BGM、旁白 | 尚未进入当前导出链 |
 | R9：默认切换 V2、删除 Legacy 路径 | `DEFERRED` |
 

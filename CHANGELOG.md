@@ -16,6 +16,7 @@
 - Crush Wood `skinId` is presentation-only. Gameplay state hash no longer includes it, so `skin apply` does not require re-running the agent.
 - Placement `look.copper` now drives document-render cinematic style (copper metal appearance + studio lighting). `look.candy-resin` keeps the previous candy-resin preset. PBR maps still require variant compile.
 - Reserved coming-soon game renamed to **Mahjong** (`mahjong-solitaire`). Product docs and Studio chrome no longer use the previous working title.
+- Product docs aligned to this delivery: README dual entry (Studio vs CLI+Skill), ENGINEERING / ARCHITECTURE current-tense, LOCAL_REVIEW visual sheet vs Agent preview, Headless Core points at `skills/`. Historical R0–R8b reports are unchanged except the Mahjong name.
 
 ### Current boundary
 

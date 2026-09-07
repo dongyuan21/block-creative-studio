@@ -56,6 +56,11 @@ describe('official skills and CLI/Skill docs', () => {
     expect(read('docs/cli/README.md')).toMatch(/\*\*composition\*\* surface/);
     expect(read('docs/ENGINEERING.md')).toMatch(/官方组合配方/);
     expect(read('docs/architecture/AGENT_OPERABLE_BOUNDARY.md')).toMatch(/belongs in `skills\/`/);
+    expect(read('README.md')).toMatch(/入口 A：Studio/);
+    expect(read('README.md')).toMatch(/入口 B：CLI \+ Skill/);
+    expect(read('docs/ARCHITECTURE.md')).toMatch(/FixedCameraCinematic Renderer（当前 Placement 生产路径）/);
+    expect(read('docs/LOCAL_REVIEW_AND_FEEDBACK.md')).not.toMatch(/给 Crush \/ 麻将出片/);
+    expect(read('docs/LOCAL_REVIEW_AND_FEEDBACK.md')).toMatch(/Agent CLI 出片/);
   });
 
   it('does not keep the Vita Mahjong product name in current sources or product docs', () => {

@@ -1,5 +1,7 @@
 # Reference-first 2D rebuild
 
+> 本文是 Placement Reference 2D 重建的阶段论证。现行产品入口（Studio + 原子 CLI + 官方 Skill）见根目录 README；不要把「尚未复刻参考游戏 UI」读成三款演示游戏或 CLI 还不存在。
+
 ## Why this document exists
 
 The current codebase proves an architectural path from a deterministic block-placement game state to Replay, browser rendering, and video export. It does **not** yet reproduce the reference game's UI, layout, scoring feedback, placement preview, clear effects, celebratory overlays, or timing with sufficient fidelity.

@@ -2,7 +2,7 @@
 
 给下载代码后的人：先出一组约定好的竖屏成片，再按同一套格式写观感。后续迭代只接这类反馈，不把 SwiftShader / CI / 架构 Review 当成画面过关。
 
-当前人工视觉评审片单仍以 **Block Placement** Studio 导出为主。三个演示游戏都可以通过 Agent CLI 出题 / 试玩 / 出片；组合配方在 `skills/`（可改），原子命令在 CLI。不要把 CLI 短预览或 SwiftShader 样片当成商业画质通过。Mahjong 还没接入。
+**本文件的人工视觉片单只评 Block Placement 的 Studio 五条 MP4。** 三款演示游戏都可以通过 Agent CLI 出题 / 换皮 / 试玩 / 出片；那是能力验证，跟下面 1～5 号片分开写。组合配方在 `skills/`（可改），原子命令在 CLI。不要把 CLI 短预览或 SwiftShader 样片当成商业画质通过。Mahjong 还没接入，不要对 `mahjong-solitaire` 跑 `agent run`。
 
 环境：**Node.js 22.12+**、桌面 **Chrome**。Studio 导出必须在 Chrome 里完成。`bcs render` 也是拉起无头 Chrome；Node 自己不会编码像素。
 
@@ -80,6 +80,10 @@ npm run capture:review
 
 会在 `review-package/run/` 写出公开 Fixture 的 20 张 PNG 和 4 条 MP4（2D + 钢 / 木 / aurora）。这是确定性回归，**软件渲染器画面不能当作商业画质通过**。若你打开这些 MP4，反馈请标明来源是 `capture:review`，不要和上面 5 条 Studio 成片混在一个印象里。
 
+### Agent CLI 出片（能力验证，不是本片单）
+
+若要确认本版 Agent 链路，跟 [`skills/bcs-from-puzzle-to-mp4/SKILL.md`](../skills/bcs-from-puzzle-to-mp4/SKILL.md)，同一 Take 换皮跟 [`skills/bcs-remix-looks/SKILL.md`](../skills/bcs-remix-looks/SKILL.md)。反馈请标明 `gameId`、模板、皮肤、`quality`、是否 `--max-frames`。这些 MP4 证明调度和编码，**不要和上面 5 条 Studio 成片混评**，也不要当成 Crush / TapTile 的商业画质通过。
+
 ---
 
 ## 4. 反馈怎么写
@@ -112,12 +116,13 @@ npm run capture:review
 - Chrome 版本、电脑是否为独显（集成显卡请写明）
 - 一句话总评：更像「能用的试玩演示」还是「还不能给客户看」
 
-不要反馈这些（现阶段不会做）：
+不要反馈这些（现阶段不会做，或会误导本片单）：
 
-- 给 Crush / 麻将出片
+- 要求把 Crush / TapTile 的 CLI 短预览当成商业画质通过，或和 Placement Studio 五条片混成一个印象
+- 要求给 Mahjong 出片（正式模块未接入）
 - 给成片配音、BGM
 - 自由摄像机、把整个棋盘做成开放世界 3D
-- 把 Node-only CLI 的 `rendered: true` 或 Golden 标成通过
+- 把没有写出 MP4 的 CLI 结果标成 `rendered: true`，或把 Golden / SwiftShader 标成视觉通过
 - 要求像素级对齐未进仓库的商业参考片
 
 ---

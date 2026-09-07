@@ -1,6 +1,8 @@
 # 一期 Review 清单
 
-这份清单用于在本地 Chrome 跑起来后，按产品闭环验收，而不是只看代码数量。
+> 本文是 **Block Placement Studio** 的一期人工验收清单，不是三款游戏的现行总表。Agent CLI / 官方 Skill 见 [`README.md`](../README.md) 与 [`../skills/README.md`](../skills/README.md)。人工视觉片单见 [`LOCAL_REVIEW_AND_FEEDBACK.md`](LOCAL_REVIEW_AND_FEEDBACK.md)。不要用这份清单去评 Crush / TapTile 商业画质。
+
+这份清单用于在本地 Chrome 跑起来后，按 Placement 产品闭环验收，而不是只看代码数量。
 
 ## 1. 玩法与造局
 

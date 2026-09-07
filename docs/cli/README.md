@@ -105,7 +105,7 @@ node dist-cli/cli/bcs.js take validate \
 
 `--config` is the game's official config document (`block-placement` board/pieces, Crush Wood level, or a TapTile project). Omit it to use that adapter's default. `--out` on `agent run` writes the envelope only; the command JSON also includes `status` and `validation`.
 
-Registered demo games: `block-placement`, `taptile-tray-match3`, `block-crush-drop`.
+Registered demo games: `block-placement`, `taptile-tray-match3`, `block-crush-drop`. `mahjong-solitaire` is Studio Coming Soon and has no agent, authoring, or render adapter — `agent run --game mahjong-solitaire` returns `UNKNOWN_AGENT`.
 
 ## Author a level and swap in-game skin
 

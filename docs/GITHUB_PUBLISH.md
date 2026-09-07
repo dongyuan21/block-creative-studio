@@ -1,5 +1,7 @@
 # 发布到 GitHub
 
+> 仓库已经在 GitHub 上。本文保留初期 Bundle / ZIP 发布步骤，不是现在克隆仓库的推荐方式。日常请直接 `git clone https://github.com/dongyuan21/block-creative-studio.git`，产品说明见根目录 README。
+
 当前交付同时提供源码 ZIP 和保留提交历史的 Git Bundle。
 
 ## 推荐：从 Git Bundle 建仓
