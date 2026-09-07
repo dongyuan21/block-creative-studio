@@ -1,3 +1,4 @@
+import { fitOverlayFaceTransform } from '../faceFit';
 import type { FaceAssembly, FacePart, FacePartTransform } from '../project';
 import { TapTileAssetRegistry } from './AssetRegistry';
 import type { RenderedFaceAssembly, RenderedFacePart } from './types';
@@ -19,9 +20,15 @@ function repeatOffset(part: FacePart, index: number, count: number): { x: number
   return { x: centered * 0.18, y: 0 };
 }
 
-function repeatedTransform(part: FacePart, index: number, count: number): FacePartTransform {
+function repeatedTransform(
+  part: FacePart,
+  index: number,
+  count: number,
+  overlayOnBody: boolean,
+): FacePartTransform {
   const offset = repeatOffset(part, index, count);
-  return { ...part.transform, x: part.transform.x + offset.x, y: part.transform.y + offset.y };
+  const transform = { ...part.transform, x: part.transform.x + offset.x, y: part.transform.y + offset.y };
+  return overlayOnBody ? fitOverlayFaceTransform(transform) : transform;
 }
 
 export function renderFaceAssembly(
@@ -37,7 +44,7 @@ export function renderFaceAssembly(
         source: part.source.kind === 'glyph'
           ? { ...part.source }
           : { kind: 'image', assetId: part.source.assetId, asset: registry.resolve(part.source.assetId) },
-        transform: repeatedTransform(part, index, count),
+        transform: repeatedTransform(part, index, count, assembly.mode === 'overlay-on-body'),
         repeatIndex: index,
       });
     }
