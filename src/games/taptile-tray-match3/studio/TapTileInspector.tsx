@@ -167,6 +167,7 @@ export function TapTileInspector({
 
   return (
     <aside className="panel inspector-panel">
+      <div className="inspector-scroll">
       <section>
         <div className="section-heading">
           <span>局面状态</span>
@@ -406,22 +407,7 @@ export function TapTileInspector({
         </label>
       </section>
 
-      <section
-        className="export-section"
-        data-export-phase={exportProgress?.phase ?? 'idle'}
-        data-export-frames={exportResult?.frameCount ?? 0}
-        data-export-bytes={exportResult?.bytes ?? 0}
-        data-export-duration={exportResult?.durationSeconds ?? 0}
-        data-export-verified-frame={exportResult?.verifiedFrame ?? -1}
-        data-export-verified-pixel-hash={exportResult?.verifiedPixelHash ?? ''}
-        data-export-render-identity={exportResult?.renderIdentityHash ?? ''}
-        data-export-container-verified={exportResult?.containerVerified ? 'true' : 'false'}
-        data-export-actual-fps={exportResult?.actualFps ?? 0}
-        data-export-actual-video-bitrate={exportResult?.actualVideoBitrate ?? 0}
-        data-export-minimum-psnr={exportResult?.minimumVisualPsnrDb ?? 0}
-        data-preview-parity={directorPreviewReady ? 'ready' : directorPreviewState?.status ?? 'pending'}
-        data-regression-frames={JSON.stringify(renderRegressionFrames)}
-      >
+      <section>
         <div className="section-heading">
           <span>高画质导出</span>
           <small>Chrome offline</small>
@@ -450,6 +436,41 @@ export function TapTileInspector({
             <input data-export-preview-seek type="range" min={0} max={compiledDirector.totalFrames - 1} value={directorFrame} onChange={(event) => onDirectorFrame(Number(event.target.value))} />
           </label>
         )}
+        {!compiledDirector && <p className="empty-copy">先保存一次人类或机器试玩 Take。</p>}
+        {compiledDirector && !directorPreviewReady && <p className="empty-copy">先点导演回放锁定画面。</p>}
+      </section>
+
+      {workspaceMode === 'export' && compiledDirector && (
+        <TapTileProductionPanel
+          project={project}
+          level={compiledLevel}
+          onChange={onCommitProject}
+          onImport={onImportProject}
+          onNotice={onNotice}
+        />
+      )}
+      </div>
+
+      <section
+        className="export-section"
+        data-export-phase={exportProgress?.phase ?? 'idle'}
+        data-export-frames={exportResult?.frameCount ?? 0}
+        data-export-bytes={exportResult?.bytes ?? 0}
+        data-export-duration={exportResult?.durationSeconds ?? 0}
+        data-export-verified-frame={exportResult?.verifiedFrame ?? -1}
+        data-export-verified-pixel-hash={exportResult?.verifiedPixelHash ?? ''}
+        data-export-render-identity={exportResult?.renderIdentityHash ?? ''}
+        data-export-container-verified={exportResult?.containerVerified ? 'true' : 'false'}
+        data-export-actual-fps={exportResult?.actualFps ?? 0}
+        data-export-actual-video-bitrate={exportResult?.actualVideoBitrate ?? 0}
+        data-export-minimum-psnr={exportResult?.minimumVisualPsnrDb ?? 0}
+        data-preview-parity={directorPreviewReady ? 'ready' : directorPreviewState?.status ?? 'pending'}
+        data-regression-frames={JSON.stringify(renderRegressionFrames)}
+      >
+        <div className="section-heading">
+          <span>导出成片</span>
+          <small>1080P</small>
+        </div>
         {exportRunning ? (
           <button type="button" className="export-button export-button--cancel" data-action="cancel-taptile-export" onClick={onCancelExport}>
             取消本次渲染
@@ -472,23 +493,11 @@ export function TapTileInspector({
           </div>
         )}
         {exportError && <p className="error-copy">{exportError}</p>}
-        {!compiledDirector && <p className="empty-copy">先保存一次人类或机器试玩 Take。</p>}
-        {compiledDirector && !directorPreviewReady && <p className="empty-copy">先点导演回放锁定画面。</p>}
         {exportResult?.containerVerified && (
           <p className="empty-copy">✓ MP4 回读验收通过 · {exportResult.frameCount} 帧 · {exportResult.actualFps.toFixed(3)}fps</p>
         )}
         {exportResult && <a data-export-download href={exportResult.url} download={exportResult.fileName}>下载 {exportResult.fileName}</a>}
       </section>
-
-      {workspaceMode === 'export' && compiledDirector && (
-        <TapTileProductionPanel
-          project={project}
-          level={compiledLevel}
-          onChange={onCommitProject}
-          onImport={onImportProject}
-          onNotice={onNotice}
-        />
-      )}
     </aside>
   );
 }

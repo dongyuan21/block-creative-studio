@@ -392,7 +392,36 @@
   pointer-events: none;
 }
 .tpt-tray i { position: absolute; min-width: 0; min-height: 0; overflow: hidden; border-radius: 7px; background: rgba(5, 18, 45, 0.62); box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.08); }
-.tpt-gameplay-tray i { display: grid; place-items: center; isolation: isolate; transition: 160ms ease; }
+.tpt-gameplay-tray {
+  position: absolute;
+  z-index: 50;
+  inset: 0;
+  pointer-events: none;
+}
+.tpt-gameplay-tray > i {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  isolation: isolate;
+  transition: 160ms ease;
+}
+.tpt-tray-tile-layer {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+.tpt-tray-tile {
+  position: absolute;
+  display: block;
+}
+.tpt-tray-tile-card {
+  position: absolute;
+  inset: 0;
+  display: block;
+  isolation: isolate;
+}
 .tpt-gameplay-tray i.is-occupied {
   overflow: visible;
   background: transparent;

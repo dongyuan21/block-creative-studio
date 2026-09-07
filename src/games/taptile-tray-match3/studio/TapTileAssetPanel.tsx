@@ -7,6 +7,13 @@ import {
   type TapTileTake,
 } from '../../../taptile/project';
 import {
+  DEFAULT_TAPTILE_FACE_OFFSET_X,
+  DEFAULT_TAPTILE_FACE_OFFSET_Y,
+  formatTapTileFaceOffset,
+  MAX_TAPTILE_FACE_OFFSET,
+  MIN_TAPTILE_FACE_OFFSET,
+} from '../../../taptile/faceOffset';
+import {
   FACE_LIBRARY,
   TEMPLATE_OPTIONS,
   type SceneThemeId,
@@ -49,6 +56,7 @@ export function TapTileAssetPanel({
   onVisualTheme,
   onRerollFaces,
   onMaterial,
+  onFaceOffset,
   onChooseFace,
   onSelectTake,
   onDeleteTake,
@@ -65,6 +73,7 @@ export function TapTileAssetPanel({
   onVisualTheme(themeId: string): void;
   onRerollFaces(): void;
   onMaterial(id: TileMaterialId): void;
+  onFaceOffset(axis: 'x' | 'y', value: number): void;
   onChooseFace(faceId: string): void;
   onSelectTake(takeId: string): void;
   onDeleteTake(takeId: string): void;
@@ -154,6 +163,59 @@ export function TapTileAssetPanel({
               <strong>{material.label}</strong>
             </button>
           ))}
+        </div>
+        <div className="inline-ranges taptile-face-nudge" data-face-nudge="true">
+          <label className="range-field">
+            <span>图案水平</span>
+            <output>{formatTapTileFaceOffset(project.authoring.faceOffsetX)}</output>
+            <input
+              type="range"
+              min={MIN_TAPTILE_FACE_OFFSET * 100}
+              max={MAX_TAPTILE_FACE_OFFSET * 100}
+              step={1}
+              disabled={lookLocked}
+              value={Math.round(project.authoring.faceOffsetX * 100)}
+              onChange={(event) => onFaceOffset('x', Number(event.currentTarget.value) / 100)}
+            />
+          </label>
+          <label className="range-field">
+            <span>图案垂直</span>
+            <output>{formatTapTileFaceOffset(project.authoring.faceOffsetY)}</output>
+            <input
+              type="range"
+              min={MIN_TAPTILE_FACE_OFFSET * 100}
+              max={MAX_TAPTILE_FACE_OFFSET * 100}
+              step={1}
+              disabled={lookLocked}
+              value={Math.round(project.authoring.faceOffsetY * 100)}
+              onChange={(event) => onFaceOffset('y', Number(event.currentTarget.value) / 100)}
+            />
+          </label>
+          <div className="crush-queue-actions">
+            <button
+              type="button"
+              className={`button-secondary${project.authoring.faceOffsetX === DEFAULT_TAPTILE_FACE_OFFSET_X && project.authoring.faceOffsetY === DEFAULT_TAPTILE_FACE_OFFSET_Y ? ' is-active' : ''}`}
+              disabled={lookLocked}
+              onClick={() => {
+                onFaceOffset('x', DEFAULT_TAPTILE_FACE_OFFSET_X);
+                onFaceOffset('y', DEFAULT_TAPTILE_FACE_OFFSET_Y);
+              }}
+            >
+              光学居中
+            </button>
+            <button
+              type="button"
+              className={`button-secondary${project.authoring.faceOffsetX === 0 && project.authoring.faceOffsetY === 0 ? ' is-active' : ''}`}
+              disabled={lookLocked}
+              onClick={() => {
+                onFaceOffset('x', 0);
+                onFaceOffset('y', 0);
+              }}
+            >
+              几何居中
+            </button>
+          </div>
+          <p className="empty-copy">3D 投影会把图案从白面视觉中心推开。负值往左/上微调。</p>
         </div>
       </section>
 

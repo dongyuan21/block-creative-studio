@@ -92,9 +92,11 @@ describe('studio shell modularization', () => {
     expect(tapAssets).toMatch(/panel asset-panel/);
     expect(tapAssets).toMatch(/试玩 Take/);
     expect(tapInspector).toMatch(/panel inspector-panel/);
+    expect(tapInspector).toMatch(/className="inspector-scroll"/);
     expect(tapInspector).toMatch(/高画质导出/);
     expect(tapCss).toMatch(/\.taptile-studio \.takes-section[\s\S]*position:\s*sticky/);
     expect(tapCss).toMatch(/\.taptile-studio \.export-section[\s\S]*position:\s*sticky/);
+    expect(tapCss).toMatch(/\.taptile-studio \.inspector-scroll[\s\S]*overflow-y:\s*auto/);
     expect(tapLegacyCss).not.toMatch(/min-height:\s*100vh/);
     expect(tapLegacyCss).not.toMatch(/\.tpt-inspector-panel \{ display: none/);
   });
