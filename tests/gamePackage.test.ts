@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHeadlessPlatform, registerGamePackage } from '../src/bootstrap/gamePackage';
 import { GameAgentRegistry } from '../src/game-runtime/agentAdapter';
+import { GameAuthoringRegistry } from '../src/game-runtime/authoringAdapter';
 import { GameRegistryError } from '../src/game-runtime/errors';
 import { GameRegistry } from '../src/game-runtime/gameRegistry';
 import { PresentationRegistry } from '../src/game-runtime/presentationRegistry';
@@ -19,6 +20,7 @@ function emptyPlatform() {
     presentations: new PresentationRegistry(),
     renderContracts: new RenderContractRegistry(),
     agents: new GameAgentRegistry(),
+    authoring: new GameAuthoringRegistry(),
   };
 }
 

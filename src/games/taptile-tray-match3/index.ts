@@ -1,4 +1,5 @@
 export * from './agent';
+export * from './authoring';
 export * from './definition';
 export * from './manifest';
 export * from './package';

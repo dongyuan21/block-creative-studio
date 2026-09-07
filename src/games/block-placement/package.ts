@@ -1,5 +1,6 @@
 import type { GamePackageRegistration } from '../../bootstrap/gamePackage';
 import { blockPlacementAgent } from './agent';
+import { blockPlacementAuthoring } from './authoring';
 import { blockPlacementCaptureSuite } from './capture/suite';
 import { blockPlacementDefinition } from './definition';
 import { blockPlacementPresentationAdapter } from './presentation/legacyPresentationAdapter';
@@ -15,4 +16,5 @@ export const blockPlacementPackage: GamePackageRegistration = {
   calibrations: [blockPlacementCalibrationProfile],
   captureSuite: blockPlacementCaptureSuite,
   agent: blockPlacementAgent,
+  authoring: blockPlacementAuthoring,
 };

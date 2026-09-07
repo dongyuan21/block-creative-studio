@@ -1,4 +1,6 @@
 export { blockPlacementAgent } from './agent';
+export { blockPlacementAuthoring } from './authoring';
+export { createBlockPlacementDocument, BLOCK_PLACEMENT_LOOK_COPPER } from './project';
 export { blockPlacementDefinition } from './definition';
 export { importStudioDocument, migrateBlockPlacementV1, migrateUnknownProjectToV2 } from './migrations/blockPlacementV1';
 export {

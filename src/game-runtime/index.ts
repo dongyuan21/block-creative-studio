@@ -40,6 +40,17 @@ export {
   type GameAgentRunStatus,
 } from './agentAdapter';
 export {
+  GameAuthoringRegistry,
+  requireCatalogOption,
+  type GameAuthoringAdapter,
+  type GameAuthoringCatalog,
+  type GameAuthoringDocumentRequest,
+  type GameAuthoringScaffoldRequest,
+  type GameAuthoringScaffoldResult,
+  type GameAuthoringSkinResult,
+  type GameCatalogOption,
+} from './authoringAdapter';
+export {
   validateGameReplay,
   type GameReplayValidationIssue,
   type GameReplayValidationResult,

@@ -1,5 +1,6 @@
 import type { GamePackageRegistration } from '../../bootstrap/gamePackage';
 import { tapTileTrayMatch3Agent } from './agent';
+import { tapTileTrayMatch3Authoring } from './authoring';
 import { tapTileCaptureSuite } from './capture/suite';
 import { tapTileTrayMatch3Definition } from './definition';
 import { TAPTILE_TRAY_MATCH3_GAME_ID } from './manifest';
@@ -19,4 +20,5 @@ export const tapTileTrayMatch3Package: GamePackageRegistration = {
   captureSuite: tapTileCaptureSuite,
   studioGameId: TAPTILE_TRAY_MATCH3_GAME_ID,
   agent: tapTileTrayMatch3Agent,
+  authoring: tapTileTrayMatch3Authoring,
 };

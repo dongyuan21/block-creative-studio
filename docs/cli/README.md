@@ -105,6 +105,41 @@ node dist-cli/cli/bcs.js take validate \
 
 Registered demo games: `block-placement`, `taptile-tray-match3`, `block-crush-drop`.
 
+## Author a level and swap in-game skin
+
+This is puzzle authoring and **in-game** visuals (tile theme / wood skin / look pack). It does not replace Studio chrome.
+
+```bash
+node dist-cli/cli/bcs.js authoring catalog --game taptile-tray-match3
+node dist-cli/cli/bcs.js project scaffold \
+  --game taptile-tray-match3 \
+  --template hourglass \
+  --skin food-v1 \
+  --seed 20260902 \
+  --out /tmp/taptile.config.json
+node dist-cli/cli/bcs.js skin apply \
+  --game taptile-tray-match3 \
+  --config /tmp/taptile.config.json \
+  --skin chain-combo-ui-v1 \
+  --out /tmp/taptile.config.json
+```
+
+## Produce through to a render-ready document (no MP4)
+
+`produce` chains scaffold → skin → agent take → document → presentation compile. Node still cannot encode video.
+
+```bash
+node dist-cli/cli/bcs.js produce \
+  --game block-placement \
+  --template showcase \
+  --skin look.copper \
+  --seed 7 \
+  --max-moves 8 \
+  --out-dir /tmp/placement-produce
+```
+
+The directory contains `config.json`, `take.json`, `document.json`, `frames.json`, and `render-request.json` with `rendered: false`. Import the document in Studio or run `npm run capture:review` to encode.
+
 ## Skills
 
 `skills/` wraps these commands so an external Agent can compose them: discover capabilities, generate a take, validate it, then compile/quality-check a variant. Skills are the composition surface; the CLI is the execution surface.
