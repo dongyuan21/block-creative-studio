@@ -11,4 +11,4 @@ node dist-cli/cli/bcs.js schema list
 node dist-cli/cli/bcs.js agent list
 ```
 
-`capabilities.commands` 是当前二进制承认的命令清单。`agent list` 返回 `{ gameId, profiles }[]`。`render --list` 返回电影后端和构图。没有出现的 `gameId` 不要调用 `bcs-agent-run`。
+`capabilities.commands` 是当前二进制承认的命令清单。`agent list` 返回 `{ gameId, profiles }[]`。`render --list` 返回电影后端和构图。没有出现的 `gameId` 不要调用 `bcs-agent-run`。组合入口见 `bcs`。

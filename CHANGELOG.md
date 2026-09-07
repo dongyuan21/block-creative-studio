@@ -4,6 +4,8 @@
 
 ### Added
 
+- Agent-operable CLI: `project scaffold`, `skin apply`, `agent run`, `take validate`, `document emit/compile`, `produce`, and `render` (Chrome/WebCodecs). `rendered: true` only after an MP4 is written.
+- `skills/` wrappers so an external Agent can compose those commands without an embedded LLM.
 - Plan camera/layout metadata compile into `StyleSpec.shotExecution` and drive cinematic letterbox, pick mapping and punch zoom. Pose/FOV remain fallback.
 - Per-cell PBR UV jitter via `Texture.clone()` (shared image, independent offset/rotation).
 - Clear-shard kinematics read `MaterialBehaviorProfile` instead of a wood-only scale hack. Not a G-buffer fracture claim.

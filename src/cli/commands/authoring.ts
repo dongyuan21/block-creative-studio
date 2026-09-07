@@ -174,7 +174,7 @@ export async function commandDocumentCompile(input: DocumentCompileInput): Promi
       totalFrames: source.totalFrames,
       frameSourceHash: source.frameSourceHash,
       rendered: false,
-      note: 'Node compiles the presentation source only. Pixel frames and MP4 require Chrome WebCodecs or capture:review.',
+      note: 'Node compiles the presentation source only. Pixel frames and MP4 require `bcs render` (Chrome/WebCodecs).',
     };
     const out = input.out ? await writeJson(input.out, frames) : null;
     return { ok: true, rendered: false, frames, out };

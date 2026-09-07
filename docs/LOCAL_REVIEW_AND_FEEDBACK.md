@@ -2,9 +2,9 @@
 
 给下载代码后的人：先出一组约定好的竖屏成片，再按同一套格式写观感。后续迭代只接这类反馈，不把 SwiftShader / CI / 架构 Review 当成画面过关。
 
-当前可制作的游戏只有 **Block Placement**。不要等 crash wooooood! 或 Vita Mahjong 的成片，它们还没接入工作台。
+当前人工视觉评审片单仍以 **Block Placement** Studio 导出为主。三个演示游戏都可以通过 Agent CLI 出题 / 试玩 / 出片；不要把 CLI 短预览或 SwiftShader 样片当成商业画质通过。Vita Mahjong 还没接入。
 
-环境：**Node.js 22.12+**、桌面 **Chrome**。导出必须在 Chrome 里完成；CLI 不会生成 MP4。
+环境：**Node.js 22.12+**、桌面 **Chrome**。Studio 导出必须在 Chrome 里完成。`bcs render` 也是拉起无头 Chrome；Node 自己不会编码像素。
 
 ---
 
@@ -117,7 +117,7 @@ npm run capture:review
 - 给 Crush / 麻将出片
 - 给成片配音、BGM
 - 自由摄像机、把整个棋盘做成开放世界 3D
-- 把 CLI `rendered: true` 或 Golden 标成通过
+- 把 Node-only CLI 的 `rendered: true` 或 Golden 标成通过
 - 要求像素级对齐未进仓库的商业参考片
 
 ---

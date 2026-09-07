@@ -68,6 +68,8 @@ BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 L
 - 材质外观与破坏行为分离，以及 Material-aware Effect 兼容检查；
 - 结构、确定性、权限和资源预算型 Quality Gate；
 - 机器可读的 `bcs` CLI 与 JSON Schema；
+- 按 `gameId` 调度的出题、换皮、机器试玩、工程文档和 Chrome 出片；
+- `skills/` 组合入口，给外部 Agent 用，不内嵌 LLM；
 - 批量矩阵编译时单变体失败隔离。
 
 ```bash
@@ -82,6 +84,8 @@ node dist-cli/cli/bcs.js variant compile \
   --out /tmp/copper-plan.json
 node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
 ```
+
+Agent 出题 / 试玩 / 出片见 [`CLI 文档`](cli/README.md) 与 [`skills/bcs/SKILL.md`](../skills/bcs/SKILL.md)。`bcs render` 只有在无头 Chrome 实际写出 MP4 后才把 `rendered` 设为 `true`。
 
 详见 [`AGENT_OPERABLE_BOUNDARY.md`](architecture/AGENT_OPERABLE_BOUNDARY.md)、[`HEADLESS_CORE_V1.md`](architecture/HEADLESS_CORE_V1.md)、[`WEB_VARIANT_WORKSPACE_V1.md`](architecture/WEB_VARIANT_WORKSPACE_V1.md)、[`ASSET_IMPORT_PIPELINE_V1.md`](architecture/ASSET_IMPORT_PIPELINE_V1.md)、[`FIXED_CAMERA_LOOKDEV_V1.md`](architecture/FIXED_CAMERA_LOOKDEV_V1.md) 和 [`CLI 文档`](cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
 
@@ -211,8 +215,9 @@ python tools/reference_audit/extract_golden_frames.py \
 ```text
 src/domain          纯 TypeScript 玩法、形状、计分分解、工程校验
 src/headless        开放资产契约、Registry、变体编译与质量门禁
-src/integration     Web 项目与 Headless Core 的适配桥
+src/games           三款演示游戏包（Placement / TapTile / Crush）
 src/cli             外部 Agent / CI 使用的机器可读 CLI
+src/integration     Web 项目与 Headless Core 的适配桥
 src/director        Take → 固定帧表现状态；逻辑与 VFX 时间解耦
 src/assets          语义资产、固定机位契约、Browser Asset Store 与运行时绑定
 src/reference2d     真机参考 2D 布局、Canvas 渲染和交互
@@ -220,6 +225,7 @@ src/renderer        旧 Three.js 3D 实验后端
 src/exporter        固定帧 Canvas → WebCodecs → MP4
 src/components      Human-first 工作台与 Variant/Quality 面板
 src/state           项目、试玩、Take、变体工作区、回放与导出编排
+skills/             外部 Agent 组合 CLI 的 skill
 docs/reference/v2  全帧索引、事件索引、资产谱系和渲染映射
 tools/reference_audit  本地整片分析与 Golden Frame 提取工具
 schemas             工程、资产谱系和固定机位契约 Schema

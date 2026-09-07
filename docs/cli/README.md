@@ -124,7 +124,7 @@ node dist-cli/cli/bcs.js skin apply \
   --out /tmp/taptile.config.json
 ```
 
-## Produce through to a render-ready document (no MP4)
+## Produce a document and optionally encode MP4
 
 `produce` chains scaffold → skin → agent take → document → presentation compile. Add `--render` to spawn Chrome and encode an MP4. Node itself still cannot set `rendered: true`.
 
@@ -148,5 +148,24 @@ Without Chrome, `render` returns `ok: false`, `recoverable: true`, `code: CHROME
 
 ## Skills
 
-`skills/` wraps these commands so an external Agent can compose them: discover capabilities, generate a take, validate it, then compile/quality-check a variant. Skills are the composition surface; the CLI is the execution surface.
+`skills/` wraps these commands so an external Agent can compose them. Skills are the composition surface; the CLI is the execution surface.
+
+| CLI | Skill |
+|---|---|
+| `capabilities` / `schema` / `agent list` | `bcs-capabilities`, `bcs-schema` |
+| `project scaffold` / `authoring catalog` | `bcs-project-scaffold` |
+| `skin list` / `skin apply` | `bcs-skin-apply` |
+| `agent run` | `bcs-agent-run` |
+| `take validate` | `bcs-take-validate` |
+| `document emit` / `document compile` | `bcs-document-emit` |
+| `produce` | `bcs-produce` |
+| `render` | `bcs-render` |
+| `asset validate` | `bcs-asset-validate` |
+| `variant compile` | `bcs-variant-compile` |
+| `quality check` | `bcs-quality-check` |
+| `material compile` | `bcs-material-compile` |
+| `golden batch` | `bcs-golden-batch` |
+| `project migrate` | `bcs-project-migrate` |
+
+Hub: [`skills/bcs/SKILL.md`](../../skills/bcs/SKILL.md).
 
