@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+<title id="title">同一份玩法，不必为每次换皮重做</title>
+<desc id="desc">BCS 产品图。图示基于 3732a80，文档核对基线为 669df56。CLI 在本地或 Node 环境运行，视频由 Chrome 编码；不代表商业视觉验收。</desc>
+<style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",sans-serif;fill:#18304D}rect{stroke-width:1.7}path.flow{fill:none;stroke-width:2.5}</style>
+<rect width="100%" height="100%" fill="#fff" stroke="none"/>
+<defs>
+<marker id="a0" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#117C82"/></marker>
+<marker id="a1" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#2356B6"/></marker>
+<marker id="a2" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#754EBA"/></marker>
+</defs>
+<rect x="60" y="89" width="54" height="5" rx="10" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="60" y="189" width="380" height="134" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="60" y="206" width="4" height="100" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="495" y="189" width="425" height="134" rx="16" fill="#EFF8F7" stroke="#117C82" style="stroke-width:1.7"/>
+<rect x="495" y="206" width="4" height="100" rx="2" fill="#117C82" stroke="none" style="stroke-width:1.7"/>
+<rect x="975" y="189" width="565" height="134" rx="16" fill="#F6F2FC" stroke="#754EBA" style="stroke-width:1.7"/>
+<rect x="975" y="206" width="4" height="100" rx="2" fill="#754EBA" stroke="none" style="stroke-width:1.7"/>
+<rect x="60" y="419" width="460" height="350" rx="16" fill="#FFF7EC" stroke="#C26B08" style="stroke-width:1.7"/>
+<rect x="83" y="533" width="414" height="157" rx="16" fill="#FFFFFF" stroke="#D6DFEA" style="stroke-width:1.3"/>
+<rect x="570" y="419" width="460" height="350" rx="16" fill="#EFF8F7" stroke="#117C82" style="stroke-width:1.7"/>
+<rect x="593" y="533" width="414" height="157" rx="16" fill="#FFFFFF" stroke="#D6DFEA" style="stroke-width:1.3"/>
+<rect x="1080" y="419" width="460" height="350" rx="16" fill="#F6F2FC" stroke="#754EBA" style="stroke-width:1.7"/>
+<rect x="1103" y="533" width="414" height="157" rx="16" fill="#FFFFFF" stroke="#D6DFEA" style="stroke-width:1.3"/>
+<rect x="60" y="813" width="710" height="118" rx="16" fill="#FFF7EC" stroke="#C26B08" style="stroke-width:1.7"/>
+<rect x="60" y="830" width="4" height="84" rx="2" fill="#C26B08" stroke="none" style="stroke-width:1.7"/>
+<rect x="820" y="813" width="720" height="118" rx="16" fill="#F6F2FC" stroke="#754EBA" style="stroke-width:1.7"/>
+<rect x="820" y="830" width="4" height="84" rx="2" fill="#754EBA" stroke="none" style="stroke-width:1.7"/>
+<path class="flow" d="M440 256L495 256" stroke="#2356B6" marker-end="url(#a1)"/>
+<path class="flow" d="M920 256L975 256" stroke="#117C82" marker-end="url(#a0)"/>
+<path class="flow" d="M1257.5 323L1257.5 367L290 367L290 419" stroke="#754EBA" marker-end="url(#a2)"/>
+<path class="flow" d="M1257.5 323L1257.5 367L800 367L800 419" stroke="#754EBA" marker-end="url(#a2)"/>
+<path class="flow" d="M1257.5 323L1257.5 367L1310 367L1310 419" stroke="#754EBA" marker-end="url(#a2)"/>
+<text x="60" y="79.34" font-size="44" font-weight="700" text-anchor="start" style="fill:#18304D">同一份玩法，不必为每次换皮重做</text>
+<text x="60" y="136" font-size="25" font-weight="400" text-anchor="start" style="fill:#637892">bcs-remix-looks · 试玩一次，复用 Take，按外观分别生成工程与视频</text>
+<text x="1540" y="65.84" font-size="19" font-weight="700" text-anchor="end" style="fill:#2356B6">Skill 使用场景</text>
+<text x="84" y="237.58" font-size="28" font-weight="700" text-anchor="start" style="fill:#2356B6">01  机器试玩一次</text>
+<text x="84" y="291.28" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">agent run → 留下 Take</text>
+<text x="519" y="237.58" font-size="28" font-weight="700" text-anchor="start" style="fill:#117C82">固定同一份 Take</text>
+<text x="519" y="290.92" font-size="22" font-weight="400" text-anchor="start" style="fill:#18304D">操作序列复用 · 不重新试玩</text>
+<text x="999" y="237.58" font-size="28" font-weight="700" text-anchor="start" style="fill:#754EBA">02  Agent 执行换皮 Skill</text>
+<text x="999" y="291.28" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">同一配方，依次应用不同局内皮</text>
+<text x="85" y="467.8" font-size="30" font-weight="700" text-anchor="start" style="fill:#C26B08">金色浮雕</text>
+<text x="85" y="506.2" font-size="20" font-weight="400" text-anchor="start" style="fill:#637892">golden-embossed</text>
+<text x="103" y="587.46" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">换局内皮 → 校验同一 Take</text>
+<text x="103" y="619.14" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">生成独立工程</text>
+<text x="103" y="650.82" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">按需渲染视频</text>
+<text x="85" y="735.56" font-size="21" font-weight="700" text-anchor="start" style="fill:#C26B08">独立 document.json / video.mp4</text>
+<text x="595" y="467.8" font-size="30" font-weight="700" text-anchor="start" style="fill:#117C82">经典枫木</text>
+<text x="595" y="506.2" font-size="20" font-weight="400" text-anchor="start" style="fill:#637892">classic-maple</text>
+<text x="613" y="587.46" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">换局内皮 → 校验同一 Take</text>
+<text x="613" y="619.14" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">生成独立工程</text>
+<text x="613" y="650.82" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">按需渲染视频</text>
+<text x="595" y="735.56" font-size="21" font-weight="700" text-anchor="start" style="fill:#117C82">独立 document.json / video.mp4</text>
+<text x="1105" y="467.8" font-size="30" font-weight="700" text-anchor="start" style="fill:#754EBA">深色桃花心木</text>
+<text x="1105" y="506.2" font-size="20" font-weight="400" text-anchor="start" style="fill:#637892">deep-mahogany</text>
+<text x="1123" y="587.46" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">换局内皮 → 校验同一 Take</text>
+<text x="1123" y="619.14" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">生成独立工程</text>
+<text x="1123" y="650.82" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">按需渲染视频</text>
+<text x="1105" y="735.56" font-size="21" font-weight="700" text-anchor="start" style="fill:#754EBA">独立 document.json / video.mp4</text>
+<text x="60" y="355.06" font-size="21" font-weight="400" text-anchor="start" style="fill:#117C82">03  Take 不变，外观分别处理</text>
+<text x="84" y="860.5" font-size="25" font-weight="700" text-anchor="start" style="fill:#C26B08">缺少 Chrome？保留工程，稍后补出片</text>
+<text x="84" y="906.56" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">bcs-resume-render · 不重跑机器试玩</text>
+<text x="844" y="860.5" font-size="25" font-weight="700" text-anchor="start" style="fill:#754EBA">校验失败？先定位，不从头重跑</text>
+<text x="844" y="906.56" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">bcs-diagnose · 读取错误码，再选下一步</text>
+<text x="60" y="980.4" font-size="15" font-weight="400" text-anchor="start" style="fill:#637892">BCS · 源码 3732a80 · 2026-09-07</text>
+<text x="1540" y="980.4" font-size="15" font-weight="400" text-anchor="end" style="fill:#637892">3/03 · 示例为 Crush 局内皮；换皮不等于修改 Studio 外壳</text>
+</svg>

@@ -1,251 +1,94 @@
 # Block Creative Studio
 
-**面向 IAA 消除类游戏投放素材的浏览器创作、导演与固定机位渲染平台。**
+**面向 IAA 消除类游戏素材的多游戏创作平台：人用可视化界面，Agent 用 Skill + 原子 CLI。**
 
-Block Creative Studio（BCS）从可复现的二维玩法真值出发，把游戏规则、玩家操作、演出节奏、视觉资产和视频渲染拆成独立层，再在固定摄像机下完成材质化、空间化和特效合成，输出具有三维质感的竖屏投放视频。
+搭建局面、记录玩法、调整演出，再换皮和出片。Block Creative Studio（BCS）把这些步骤拆开，让同一份玩法记录可以继续编辑、重新导演，或交给 Agent 组合成可复用的制作流程。
 
-> 项目名源于第一款 **Block Placement** 原型，但系统目标并不局限于方块游戏。BCS 正在建设一个可注册多款 IAA 消除玩法的“游戏市场”：每款游戏拥有独立规则与演出模块，共享同一套资产、导演、渲染、导出和质量基础设施。
+当前版本：`0.3.0-alpha.4` · 演示游戏：**Block Placement / TapTile Match-3 / Crush Wooood!**
 
-当前版本：`0.3.0-alpha.4`  
-当前演示游戏：**Block Placement**、**TapTile Tray Match3**、**crash wooooood!**  
-规划接入：**Mahjong**（Studio Coming Soon；没有 Agent / 出题 / 出片适配器）
+[快速开始](#快速开始) · [Agent 制作指南](docs/product/AGENT_WORKFLOWS.md) · [Skill 入口](skills/bcs/SKILL.md) · [CLI 手册](docs/cli/README.md) · [工程架构](docs/ARCHITECTURE.md)
 
-本版能力交付：**原子 CLI** + **官方组合 Skill** + 三款演示游戏的出题 / 换皮 / 试玩 / Chrome 出片。请先审再合 `main`，不要在 draft 上无限叠功能。
+![BCS 双入口：人通过 Web Studio 创作，外部 Agent 通过 Skill 组合 CLI，输出工程、视频和诊断结果](docs/images/product/bcs-agent-product.svg)
 
----
+## 一套平台，两种创作方式
 
-## 核心命题
+**使用者通过 Web Studio 创作。** 编辑局面与视觉配置，真人或机器试玩，选择 Take，在导演回放中调整节奏、检查画面，再导出视频。
 
-```text
-二维 Gameplay Truth
-        ↓
-Semantic Replay / Rule Resolution
-        ↓
-导演节奏与 Presentation
-        ↓
-固定摄像机下的空间化、材质化和特效演出
-        ↓
-确定性逐帧渲染
-        ↓
-1080×1920 投放视频
-```
+**外部 Agent 通过 Skill 和 CLI 操作。** 读取官方配方，也可以复制、修改或自写 Skill，独立调用出题、换局内皮、机器试玩、校验、生成工程、编译演出和渲染命令，并读取 JSON 结果与错误码决定下一步。
 
-这里的“二维”指玩法规则与最终状态，而不是最终画面只能是平面图形。
+BCS 不内嵌 LLM，也不要求绑定某个模型。**Agent 负责理解任务，Skill 描述制作流程，CLI 提供执行能力。** 专业工具协作是扩展方向，不是 Agent 使用 BCS 的唯一方式。
 
-- Block Placement 的落子、合法性、满行满列和计分在二维格阵中求解；
-- crash wooooood! 的落块、破坏集合和坍塌目标仍由二维规则决定；
-- Mahjong 的牌面位置、离散层级、覆盖关系、左右阻塞和配对关系属于分层二维拓扑；
-- 厚度、倒角、PBR 材质、灯光、阴影、纵深、碎片、粒子和物理次级运动都属于表现层。
+## 从一次创作，得到可继续使用的成果
 
-因此，BCS 不是用三维物理“猜”玩法结果，而是让可信的二维玩法驱动固定机位下的高质量三维化成片。
-
----
-
-## 为什么需要这个系统
-
-传统投放素材生产经常把玩法、操作、镜头、特效和换皮绑在同一个工程里。结果是改一个材质可能破坏动画，改一个节奏需要重新录玩法，换一个游戏又要重建整套工具链。
-
-BCS 重点解决四件事：
-
-| 目标 | 系统做法 |
+| 你要做什么 | BCS 的做法 |
 |---|---|
-| **玩法拟真** | 规则由独立 Game Runtime 执行；人类与 Agent 共用语义 Action，不依赖视频像素推测结果 |
-| **视觉质量** | Reference 2D 锁定布局与时序，固定机位 Cinematic Backend 负责材质、体积、灯光、碎片和后处理 |
-| **高效变体** | Replay、导演节奏、Look、材质和输出参数相互解耦，同一盘玩法可以反复换皮和重导 |
-| **批量生产** | 版本化资产、Variant Compiler、Quality Gate、稳定 Hash 和固定帧导出让结果可审计、可复现 |
+| 制作不同消除玩法的素材 | 各游戏保留自己的规则、局面和动作，共用平台的创作与生产协议 |
+| 同一盘玩法尝试不同外观 | 保留 Take，换局内皮后重新校验，分别生成工程与视频 |
+| 调整演出，不重新录玩法 | 将操作记录与导演节奏分开，按帧编译和回放 |
+| 让 Agent 执行一段或整条任务 | 原子 CLI 可独立调用，Skill 负责组合，不强制使用单一流水线 |
+| 出片失败后继续制作 | 保存中间工程和机器回执，按错误码处理；缺少 Chrome 时可以稍后补渲染 |
 
-BCS 不是通用游戏引擎，也不是自由摄像机的三维编辑器，更不是一次性 Prompt-to-Video 工具。它专注于一个更窄但更深的生产问题：
+目前的主要产物是**配置、Take、可继续编辑的 JSON 工程、MP4、预览图及诊断报告**。支持范围以具体游戏和命令为准，不把工程 JSON 等同于通用试玩广告包，也不把它宣称为可直接还原任意 AEP 的 DSL。
 
-> **如何稳定地产出玩法可信、画面高质量、可持续换皮和批量迭代的消除类游戏投放视频。**
+## CLI 是原子能力，Skill 把能力串成任务
 
----
+BCS 不只有一条“一键生产”命令。原子操作可以单独调用，也可以被 Skill 组合；制作流程可以插入人工确认、复用已有结果，或在运行条件满足后从对应步骤补跑。
 
-## 三层真值
+![BCS 原子 CLI 与组合 Skill：出题、换皮、试玩、校验、工程生成、演出编译和渲染可以独立调用](docs/images/product/bcs-atomic-skills.svg)
 
-### 1. Gameplay Truth
+| 制作任务 | 官方组合 Skill |
+|---|---|
+| 从一个题目开始，得到玩法记录、工程与可选视频 | [bcs-from-puzzle-to-mp4](skills/bcs-from-puzzle-to-mp4/SKILL.md) |
+| 同一份 Take 换多套局内皮，不重新试玩 | [bcs-remix-looks](skills/bcs-remix-looks/SKILL.md) |
+| 先检查 Take 与工程，再执行渲染 | [bcs-gate-before-render](skills/bcs-gate-before-render/SKILL.md) |
+| 已有工程，稍后补出 MP4 | [bcs-resume-render](skills/bcs-resume-render/SKILL.md) |
+| 校验资产并生成 Placement 的 PBR 变体计划 | [bcs-placement-variant](skills/bcs-placement-variant/SKILL.md) |
+| 根据错误码选择下一步，而不是整条流程重跑 | [bcs-diagnose](skills/bcs-diagnose/SKILL.md) |
 
-决定“游戏里真正发生了什么”：
+**改制作流程，改 Skill；增加底层执行能力，才扩展 CLI。** `bcs produce` 是默认路径的便捷入口，不是唯一合法的制作方式。原子命令与参数见 [CLI 手册](docs/cli/README.md)，分层原则见 [Skills 索引](skills/README.md)。
 
-- 初始状态与关卡配置；
-- 合法 Action；
-- Commit / Detect / Resolve / Reconfigure / Settle；
-- 被删除、移动、生成或解锁的实体；
-- 分数、连击、目标和终局；
-- 最终状态 Hash。
+## 一盘玩法，多套外观
 
-玩法层不依赖 React、Canvas、Three.js、摄像机或实时帧率。
+以 Crush Wooood! 为例：机器试玩只运行一次，留下同一份 Take；之后分别应用金色浮雕、经典枫木、深色桃花心木等局内皮，校验这份 Take，再生成各自的工程和视频。
 
-### 2. Presentation Truth
+![复用同一份 Take：通过 bcs-remix-looks 换多套局内皮，校验后分别生成工程并按需渲染](docs/images/product/bcs-remix-workflow.svg)
 
-决定“这些规则结果应该怎样被观众看见”：
+换的是**局内皮，不是 Studio 编辑器外壳**。校验失败就停止并定位原因，不能为了绕过错误偷偷重跑试玩。没有 Chrome 时可以先保留工程，之后使用 `bcs-resume-render` 补出片。
 
-- 拾取、拖拽、落块和点击的时长；
-- 预消除、撞击、清除、坍塌和配对退场的节奏；
-- Camera Punch、曝光脉冲、Combo 和反馈文字；
-- 导演轨迹、目标约束运动与特效峰值；
-- 固定帧 Presentation Packet。
-
-玩法相同的 Replay 可以应用不同导演节奏，而不改变规则结果。
-
-### 3. Pixel Truth
-
-决定最终每一帧的像素：
-
-- Screen 2D、Sprite、Shader、浅三维几何和 Mesh；
-- PBR 材质、法线、粗糙度、金属度和环境反射；
-- 固定摄像机、构图、阴影、碎片、粒子与后处理；
-- Canvas / WebGL 合成与 WebCodecs 编码。
-
-Reference 2D 与固定机位 Cinematic Backend 可以使用不同绘制实现，但必须共享同一份玩法、Replay、事件身份和帧时间。
-
----
-
-## 多游戏平台
-
-每款游戏都是一个独立的 **Game Package**，而不是平台代码中的一组 `if (gameId === ...)`。
-
-```mermaid
-flowchart LR
-    A[Game Package] --> B[Game Runtime]
-    A --> C[Presentation Compiler]
-    A --> D[Render Contract]
-    A --> E[Composition / Calibration]
-    A --> F[Capture Suite / Studio Workspace]
-
-    B --> G[Semantic Replay]
-    G --> C
-    C --> H[Presentation Packet]
-    H --> I[Reference 2D Backend]
-    H --> J[Fixed-camera Cinematic Backend]
-
-    K[Asset Registry / Variant Compiler] --> I
-    K --> J
-    I --> L[Still / Golden / Diagnostics]
-    J --> M[MP4 Export]
-```
-
-### 平台统一提供
-
-- Game、Schema、Presentation、Render Contract、Backend、Capture 与 Studio Registry；
-- Project / Replay Envelope 与语义校验；
-- Asset Registry、Look Pack、Material Pack、Effect Pack 和 Variant Compiler；
-- `frame-exact`、`semantic`、`rule-only` 三种不变量策略；
-- Composition、Calibration、固定机位和资源就绪合同；
-- Reference 2D、固定机位渲染、Capture、Golden 与 WebCodecs 导出；
-- Architecture Guard、确定性 Hash、测试与 CI。
-
-### 每款游戏单独提供
-
-- State、Action、Ruleset 与 Resolution；
-- 玩法拓扑和合法动作；
-- 规则事件到演出事件的编排；
-- 棋盘、候选区、HUD 和交互布局；
-- 游戏自己的语义资产 Slot、Pass 与质量要求；
-- Studio Workspace、Capture Suite 和参考证据。
-
----
+这也体现了 BCS 的边界：玩法决定发生什么，导演决定怎样呈现，渲染器负责像素；换外观不应悄悄改变玩法结果。跨浏览器或 GPU 的像素结果需要容差验证，不承诺 MP4 字节完全相同。
 
 ## 游戏目录
 
-| 游戏 | 玩法真值 | 主要动作 | Resolve / Reconfigure | 当前状态 |
-|---|---|---|---|---|
-| **Block Placement** | 8×8 二维格阵 | 从三个候选块中拖拽落子 | 满行、满列同步清除；通常不发生整体移动 | Studio 可编辑 / 可导出；CLI 可出题 / 换皮 / 试玩 / 出片。人工视觉评审仍以本游戏为主 |
-| **TapTile Tray Match3** | 分层叠牌 + 底栏托盘三消 | 点选可用牌飞入托盘 | 三消清除、解锁被压牌、托盘满则失败 | Studio 演示已接入；CLI 可出题 / 换皮 / 试玩 / 出片。CLI 短预览 ≠ 商业画质 |
-| **crash wooooood!** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | Studio 演示已接入；CLI 可出题 / 换皮 / 试玩 / 出片。换皮不改玩法哈希。CLI 短预览 ≠ 商业画质 |
-| **Mahjong** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | Studio Coming Soon；`gameId` 为 `mahjong-solitaire`。没有 Agent / authoring / render，不要对它跑 `agent run` |
-
-未来的新游戏不要求共享同一种 Board 或 Action；只需要遵守统一的生产协议。
-
----
-
-## 当前可运行能力
-
-两条入口，不要混评：
-
-| 入口 | 给谁 | 现在能做什么 |
+| 游戏 | 制作内容 | 当前入口 |
 |---|---|---|
-| **Studio** | 人类在 Chrome 里编辑、试玩、导演、导出 | Placement 是完整工作台与人工视觉片单；TapTile / Crush 可打开演示；Mahjong 为 Coming Soon |
-| **CLI + Skill** | 外部 Agent、CI、后续后端 | 三款演示游戏共用原子命令；官方 Skill 只编排这些命令；本机有 Chrome 时才能真正出片 |
+| **Block Placement** | 8×8 方块放置、行列清除、Take 与导演回放 | Studio 工作台；CLI 出题、换皮、试玩、出片 |
+| **TapTile Match-3** | 分层叠牌、7 槽三消、点击与飞牌演出 | Studio 演示；CLI 出题、换皮、试玩、出片 |
+| **Crush Wooood!** | 纵向落块、满行粉碎与坍落演出 | Studio 演示；CLI 出题、换皮、试玩、出片 |
+| **Mahjong** | 分层拓扑与配对玩法方向 | Coming Soon；没有 Agent、出题或出片适配器 |
 
-系统本身不内置 LLM。它提供适合 Agent 调用的稳定协议，而不是把 Prompt 面板硬塞进创作流程。
-
-### Studio：Block Placement 玩法与 Replay
-
-- 8×8 棋盘、三个候选块、18 种基础形状和七色 Token；
-- 合法落子、重叠拒绝、满行满列同步清除、候选刷新和失败判断；
-- 棋盘、候选块和逐格颜色编辑；
-- 真人鼠标/触摸试玩与规则型机器玩家；
-- 语义 Action、归一化指针轨迹、Seed、Take 与确定性 Replay；
-- 多套导演节奏，可在不重下的情况下改变演出速度和停顿。
-
-### Studio：Reference 2D 与固定机位成片
-
-- Reference 2D 用于锁定棋盘、HUD、候选区、事件时序和 Golden 校准；
-- 固定机位 Cinematic Backend 提供厚度、倒角、PBR 材质、灯光、阴影、碎片和后处理（这是当前 Placement 生产路径，不是「下一阶段」占位）；
-- 不锈钢、橡木与参数化 Aurora 材质示例；
-- Albedo、Roughness、Metalness 等诊断视图；
-- 原生设计分辨率 Capture 与 1080×1920 H.264/MP4 导出；
-- 固定时间步逐帧重演，导出速度可以慢于实时，但动作帧位不会随机器负载漂移。
-
-人工视觉评审请按 [`docs/LOCAL_REVIEW_AND_FEEDBACK.md`](docs/LOCAL_REVIEW_AND_FEEDBACK.md) 的 Placement Studio 五条片执行。
-
-### Agent CLI：三款演示游戏
-
-- `gameId`：`block-placement`、`taptile-tray-match3`、`block-crush-drop`；
-- 出题（`project scaffold`）、换皮（`skin apply`）、机器试玩（`agent run`）、校验（`take validate`）、收工程（`document emit`）、出片（`render`）；
-- 统一输出 `GameReplayEnvelope`；人和机器共用各游戏自己的语义 Action，不靠截图猜棋盘；
-- Crush 换皮不改玩法哈希，同一份 Take 换皮后仍可通过 `take validate`；
-- Placement `look.copper` / `look.candy-resin` 写在工程 `lookPackRef` 上，`bcs render` 会读；`look.copper` 是参数铜金属，不是 plan-bound PBR 贴图；
-- `bcs produce` 是便捷 CLI，不是唯一合法路径，也不要给它加多皮矩阵开关；
-- Node **不得**在没编码的情况下写 `rendered: true`。没有 Chrome 时返回可恢复的 `CHROME_NOT_FOUND`。
-
-### 资产、变体与官方 Skill
-
-- 浏览器 IndexedDB Asset Store，二进制资产按 SHA-256 持久化；
-- 上传背景、牌面、材质贴图及其他版本化资产；
-- `CreativeMaster + VariantRecipe → ResolvedRenderPlan`；
-- 材质外观与材质行为分离，Effect Pack 可校验材质兼容性；
-- Plan-bound Prepared Resources，正式渲染前校验 Plan Hash 和 Required Slots；
-- CLI 提供原子命令；`skills/` 提供可改的官方组合配方。外部 Agent 可以改官方 Skill，也可以按同一套 CLI 自写 Skill。
-
----
+CLI 的游戏 ID 分别为 `block-placement`、`taptile-tray-match3`、`block-crush-drop`；`mahjong-solitaire` 不可调度。**可打开或可出片，不代表已经通过商业视觉验收。**
 
 ## 快速开始
 
-要求：
-
-- Node.js `22.12+`
-- npm `10+`
-- 近期桌面版 Chrome
-
-### 入口 A：Studio（人类工作台）
+要求 Node.js `22.12+`、npm `10+` 和近期桌面版 Chrome；开发时优先使用仓库 `.nvmrc` 指定的版本。
 
 ```bash
 git clone https://github.com/dongyuan21/block-creative-studio.git
 cd block-creative-studio
 npm install
+```
+
+### 用 Studio 创作
+
+```bash
 npm run dev
 ```
 
-浏览器打开：
+在 Chrome 中打开 `http://127.0.0.1:4173`。首次体验可导入 `examples/demo-cross-clear.block-creative.json`，进入**导演回放**，对比 Reference 2D 与固定机位 Cinematic Look，再尝试 MP4 导出。
 
-```text
-http://127.0.0.1:4173
-```
+正式视觉评审使用 [本机评审与反馈说明](docs/LOCAL_REVIEW_AND_FEEDBACK.md) 中的统一片单，不把不同输入和质量档混在一起比较。
 
-首次体验建议导入：
-
-```text
-examples/demo-cross-clear.block-creative.json
-```
-
-然后进入 **导演回放**，分别尝试 Reference 2D 与固定机位 Cinematic Look，再导出 1080×1920 MP4。
-
-本机视觉评审请按 [`docs/LOCAL_REVIEW_AND_FEEDBACK.md`](docs/LOCAL_REVIEW_AND_FEEDBACK.md) 的统一片单执行，避免不同输入之间无法对比。
-
-### 入口 B：CLI + Skill（外部 Agent）
-
-GitHub Pages 只部署前端；CLI 在本地或后续后端跑。先构建可执行文件，再按官方配方编排，不要把 Skill 当成第二套实现。
+### 让 Agent 操作
 
 ```bash
 npm run build:cli
@@ -253,7 +96,7 @@ node dist-cli/cli/bcs.js capabilities
 node dist-cli/cli/bcs.js agent list
 ```
 
-从出题到可选出片，跟 [`skills/bcs-from-puzzle-to-mp4/SKILL.md`](skills/bcs-from-puzzle-to-mp4/SKILL.md)。同一份 Take 换多套局内皮，跟 [`skills/bcs-remix-looks/SKILL.md`](skills/bcs-remix-looks/SKILL.md)。
+让外部 Agent 从 [skills/bcs/SKILL.md](skills/bcs/SKILL.md) 读取入口，再选择适合任务的组合 Skill。下面是便捷 CLI 的短预览示例，也可以把相同步骤拆开执行：
 
 ```bash
 node dist-cli/cli/bcs.js produce \
@@ -263,17 +106,44 @@ node dist-cli/cli/bcs.js produce \
   --seed 7 \
   --max-moves 8 \
   --out-dir /tmp/placement-produce
+
 node dist-cli/cli/bcs.js render \
   --out-dir /tmp/placement-produce \
   --quality preview \
   --max-frames 8
 ```
 
-`--max-frames` 只截断预览。CLI 短预览不要和 Studio 五条评审片混在一个印象里。
+`--max-frames 8` 只输出短预览，不是完整交付；需要完整视频时移除此参数。示例路径适用于 macOS/Linux，Windows 请替换为本机可写目录。
 
----
+`look.copper` 是文档渲染路径中的铜金属参数外观，不等于 plan-bound PBR 贴图。贴图变体请走 [bcs-placement-variant](skills/bcs-placement-variant/SKILL.md) 的独立校验与编译路径。
 
-## 校验与构建
+## 运行与质量边界
+
+| 容易混淆的点 | 实际含义 |
+|---|---|
+| 外部 Agent 与 `agent run` | 前者编排任务；后者调用注册的机器试玩适配器，不启动内置 LLM |
+| GitHub Pages 与 CLI | Pages 只部署前端；CLI 在本地或具备条件的 Node 环境运行 |
+| `document compile` 与视频 | 编译演出不生成像素，不等于 MP4 已完成 |
+| `render` 与 Chrome | CLI 调度 Chrome / WebCodecs 实际出片；缺少 Chrome 返回 `CHROME_NOT_FOUND` |
+| `ok`、`rendered` 与视觉批准 | 命令成功、视频编码完成、人工视觉批准是不同结论；回放校验通过也不保证通关 |
+| 资产库与专业工具 | 已有本地资产存储与导入边界；中央元素库、通用 AE/Blender/Audio 闭环不是全量已交付能力 |
+
+当前导出链尚未集成音频、BGM 和旁白。公共 Fixture 与自动检查用于工程回归，商业参考 Golden 因源素材未公开而受限；人工视觉批准仍需按片单执行。
+
+## 深入了解
+
+| 文档 | 适合阅读的内容 |
+|---|---|
+| [Agent 制作指南](docs/product/AGENT_WORKFLOWS.md) | 原子能力、六类 Skill、复用与补跑、结果解释 |
+| [CLI 手册](docs/cli/README.md) | 命令、参数、输入输出与错误处理 |
+| [Skills 索引](skills/README.md) / [Agent 入口](skills/bcs/SKILL.md) | 如何选择或改写配方 |
+| [架构说明](docs/ARCHITECTURE.md) | 玩法、演出、像素三层真值与多游戏边界 |
+| [工程说明](docs/ENGINEERING.md) | 实现细节、资产变体、校验与参考审计 |
+| [本机评审与反馈](docs/LOCAL_REVIEW_AND_FEEDBACK.md) | 统一片单与人工视觉评审 |
+| [资产导入边界](docs/architecture/ASSET_IMPORT_PIPELINE_V1.md) | Source、交换产物、Runtime Pack 的职责 |
+| [产品图与可编辑源文件](docs/images/product/README.md) | 三张 SVG、DrawIO 源文件与图示维护说明 |
+
+### 开发校验
 
 ```bash
 npm run check
@@ -281,135 +151,11 @@ npm test
 npm run typecheck
 npm run build
 npm run test:browser-e2e
-```
-
-完整的公开 Fixture 捕获：
-
-```bash
 npm run capture:review
 ```
 
-该命令会生成 Still 和无声 MP4，用于工程回归与差异检查。使用 SwiftShader 或公共 Fixture 得到的 PASS 只代表工程链路通过，不代表商业画质已获人工批准。
-
----
-
-## Headless CLI 与 Skill
-
-BCS 不内嵌 LLM。自动化分两层：
-
-| 层 | 位置 | 职责 | 谁改 |
-|---|---|---|---|
-| **CLI（原子）** | `node dist-cli/cli/bcs.js …` | 出题、换皮、试玩、校验、收工程、出片、资产/变体/门禁 | 改命令契约才动这里 |
-| **Skill（组合）** | `skills/` | 把原子命令排成可编辑配方 | 官方维护默认 Skill；Claude Code / Codex / 自研 Agent 可以复制或另写 |
-
-不要把「同一盘玩法换多套皮」做成新的 CLI 矩阵开关。那是 Skill：[`skills/bcs-remix-looks/SKILL.md`](skills/bcs-remix-looks/SKILL.md)。`bcs produce` 只是一条便捷 CLI，等价配方见 [`skills/bcs-from-puzzle-to-mp4/SKILL.md`](skills/bcs-from-puzzle-to-mp4/SKILL.md)。
-
-索引：[`skills/README.md`](skills/README.md)。入口：[`skills/bcs/SKILL.md`](skills/bcs/SKILL.md)。命令手册：[`docs/cli/README.md`](docs/cli/README.md)。
-
-```bash
-npm run build:cli
-node dist-cli/cli/bcs.js capabilities
-node dist-cli/cli/bcs.js agent list
-node dist-cli/cli/bcs.js produce \
-  --game taptile-tray-match3 \
-  --template hourglass \
-  --skin food-v1 \
-  --out-dir /tmp/taptile-produce
-node dist-cli/cli/bcs.js render --out-dir /tmp/taptile-produce --quality preview
-```
-
-示例：编译一个 Variant 并执行结构质量检查。
-
-```bash
-node dist-cli/cli/bcs.js variant compile \
-  --master examples/headless/master.demo.json \
-  --recipe examples/headless/variant.copper.demo.json \
-  --assets examples/headless/assets \
-  --renderer fixed-camera-cinematic \
-  --require-hashes \
-  --out /tmp/bcs-plan.json
-
-node dist-cli/cli/bcs.js quality check \
-  --plan /tmp/bcs-plan.json \
-  --strict \
-  --require-hashes
-```
-
-CLI 负责 Schema、资产、Plan、出题和出片调度；Node 进程本身不编码像素。`bcs render` / `produce --render` 在本机有 Chrome 时走 WebCodecs，只有写出 MP4 后才把 `rendered` 设为 `true`。
-
----
-
-## 目录结构
-
-```text
-src/
-├── game-runtime/              # 多游戏 State / Action / Replay / Schema 协议
-├── games/                     # 三款演示游戏包
-├── bootstrap/                 # Game Package 与平台组装
-├── headless/                  # Asset、Variant、Quality、Material 等无头核心
-├── rendering/                 # Backend、Composition、资源策略与 Render Job
-├── capture/                   # 诊断、Golden 与浏览器捕获
-├── studio/                    # 与具体游戏无关的 Studio Shell
-├── cli/                       # 外部 Agent / CI 使用的机器可读 CLI
-├── assets/                    # 浏览器资产存储和运行时绑定
-└── exporter/                  # WebCodecs / MP4 导出入口
-skills/                        # 官方 Skill：原子命令的 1:1 说明 + 可改的组合配方
-```
-
-平台层禁止反向依赖具体游戏；不同游戏包之间也不能相互导入。`scripts/check-architecture.mjs` 会在 CI 中持续检查这些边界。
-
----
-
-## 当前阶段与边界
-
-| 项目 | 状态 |
-|---|---|
-| 多游戏平台 R0–R8b | 已完成并合入 `main` |
-| Block Placement / TapTile / crash wooooood! | 三款演示游戏可 Studio 打开，也可走 Agent CLI 出题 / 换皮 / 试玩 / 出片 |
-| 原子 CLI + 官方组合 Skill | **本版已交付**：CLI 保持原子，Skill 负责编排。不是「Skills deferred」 |
-| Mahjong | Studio Coming Soon；尚未作为正式模块接入，CLI 不可调度 |
-| MCP / 云端托管 CLI | 仍延后。GitHub Pages 只部署前端 |
-| 商业参考 Golden | `BLOCKED`：公共仓库不包含商业源视频 |
-| 人工视觉批准 | `PENDING`（片单仍是 Placement Studio 五条 MP4） |
-| 音频、BGM、旁白 | 尚未进入当前导出链 |
-| R9：默认切换 V2、删除 Legacy 路径 | `DEFERRED` |
-
-当前版本是架构与生产链路的 Alpha，不应把测试通过、公共 Fixture、软件 WebGL 或结构契约等同于最终广告品质。
-
----
-
-## 文档导航
-
-| 文档 | 内容 |
-|---|---|
-| [`docs/LOCAL_REVIEW_AND_FEEDBACK.md`](docs/LOCAL_REVIEW_AND_FEEDBACK.md) | 本机应该导出哪些视频，以及怎样提交可复现的视觉反馈 |
-| [`docs/ENGINEERING.md`](docs/ENGINEERING.md) | 完整能力、命令、校验、Reference 审计和工程实现说明 |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Gameplay Truth、Reference 2D、固定机位渲染与 DCC 扩展边界 |
-| [`docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md`](docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md) | 多游戏平台重构交付证据与已知限制 |
-| [`docs/cli/README.md`](docs/cli/README.md) | Headless CLI 原子命令 |
-| [`skills/README.md`](skills/README.md) | CLI 与 Skill 分层；官方组合配方索引 |
-| [`skills/bcs/SKILL.md`](skills/bcs/SKILL.md) | 外部 Agent 入口 |
-| [`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md) | Agent-neutral Headless Core |
-| [`docs/architecture/ASSET_IMPORT_PIPELINE_V1.md`](docs/architecture/ASSET_IMPORT_PIPELINE_V1.md) | 外部资产进入系统的编译与运行链路 |
-
----
-
-## DCC 与外部生产工具
-
-Blender、After Effects 等 DCC 不直接成为玩法真值来源。未来它们更适合作为资产工厂，向 BCS 提供：
-
-- 固定视角 Sprite / Flipbook；
-- Mesh、材质和碎片资产；
-- 预烘焙 Transform Track；
-- 可重新打光或可换材质的中间资产；
-- 明确 Camera Profile、空间表达、确定性和资源预算的 Runtime Asset。
-
-这样可以保留专业 DCC 的画质，同时避免把批量出片流程重新绑回不可审计的手工工程。
-
----
+玩法核心、导演、资产与渲染边界由测试和 Architecture Guard 保护。新增游戏使用 Game Package，不要求所有玩法共享同一种棋盘或 Action。开发约定见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 许可与内容边界
 
-代码采用 [MIT License](LICENSE)。
-
-本仓库包含独立实现的玩法、工具链、测试 Fixture 和示例资产，不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。商业参考视频和截图不会提交到公共仓库；相关规则与视觉推断必须保留证据状态，不能把推测写成已验证事实。
+代码采用 [MIT License](LICENSE)。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。商业参考视频和截图不提交到公共仓库；规则推断、工程验证和商业视觉批准应分别标明，不把推测写成已验证事实。
