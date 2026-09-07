@@ -1,3 +1,4 @@
+export { blockPlacementAgent } from './agent';
 export { blockPlacementDefinition } from './definition';
 export { importStudioDocument, migrateBlockPlacementV1, migrateUnknownProjectToV2 } from './migrations/blockPlacementV1';
 export {

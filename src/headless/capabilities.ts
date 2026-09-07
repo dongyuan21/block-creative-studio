@@ -19,6 +19,9 @@ export const BCS_CAPABILITIES = {
     'material compile',
     'golden batch',
     'project migrate',
+    'agent list',
+    'agent run',
+    'take validate',
   ],
   notes: {
     'fixed-camera-cinematic': 'Available for locked 9:16 preview/export through the existing Three.js scene with Shot Profile, LookDev diagnostics and PBR runtime. Not a new engine.',
@@ -26,5 +29,7 @@ export const BCS_CAPABILITIES = {
     browserCapture: 'npm run capture:review uses headless Chrome to write native 2D frames and 1080×1920 silent MP4s. Software WebGL is not a GPU performance result.',
     videoLetterbox: '1064×1788 → 1080×1920 uses contain/letterbox only. This is a transitional reference-transfer mapping, not a finished 9:16 production profile.',
     diagnosticViews: 'world-normal, highlight-clip and bloom-contribution are proxy visualizations (flatShading / extra emissive / LDR output), not named G-buffer or HDR bloom buffers.',
+    agentReplay: 'agent run / take validate emit GameReplayEnvelope JSON. GitHub Pages does not host the CLI; use a local or backend Node runtime.',
+    skills: 'skills/ wraps each CLI command so an external Agent can compose asset, take, and variant workflows.',
   },
 } as const;

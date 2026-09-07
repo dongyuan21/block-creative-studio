@@ -36,6 +36,26 @@ export interface GameReplayEnvelope {
   interactions: InteractionRecord[];
 }
 
+export function createEmptyGameReplay(input: {
+  gameId: string;
+  moduleVersion: string;
+  seed: number;
+  initialStateHash: string;
+  takeId?: string;
+}): GameReplayEnvelope {
+  return {
+    contract: GAME_REPLAY_CONTRACT,
+    contractVersion: GAME_REPLAY_CONTRACT_VERSION,
+    gameId: input.gameId,
+    moduleVersion: input.moduleVersion,
+    takeId: input.takeId ?? `empty-${input.seed}`,
+    initialStateHash: input.initialStateHash,
+    seed: input.seed,
+    actions: [],
+    interactions: [],
+  };
+}
+
 export function semanticReplayIdentity(replay: GameReplayEnvelope): unknown {
   return {
     contract: replay.contract,

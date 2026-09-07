@@ -75,3 +75,37 @@ node dist-cli/cli/bcs.js golden batch \
 
 Without local reference frames the 13 scenes / 39 anchors stay `BLOCKED`. This is not a visual PASS.
 
+## Agent take generation
+
+The CLI does not embed an LLM. It dispatches registered game-package adapters by `gameId` and always emits a `bcs.game-replay` envelope plus a deterministic replay report. `rendered` stays `false`. GitHub Pages does not host this binary; run it locally or on a future backend Node runtime.
+
+```bash
+node dist-cli/cli/bcs.js agent list
+node dist-cli/cli/bcs.js agent run \
+  --game block-placement \
+  --seed 7 \
+  --max-moves 8 \
+  --out /tmp/placement.take.json
+node dist-cli/cli/bcs.js agent run \
+  --game taptile-tray-match3 \
+  --profile safe-win \
+  --seed 20260902 \
+  --max-moves 24 \
+  --beam-width 40 \
+  --max-expanded-states 4000 \
+  --config /tmp/taptile.project.json \
+  --out /tmp/taptile.take.json
+node dist-cli/cli/bcs.js take validate \
+  --take /tmp/taptile.take.json \
+  --game taptile-tray-match3 \
+  --config /tmp/taptile.project.json
+```
+
+`--config` is the game's official config document (`block-placement` board/pieces, Crush Wood level, or a TapTile project). Omit it to use that adapter's default. `--out` on `agent run` writes the envelope only; the command JSON also includes `status` and `validation`.
+
+Registered demo games: `block-placement`, `taptile-tray-match3`, `block-crush-drop`.
+
+## Skills
+
+`skills/` wraps these commands so an external Agent can compose them: discover capabilities, generate a take, validate it, then compile/quality-check a variant. Skills are the composition surface; the CLI is the execution surface.
+

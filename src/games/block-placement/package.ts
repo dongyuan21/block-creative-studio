@@ -1,4 +1,5 @@
 import type { GamePackageRegistration } from '../../bootstrap/gamePackage';
+import { blockPlacementAgent } from './agent';
 import { blockPlacementCaptureSuite } from './capture/suite';
 import { blockPlacementDefinition } from './definition';
 import { blockPlacementPresentationAdapter } from './presentation/legacyPresentationAdapter';
@@ -13,4 +14,5 @@ export const blockPlacementPackage: GamePackageRegistration = {
   compositions: [blockPlacementCompositionProfile],
   calibrations: [blockPlacementCalibrationProfile],
   captureSuite: blockPlacementCaptureSuite,
+  agent: blockPlacementAgent,
 };

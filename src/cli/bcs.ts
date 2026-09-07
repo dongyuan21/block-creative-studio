@@ -25,7 +25,9 @@ import {
   type VariantRecipe,
 } from '../headless/index.js';
 import { ensureDefaultHeadlessPlatform } from '../bootstrap/headlessBootstrap.js';
+import { commandAgent, type AgentCommandInput } from './commands/agent.js';
 import { commandProjectMigrate } from './commands/projectMigrate.js';
+import { commandTake, type TakeCommandInput } from './commands/take.js';
 
 interface ParsedArgs {
   positionals: string[];
@@ -294,9 +296,50 @@ async function execute(argv: string[]): Promise<unknown> {
   if (command === 'material') return commandMaterial(args);
   if (command === 'golden') return commandGolden(args);
   if (command === 'project') return commandProject(args);
+  if (command === 'agent') {
+    const input: AgentCommandInput = { action: args.positionals[0] };
+    const gameId = flagString(args, 'game');
+    const seed = flagNumber(args, 'seed');
+    const profile = flagString(args, 'profile');
+    const maxMoves = flagNumber(args, 'max-moves');
+    const beamWidth = flagNumber(args, 'beam-width');
+    const maxExpandedStates = flagNumber(args, 'max-expanded-states');
+    const out = flagString(args, 'out');
+    const config = flagString(args, 'config');
+    if (gameId !== undefined) input.gameId = gameId;
+    if (seed !== undefined) input.seed = seed;
+    if (profile !== undefined) input.profile = profile;
+    if (maxMoves !== undefined) input.maxMoves = maxMoves;
+    if (beamWidth !== undefined) input.beamWidth = beamWidth;
+    if (maxExpandedStates !== undefined) input.maxExpandedStates = maxExpandedStates;
+    if (out !== undefined) input.out = out;
+    if (config !== undefined) input.config = await readJson(config);
+    return commandAgent(input);
+  }
+  if (command === 'take') {
+    if (args.positionals[0] !== 'validate') {
+      throw new BcsHeadlessError(
+        'CLI_COMMAND_INVALID',
+        'Use `take validate --take <file.json> [--game <id>] [--config <file.json>]`.',
+        { path: 'take' },
+      );
+    }
+    const takePath = flagString(args, 'take', true)!;
+    const input: TakeCommandInput = {
+      action: 'validate',
+      take: await readJson(takePath),
+    };
+    const gameId = flagString(args, 'game');
+    const config = flagString(args, 'config');
+    const out = flagString(args, 'out');
+    if (gameId !== undefined) input.gameId = gameId;
+    if (config !== undefined) input.config = await readJson(config);
+    if (out !== undefined) input.out = out;
+    return commandTake(input);
+  }
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project migrate.',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project migrate, agent list|run, take validate.',
     { path: command ?? '(missing command)' },
   );
 }
