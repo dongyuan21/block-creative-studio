@@ -93,7 +93,7 @@
 - `RuntimeAssetBindings.bySlot` 为唯一写入面；`background` / `tileFace` 等为兼容 getter
 - `firstImageBinding(bindings, slotId)` 返回槽内排序后的第一张图
 - 同槽多资产按 slotId / contentHash / role 稳定排序
-- 缺失/Hash 不符记录含 `slotId`；Vita Mahjong 预留槽可被 V1 Plan 收集绑定
+- 缺失/Hash 不符记录含 `slotId`；Mahjong 预留槽可被 V1 Plan 收集绑定
 - 未改 Scene 消费路径（仍读兼容 getter）；未新增第二套依赖遍历
 - 商业 Golden：BLOCKED；人工视觉批准：PENDING；SwiftShader ≠ 视觉批准
 
@@ -103,7 +103,7 @@
 - 提交：`refactor(studio): split studio shell from Block Placement workspace`
 - 门禁：`check` / `test` 178 / `typecheck` / `build`（183 modules）/ render-regression / golden-batch / pbr-runtime / Smoke Capture PASS
 - App = `<StudioShell registry={studioRegistry} />`；公共 Shell/Session 无 GridCell / 8×8 / pieces / onPlace / clearSignal / domain/types
-- 默认仍创建 Block Placement；crash wooooood! / Vita Mahjong 为 Coming Soon
+- 默认仍创建 Block Placement；crash wooooood! / Mahjong 为 Coming Soon
 - `useBlockPlacementModel` 承担棋盘/块/试玩/Clear Signal；Autosave 仍写 V1
 - Headless/CLI 未引入 React（CLI bundle 104.45 kB，与 R7 相同）
 - Architecture allowlist 归零（App 与 integration 边已退休；catalog/bridge 迁入第一游戏并保留旧路径 re-export）

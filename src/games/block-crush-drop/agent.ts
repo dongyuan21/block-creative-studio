@@ -1,14 +1,24 @@
 import { createRuntimeId } from '../../domain/runtimeId';
 import {
+  completeAgentRun,
+  createEmptyGameReplay,
   GAME_REPLAY_CONTRACT,
   GAME_REPLAY_CONTRACT_VERSION,
+  type GameAgentAdapter,
+  type GameAgentRunRequest,
+  type GameAgentRunStatus,
   type GameReplayEnvelope,
-} from '../../game-runtime/replayEnvelope';
+} from '../../game-runtime';
+import { GameRuntimeError } from '../../game-runtime/errors';
+import { blockCrushDropDefinition } from './definition';
+import { createCrushWoodReferenceConfig } from './levels';
 import { BLOCK_CRUSH_DROP_GAME_ID, BLOCK_CRUSH_DROP_MODULE_VERSION } from './manifest';
 import { legalCrushWoodActions, crushWoodRuntime, hashCrushWoodState } from './runtime';
-import { CRUSH_WOOD_ACTION_SCHEMA_ID } from './schemas';
+import { crushWoodConfigSchema, CRUSH_WOOD_ACTION_SCHEMA_ID } from './schemas';
 import { crushWoodShapeSize } from './shapes';
-import type { CrushWoodAction, CrushWoodConfig } from './types';
+import type { CrushWoodAction, CrushWoodConfig, CrushWoodStatus } from './types';
+
+const CRUSH_AGENT_PROFILES = ['greedy'] as const;
 
 function scoreAction(state: ReturnType<typeof crushWoodRuntime.createInitialState>, action: CrushWoodAction, seed: number, stepIndex: number): number {
   const resolution = crushWoodRuntime.resolve(state, action, { seed, stepIndex });
@@ -35,23 +45,6 @@ export function pickCrushWoodAgentAction(
     }
   }
   return best;
-}
-
-export function createCrushWoodAgentReplay(
-  config: CrushWoodConfig,
-  seed: number,
-  maxMoves = 24,
-): GameReplayEnvelope {
-  let state = crushWoodRuntime.createInitialState(config, seed);
-  const initialStateHash = hashCrushWoodState(state);
-  const actions: CrushWoodAction[] = [];
-  for (let stepIndex = 0; stepIndex < maxMoves && state.status === 'playing'; stepIndex += 1) {
-    const action = pickCrushWoodAgentAction(state, seed, stepIndex);
-    if (!action) break;
-    state = crushWoodRuntime.stateAfter(crushWoodRuntime.resolve(state, action, { seed, stepIndex }));
-    actions.push(action);
-  }
-  return createCrushWoodReplay(initialStateHash, seed, actions, 'agent', createRuntimeId('agent'));
 }
 
 export function createCrushWoodReplay(
@@ -84,3 +77,78 @@ export function createCrushWoodReplay(
     })),
   };
 }
+
+export function createCrushWoodAgentReplay(
+  config: CrushWoodConfig,
+  seed: number,
+  maxMoves = 24,
+): GameReplayEnvelope {
+  return runCrushWoodAgent(config, seed, maxMoves).replay;
+}
+
+export function runCrushWoodAgent(
+  config: CrushWoodConfig,
+  seed: number,
+  maxMoves = 24,
+): { replay: GameReplayEnvelope; status: Exclude<GameAgentRunStatus, 'failed'>; finalStatus: CrushWoodStatus } {
+  let state = crushWoodRuntime.createInitialState(config, seed);
+  const initialStateHash = hashCrushWoodState(state);
+  const actions: CrushWoodAction[] = [];
+  for (let stepIndex = 0; stepIndex < maxMoves && state.status === 'playing'; stepIndex += 1) {
+    const action = pickCrushWoodAgentAction(state, seed, stepIndex);
+    if (!action) break;
+    state = crushWoodRuntime.stateAfter(crushWoodRuntime.resolve(state, action, { seed, stepIndex }));
+    actions.push(action);
+  }
+  const terminal: Exclude<GameAgentRunStatus, 'failed'> = actions.length === 0
+    ? 'empty'
+    : state.status === 'won'
+      ? 'solved'
+      : 'partial';
+  return {
+    replay: createCrushWoodReplay(initialStateHash, seed, actions, 'agent', createRuntimeId('agent')),
+    status: terminal,
+    finalStatus: state.status,
+  };
+}
+
+export const blockCrushDropAgent: GameAgentAdapter = {
+  gameId: BLOCK_CRUSH_DROP_GAME_ID,
+  profiles: CRUSH_AGENT_PROFILES,
+  defaultConfig: () => createCrushWoodReferenceConfig(),
+  run(request: GameAgentRunRequest) {
+    if (request.profile !== undefined && request.profile !== 'greedy') {
+      throw new GameRuntimeError(
+        'UNKNOWN_PROFILE',
+        `Crush Wood agent profile ${request.profile} is not registered.`,
+        { details: { profile: request.profile, profiles: CRUSH_AGENT_PROFILES } },
+      );
+    }
+    let config: CrushWoodConfig;
+    try {
+      config = crushWoodConfigSchema.parse(request.config ?? createCrushWoodReferenceConfig());
+    } catch (error) {
+      const replay = createEmptyGameReplay({
+        gameId: BLOCK_CRUSH_DROP_GAME_ID,
+        moduleVersion: BLOCK_CRUSH_DROP_MODULE_VERSION,
+        seed: request.seed,
+        initialStateHash: 'invalid-config',
+      });
+      return completeAgentRun(
+        blockCrushDropDefinition,
+        request.config ?? createCrushWoodReferenceConfig(),
+        replay,
+        'failed',
+        { diagnostic: error instanceof Error ? error.message : 'Config failed to parse.' },
+      );
+    }
+    const generated = runCrushWoodAgent(config, request.seed, request.maxMoves ?? 24);
+    return completeAgentRun(
+      blockCrushDropDefinition,
+      config,
+      generated.replay,
+      generated.status,
+      { metrics: { actionCount: generated.replay.actions.length, status: generated.finalStatus } },
+    );
+  },
+};

@@ -24,12 +24,37 @@ export {
 export {
   GAME_REPLAY_CONTRACT,
   GAME_REPLAY_CONTRACT_VERSION,
+  createEmptyGameReplay,
   frameReplayIdentity,
   semanticReplayIdentity,
   splitPointerPlacement,
   type GameReplayEnvelope,
   type InteractionRecord,
 } from './replayEnvelope';
+export {
+  GameAgentRegistry,
+  completeAgentRun,
+  type GameAgentAdapter,
+  type GameAgentRunRequest,
+  type GameAgentRunResult,
+  type GameAgentRunStatus,
+} from './agentAdapter';
+export {
+  GameAuthoringRegistry,
+  requireCatalogOption,
+  type GameAuthoringAdapter,
+  type GameAuthoringCatalog,
+  type GameAuthoringDocumentRequest,
+  type GameAuthoringScaffoldRequest,
+  type GameAuthoringScaffoldResult,
+  type GameAuthoringSkinResult,
+  type GameCatalogOption,
+} from './authoringAdapter';
+export {
+  validateGameReplay,
+  type GameReplayValidationIssue,
+  type GameReplayValidationResult,
+} from './replayValidation';
 export {
   PRESENTATION_PACKET_CONTRACT,
   PRESENTATION_PACKET_CONTRACT_VERSION,

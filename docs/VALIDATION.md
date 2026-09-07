@@ -1,5 +1,7 @@
 # Validation record
 
+> 本文是一期交付环境的检查记录，不是现行 CI 说明书。现在请跑根目录 README 里的 `npm test` / `typecheck` / `check`。
+
 ## Checks completed in the delivery environment
 
 The delivery container had Node.js 22.16.0, npm 10.9.2, TypeScript 5.8.3, Chromium and FFmpeg installed. It did not have DNS access to the npm registry, so frontend dependencies could not be installed there.

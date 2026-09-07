@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createHeadlessPlatform, registerGamePackage } from '../src/bootstrap/gamePackage';
+import { GameAgentRegistry } from '../src/game-runtime/agentAdapter';
+import { GameAuthoringRegistry } from '../src/game-runtime/authoringAdapter';
 import { GameRegistryError } from '../src/game-runtime/errors';
 import { GameRegistry } from '../src/game-runtime/gameRegistry';
 import { PresentationRegistry } from '../src/game-runtime/presentationRegistry';
@@ -17,6 +19,8 @@ function emptyPlatform() {
     games: new GameRegistry(),
     presentations: new PresentationRegistry(),
     renderContracts: new RenderContractRegistry(),
+    agents: new GameAgentRegistry(),
+    authoring: new GameAuthoringRegistry(),
   };
 }
 
@@ -25,12 +29,12 @@ describe('atomic game package registration', () => {
     const platform = emptyPlatform();
     const mismatched = {
       ...blockCrushDropPackage,
-      presentation: { ...crushWoodPresentationAdapter, gameId: 'vita-mahjong-solitaire' },
+      presentation: { ...crushWoodPresentationAdapter, gameId: 'mahjong-solitaire' },
     };
     expect(() => registerGamePackage(mismatched, platform)).toThrowError(GameRegistryError);
     expect(platform.games.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
     expect(platform.presentations.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
-    expect(platform.presentations.has('vita-mahjong-solitaire')).toBe(false);
+    expect(platform.presentations.has('mahjong-solitaire')).toBe(false);
   });
 
   it('rejects a colliding composition id without registering the real Crush package', () => {
@@ -60,5 +64,24 @@ describe('atomic game package registration', () => {
     expect(getCompositionProfile('block-placement.composition.v1')?.gameId).toBe('block-placement');
     const suite = getCaptureSuite(BLOCK_CRUSH_DROP_GAME_ID);
     expect(suite === undefined || suite.id === crushWoodCaptureSuite.id).toBe(true);
+  });
+
+  it('rejects an agent adapter whose gameId does not match the package', () => {
+    const platform = emptyPlatform();
+    expect(() => registerGamePackage({
+      ...blockPlacementPackage,
+      agent: { ...blockPlacementPackage.agent!, gameId: 'mahjong-solitaire' },
+    }, platform)).toThrowError(GameRegistryError);
+    expect(platform.games.has('block-placement')).toBe(false);
+    expect(platform.agents.has('block-placement')).toBe(false);
+    expect(platform.agents.has('mahjong-solitaire')).toBe(false);
+  });
+
+  it('registers the package agent adapter onto the platform instance', () => {
+    const platform = createHeadlessPlatform([blockPlacementPackage]);
+    expect(platform.agents.require('block-placement').gameId).toBe('block-placement');
+    expect(platform.agents.list()).toEqual([
+      { gameId: 'block-placement', profiles: ['greedy'] },
+    ]);
   });
 });

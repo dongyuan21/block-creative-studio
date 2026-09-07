@@ -3,7 +3,7 @@
   "version": "0.3.0-alpha.4",
   "private": true,
   "type": "module",
-  "description": "A reference-first browser studio for block-placement gameplay authoring, replay direction, and deterministic video rendering.",
+  "description": "A multi-game browser studio and agent-operable CLI for IAA puzzle ads: authoring, semantic replay, and deterministic Chrome video export.",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4173",
     "build": "tsc -b && vite build && npm run build:cli",

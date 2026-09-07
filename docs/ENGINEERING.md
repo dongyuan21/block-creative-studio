@@ -1,12 +1,14 @@
 # 工程说明
 
-本文是仓库的工程能力与实现说明，由原根目录 `README.md` 迁出。产品介绍见 [`README.md`](../README.md)；本机出片与反馈流程见 [`LOCAL_REVIEW_AND_FEEDBACK.md`](LOCAL_REVIEW_AND_FEEDBACK.md)。
+本文是仓库的工程能力与实现说明，由原根目录 `README.md` 迁出。产品介绍见 [`README.md`](../README.md)；本机出片与反馈流程见 [`LOCAL_REVIEW_AND_FEEDBACK.md`](LOCAL_REVIEW_AND_FEEDBACK.md)。Agent 命令见 [`cli/README.md`](cli/README.md)；官方配方见 [`skills/README.md`](../skills/README.md)。
 
-Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器创作与渲染工程。用户先编辑牌面，由人类或机器完成试玩并保存语义 Replay；随后可以独立调整节奏、视觉资产和演出层，最后由 Chrome 按固定时间步逐帧重演并导出视频。
+Block Creative Studio 面向 IAA 消除类游戏投放素材。当前有两条客户端：**Studio**（人类在 Chrome 里编辑、试玩、导演、导出）和 **原子 CLI**（外部 Agent / CI）。官方 **组合 Skill** 只编排 CLI，系统不内嵌 LLM。
 
-> 当前版本为 `0.3.0-alpha.4`。工程主线是 **reference-first 2D → 固定机位混合影视渲染**。2D 阶段负责确认玩法、布局、事件、时序和资产谱系；后续生产后端会在固定摄像机下混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+演示游戏三款：**Block Placement**、**TapTile Tray Match3**、**crash wooooood!**。**Mahjong**（`mahjong-solitaire`）只在 Studio 显示 Coming Soon，没有 Agent / 出题 / 出片适配器。
 
-本项目独立实现 8×8 方块放置与完整行列清除机制；不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
+> 当前版本为 `0.3.0-alpha.4`。工程主线仍是 **reference-first 2D → 固定机位混合影视渲染**。2D 负责确认玩法、布局、事件、时序和资产谱系；固定机位 Cinematic Backend 已是 Placement 的当前生产路径（Studio 导出与 `bcs render`），混合 Screen 2D、Shader、浅 3D、真实 3D 牌块/碎片和预烘焙 VFX，而不是把所有元素强制做成一种技术形态。
+
+Block Placement 独立实现 8×8 方块放置与完整行列清除；人工视觉评审与 Reference 审计仍以它为主。TapTile / Crush 已接入 Studio 演示和同一套 Agent CLI。仓库不包含第三方游戏的品牌、原始美术、声音、源代码或内部算法。
 
 ## 当前主线：整段视频审计与 Reference 2D
 
@@ -45,7 +47,7 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 - 保留 `three-3d` 实验后端，但停止把它当作当前视觉基线；
 - WebCodecs + Mediabunny 的浏览器固定帧 H.264/MP4 导出；
 - 工程 JSON 导入/导出、运行时校验、自动保存和 CI；
-- 固定机位 Camera Profile 与语义资产类型契约，为后续混合渲染器留出稳定接口。
+- 固定机位 Camera Profile 与语义资产类型契约；Placement 的 `fixed-camera-cinematic` 已用于 Studio 导出和 CLI `bcs render`。
 - IndexedDB Browser Asset Store：真实背景/牌面文件按 SHA-256 持久化，自动派生 Look/Variant，并进入实时预览与固定帧导出。
 - Reference 2D Golden Diff：本地导入参考帧，叠加、分屏、差异热图、对齐线和诊断指标。
 - 3D LookDev：中性、平衡、高能量三档；曝光、环境反射、Bloom 阈值与清除 Boost 可独立控制。
@@ -58,7 +60,9 @@ Block Creative Studio 是一个面向 IAA 方块消除试玩素材的浏览器�
 
 ## Headless Core 与外部 Agent 边界
 
-BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 LLM 或 Prompt 面板；外部 Agent、设计师、DCC 或生成工具先生产版本化资产与 Recipe，BCS 再负责严格校验、变体编译、质量门禁和后续确定性渲染。
+BCS 提供 Agent-neutral 的 Headless Core。系统本身不内置 LLM 或 Prompt 面板；外部 Agent、设计师、DCC 或生成工具先生产版本化资产与 Recipe，BCS 再负责严格校验、变体编译、质量门禁和确定性渲染。
+
+分层固定：**CLI（原子）** 改命令契约；**Skill（组合）** 改编排。不要把「同一盘玩法换多套皮」做成新的 CLI 矩阵开关。
 
 已加入：
 
@@ -67,7 +71,10 @@ BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 L
 - `frame-exact / semantic / rule-only` 三种不变量锁定模式；
 - 材质外观与破坏行为分离，以及 Material-aware Effect 兼容检查；
 - 结构、确定性、权限和资源预算型 Quality Gate；
-- 机器可读的 `bcs` CLI 与 JSON Schema；
+- 机器可读的 `bcs` CLI 与 JSON Schema（原子命令：出题、换皮、试玩、校验、收工程、出片、资产/变体/门禁）；
+- 按 `gameId` 调度的出题、换皮、机器试玩、工程文档和 Chrome 出片；
+- Crush 换皮不改玩法哈希；Placement `look.copper` 进入 document-render 电影镜头（参数铜金属，不是 plan-bound PBR 贴图）；
+- `skills/` 官方组合配方（同一 Take 多皮、补出片、PBR 变体、失败诊断）。Skill 可改、可复制；不要把编排做成新的 CLI 矩阵开关；
 - 批量矩阵编译时单变体失败隔离。
 
 ```bash
@@ -82,6 +89,8 @@ node dist-cli/cli/bcs.js variant compile \
   --out /tmp/copper-plan.json
 node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
 ```
+
+Agent 出题 / 试玩 / 出片见 [`CLI 文档`](cli/README.md)。CLI 与 Skill 分层见 [`skills/README.md`](../skills/README.md)；入口 [`skills/bcs/SKILL.md`](../skills/bcs/SKILL.md)。`bcs render` 只有在无头 Chrome 实际写出 MP4 后才把 `rendered` 设为 `true`。
 
 详见 [`AGENT_OPERABLE_BOUNDARY.md`](architecture/AGENT_OPERABLE_BOUNDARY.md)、[`HEADLESS_CORE_V1.md`](architecture/HEADLESS_CORE_V1.md)、[`WEB_VARIANT_WORKSPACE_V1.md`](architecture/WEB_VARIANT_WORKSPACE_V1.md)、[`ASSET_IMPORT_PIPELINE_V1.md`](architecture/ASSET_IMPORT_PIPELINE_V1.md)、[`FIXED_CAMERA_LOOKDEV_V1.md`](architecture/FIXED_CAMERA_LOOKDEV_V1.md) 和 [`CLI 文档`](cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
 
@@ -197,6 +206,8 @@ python tools/reference_audit/extract_golden_frames.py \
 
 ## 推荐 Review 流程
 
+人工视觉与 Placement Reference 仍走下面 1–8。本版 Agent 能力走第 9 条，不要和 Studio 五条片混评。
+
 1. 先审阅 [`FULL_VIDEO_AUDIT_REPORT_V1.md`](reference/v2/FULL_VIDEO_AUDIT_REPORT_V1.md)，确认整片新增发现；
 2. 审阅 [`ASSET_LINEAGE_V2.json`](reference/v2/ASSET_LINEAGE_V2.json) 的必选性与固定机位表达；
 3. 本地生成 Golden Scene 的 start/peak/end 帧；
@@ -204,15 +215,17 @@ python tools/reference_audit/extract_golden_frames.py \
 5. 真人拖拽，检查拾取放大、上移、合法 Ghost 与预消除填充；
 6. 保存 Take 后切换节奏，确认玩法结果不变；
 7. 对照 Golden Scene 记录 Reference 2D 的布局、颜色和时序偏差；
-8. 2D 门禁通过前，不扩展自由相机或通用真 3D 表现。
+8. 2D 门禁通过前，不扩展自由相机或通用真 3D 表现；
+9. Agent 本版：按 [`skills/README.md`](../skills/README.md) 与 [`cli/README.md`](cli/README.md) 审出题 / 换皮 / 试玩 / 校验 / 出片分层、Crush 换皮不改哈希、Placement `look.copper`、Chrome 缺失不写 `rendered: true`。配方入口 [`skills/bcs/SKILL.md`](../skills/bcs/SKILL.md)。片单约定见 [`LOCAL_REVIEW_AND_FEEDBACK.md`](LOCAL_REVIEW_AND_FEEDBACK.md)。
 
 ## 代码结构
 
 ```text
 src/domain          纯 TypeScript 玩法、形状、计分分解、工程校验
 src/headless        开放资产契约、Registry、变体编译与质量门禁
-src/integration     Web 项目与 Headless Core 的适配桥
+src/games           三款演示游戏包（Placement / TapTile / Crush）
 src/cli             外部 Agent / CI 使用的机器可读 CLI
+src/integration     Web 项目与 Headless Core 的适配桥
 src/director        Take → 固定帧表现状态；逻辑与 VFX 时间解耦
 src/assets          语义资产、固定机位契约、Browser Asset Store 与运行时绑定
 src/reference2d     真机参考 2D 布局、Canvas 渲染和交互
@@ -220,6 +233,7 @@ src/renderer        旧 Three.js 3D 实验后端
 src/exporter        固定帧 Canvas → WebCodecs → MP4
 src/components      Human-first 工作台与 Variant/Quality 面板
 src/state           项目、试玩、Take、变体工作区、回放与导出编排
+skills/             官方 Skill：原子命令的 1:1 参数说明 + 可改的组合配方
 docs/reference/v2  全帧索引、事件索引、资产谱系和渲染映射
 tools/reference_audit  本地整片分析与 Golden Frame 提取工具
 schemas             工程、资产谱系和固定机位契约 Schema
@@ -234,4 +248,6 @@ schemas             工程、资产谱系和固定机位契约 Schema
 - `NEW HIGH SCORE`、候选刷新复合 VFX 和完整异步演出尚未完全进入运行时；
 - 导出当前为无声 MP4；音频事件轨仍未接入；
 - 当前只保证桌面 Chrome；
+- CLI Crush / TapTile 短预览证明调度链路，不能当作商业画质通过；
+- `mahjong-solitaire` 没有 Agent 适配器，`agent run` 会得到 `UNKNOWN_AGENT`；
 - Blender/AE 接口保留，但 DCC 适配推迟到 2D 资产槽位和 Golden Scene 门禁之后。

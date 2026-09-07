@@ -25,7 +25,18 @@ import {
   type VariantRecipe,
 } from '../headless/index.js';
 import { ensureDefaultHeadlessPlatform } from '../bootstrap/headlessBootstrap.js';
+import { commandAgent, type AgentCommandInput } from './commands/agent.js';
+import {
+  commandAuthoringCatalog,
+  commandDocumentCompile,
+  commandDocumentEmit,
+  commandProduce,
+  commandProjectScaffold,
+  commandSkin,
+} from './commands/authoring.js';
 import { commandProjectMigrate } from './commands/projectMigrate.js';
+import { commandRender, type RenderCommandInput } from './commands/render.js';
+import { commandTake, type TakeCommandInput } from './commands/take.js';
 
 interface ParsedArgs {
   positionals: string[];
@@ -274,8 +285,28 @@ async function commandGolden(args: ParsedArgs): Promise<unknown> {
 }
 
 async function commandProject(args: ParsedArgs): Promise<unknown> {
+  if (args.positionals[0] === 'scaffold') {
+    const input: Parameters<typeof commandProjectScaffold>[0] = {};
+    const gameId = flagString(args, 'game');
+    const template = flagString(args, 'template');
+    const skin = flagString(args, 'skin');
+    const seed = flagNumber(args, 'seed');
+    const name = flagString(args, 'name');
+    const out = flagString(args, 'out');
+    if (gameId !== undefined) input.gameId = gameId;
+    if (template !== undefined) input.template = template;
+    if (skin !== undefined) input.skin = skin;
+    if (seed !== undefined) input.seed = seed;
+    if (name !== undefined) input.name = name;
+    if (out !== undefined) input.out = out;
+    return commandProjectScaffold(input);
+  }
   if (args.positionals[0] !== 'migrate') {
-    throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `project migrate <project.json> [--out <file>]`.', { path: 'project' });
+    throw new BcsHeadlessError(
+      'CLI_COMMAND_INVALID',
+      'Use `project scaffold --game <id>` or `project migrate <project.json>`.',
+      { path: 'project' },
+    );
   }
   const path = args.positionals[1];
   if (!path) throw new BcsHeadlessError('CLI_ARGUMENT_REQUIRED', 'Project path is required.', { path: 'project' });
@@ -294,9 +325,157 @@ async function execute(argv: string[]): Promise<unknown> {
   if (command === 'material') return commandMaterial(args);
   if (command === 'golden') return commandGolden(args);
   if (command === 'project') return commandProject(args);
+  if (command === 'agent') {
+    const input: AgentCommandInput = { action: args.positionals[0] };
+    const gameId = flagString(args, 'game');
+    const seed = flagNumber(args, 'seed');
+    const profile = flagString(args, 'profile');
+    const maxMoves = flagNumber(args, 'max-moves');
+    const beamWidth = flagNumber(args, 'beam-width');
+    const maxExpandedStates = flagNumber(args, 'max-expanded-states');
+    const out = flagString(args, 'out');
+    const config = flagString(args, 'config');
+    if (gameId !== undefined) input.gameId = gameId;
+    if (seed !== undefined) input.seed = seed;
+    if (profile !== undefined) input.profile = profile;
+    if (maxMoves !== undefined) input.maxMoves = maxMoves;
+    if (beamWidth !== undefined) input.beamWidth = beamWidth;
+    if (maxExpandedStates !== undefined) input.maxExpandedStates = maxExpandedStates;
+    if (out !== undefined) input.out = out;
+    if (config !== undefined) input.config = await readJson(config);
+    return commandAgent(input);
+  }
+  if (command === 'take') {
+    if (args.positionals[0] !== 'validate') {
+      throw new BcsHeadlessError(
+        'CLI_COMMAND_INVALID',
+        'Use `take validate --take <file.json> [--game <id>] [--config <file.json>]`.',
+        { path: 'take' },
+      );
+    }
+    const takePath = flagString(args, 'take', true)!;
+    const input: TakeCommandInput = {
+      action: 'validate',
+      take: await readJson(takePath),
+    };
+    const gameId = flagString(args, 'game');
+    const config = flagString(args, 'config');
+    const out = flagString(args, 'out');
+    if (gameId !== undefined) input.gameId = gameId;
+    if (config !== undefined) input.config = await readJson(config);
+    if (out !== undefined) input.out = out;
+    return commandTake(input);
+  }
+  if (command === 'authoring') {
+    if (args.positionals[0] !== 'catalog') {
+      throw new BcsHeadlessError('CLI_COMMAND_INVALID', 'Use `authoring catalog [--game <id>]`.', { path: 'authoring' });
+    }
+    const catalogInput: Parameters<typeof commandAuthoringCatalog>[0] = {};
+    const gameId = flagString(args, 'game');
+    if (gameId !== undefined) catalogInput.gameId = gameId;
+    return commandAuthoringCatalog(catalogInput);
+  }
+  if (command === 'skin') {
+    const skinInput: Parameters<typeof commandSkin>[0] = { action: args.positionals[0] };
+    const gameId = flagString(args, 'game');
+    const skin = flagString(args, 'skin');
+    const out = flagString(args, 'out');
+    const config = flagString(args, 'config');
+    if (gameId !== undefined) skinInput.gameId = gameId;
+    if (skin !== undefined) skinInput.skin = skin;
+    if (out !== undefined) skinInput.out = out;
+    if (config !== undefined) skinInput.config = await readJson(config);
+    return commandSkin(skinInput);
+  }
+  if (command === 'document') {
+    if (args.positionals[0] === 'emit') {
+      const emitInput: Parameters<typeof commandDocumentEmit>[0] = {};
+      const gameId = flagString(args, 'game');
+      const config = flagString(args, 'config', true);
+      const take = flagString(args, 'take');
+      const skin = flagString(args, 'skin');
+      const seed = flagNumber(args, 'seed');
+      const name = flagString(args, 'name');
+      const quality = flagString(args, 'quality');
+      const out = flagString(args, 'out');
+      if (gameId !== undefined) emitInput.gameId = gameId;
+      emitInput.config = await readJson(config!);
+      if (take !== undefined) emitInput.take = await readJson(take);
+      if (skin !== undefined) emitInput.skin = skin;
+      if (seed !== undefined) emitInput.seed = seed;
+      if (name !== undefined) emitInput.name = name;
+      if (quality === 'preview' || quality === 'standard' || quality === 'cinematic') emitInput.quality = quality;
+      if (out !== undefined) emitInput.out = out;
+      return commandDocumentEmit(emitInput);
+    }
+    if (args.positionals[0] !== 'compile') {
+      throw new BcsHeadlessError(
+        'CLI_COMMAND_INVALID',
+        'Use `document emit --game <id> --config <file>` or `document compile --document <file>`.',
+        { path: 'document' },
+      );
+    }
+    const compileInput: Parameters<typeof commandDocumentCompile>[0] = {
+      document: await readJson(flagString(args, 'document', true)!),
+    };
+    const takeId = flagString(args, 'take-id');
+    const fps = flagNumber(args, 'fps');
+    const out = flagString(args, 'out');
+    if (takeId !== undefined) compileInput.takeId = takeId;
+    if (fps !== undefined) compileInput.fps = fps;
+    if (out !== undefined) compileInput.out = out;
+    return commandDocumentCompile(compileInput);
+  }
+  if (command === 'produce') {
+    const produceInput: Parameters<typeof commandProduce>[0] = {};
+    const gameId = flagString(args, 'game');
+    const template = flagString(args, 'template');
+    const skin = flagString(args, 'skin');
+    const seed = flagNumber(args, 'seed');
+    const name = flagString(args, 'name');
+    const profile = flagString(args, 'profile');
+    const maxMoves = flagNumber(args, 'max-moves');
+    const beamWidth = flagNumber(args, 'beam-width');
+    const maxExpandedStates = flagNumber(args, 'max-expanded-states');
+    const quality = flagString(args, 'quality');
+    const outDir = flagString(args, 'out-dir');
+    const maxFrames = flagNumber(args, 'max-frames');
+    if (gameId !== undefined) produceInput.gameId = gameId;
+    if (template !== undefined) produceInput.template = template;
+    if (skin !== undefined) produceInput.skin = skin;
+    if (seed !== undefined) produceInput.seed = seed;
+    if (name !== undefined) produceInput.name = name;
+    if (profile !== undefined) produceInput.profile = profile;
+    if (maxMoves !== undefined) produceInput.maxMoves = maxMoves;
+    if (beamWidth !== undefined) produceInput.beamWidth = beamWidth;
+    if (maxExpandedStates !== undefined) produceInput.maxExpandedStates = maxExpandedStates;
+    if (quality === 'preview' || quality === 'standard' || quality === 'cinematic') produceInput.quality = quality;
+    if (outDir !== undefined) produceInput.outDir = outDir;
+    if (maxFrames !== undefined) produceInput.maxFrames = maxFrames;
+    if (flagBoolean(args, 'render')) produceInput.render = true;
+    return commandProduce(produceInput);
+  }
+  if (command === 'render') {
+    const renderInput: RenderCommandInput = {};
+    if (flagBoolean(args, 'list')) renderInput.list = true;
+    const documentPath = flagString(args, 'document');
+    const outDir = flagString(args, 'out-dir');
+    const takeId = flagString(args, 'take-id');
+    const quality = flagString(args, 'quality');
+    const maxFrames = flagNumber(args, 'max-frames');
+    const timeoutMs = flagNumber(args, 'timeout-ms');
+    if (documentPath !== undefined) renderInput.documentPath = documentPath;
+    if (outDir !== undefined) renderInput.outDir = outDir;
+    if (takeId !== undefined) renderInput.takeId = takeId;
+    if (quality === 'preview' || quality === 'standard' || quality === 'cinematic') renderInput.quality = quality;
+    if (maxFrames !== undefined) renderInput.maxFrames = maxFrames;
+    if (timeoutMs !== undefined) renderInput.timeoutMs = timeoutMs;
+    if (flagBoolean(args, 'still-only')) renderInput.video = false;
+    return commandRender(renderInput);
+  }
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project migrate.',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project scaffold|migrate, authoring catalog, skin list|apply, agent list|run, take validate, document emit|compile, produce, render.',
     { path: command ?? '(missing command)' },
   );
 }

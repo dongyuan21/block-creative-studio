@@ -39,6 +39,7 @@ function captureIdentity() {
 }
 
 function findChrome() {
+  if (process.env.BCS_RENDER_FORCE_NO_CHROME === '1') return null;
   const candidates = [
     process.env.CHROME_PATH,
     '/usr/local/bin/google-chrome',
@@ -67,12 +68,25 @@ function listen(server, host, preferredPort) {
   });
 }
 
+function isInside(parent, child) {
+  const relPath = relative(parent, child);
+  return relPath === '' || (!relPath.startsWith('..') && !relPath.startsWith('/'));
+}
+
 export async function runBrowserCapture(options = {}) {
   const mode = options.mode === 'full' ? 'full' : 'smoke';
   const timeoutMs = options.timeoutMs ?? (mode === 'full' ? 25 * 60_000 : 180_000);
   const page = options.page ?? '/tools/capture.html';
   const wipe = options.wipe !== false;
   const reportFile = options.reportFile ?? 'browser-e2e.json';
+  const updateReviewManifest = options.updateReviewManifest !== false;
+  const workspaceRoot = resolve(options.workspaceRoot ?? root);
+  const reviewRoot = resolve(root, 'review-package');
+  const runRoot = resolve(reviewRoot, 'run');
+  const artifactRoot = resolve(options.artifactRoot ?? runRoot);
+  const reportDir = resolve(options.reportDir ?? (updateReviewManifest ? runRoot : artifactRoot));
+  const artifactPathMode = options.artifactPathMode === 'artifact-root' ? 'artifact-root' : 'repo';
+  const query = options.query ?? `autorun=1&mode=${mode}`;
   const chromePath = findChrome();
   const startedAt = new Date().toISOString();
 
@@ -80,6 +94,7 @@ export async function runBrowserCapture(options = {}) {
     return {
       status: 'NOT_RUN',
       reason: 'Google Chrome / Chromium was not found on PATH.',
+      code: 'CHROME_NOT_FOUND',
       mode,
       startedAt,
       renderer: 'unknown',
@@ -100,12 +115,14 @@ export async function runBrowserCapture(options = {}) {
     doneReject = rejectDone;
   });
 
-  const reviewRoot = resolve(root, 'review-package');
-  const runRoot = resolve(reviewRoot, 'run');
-  if (wipe) {
+  if (wipe && updateReviewManifest) {
     rmSync(runRoot, { recursive: true, force: true });
   }
-  mkdirSync(runRoot, { recursive: true });
+  if (updateReviewManifest) {
+    mkdirSync(runRoot, { recursive: true });
+  }
+  mkdirSync(reportDir, { recursive: true });
+  mkdirSync(artifactRoot, { recursive: true });
   const server = createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1');
     if (req.method === 'POST' && url.pathname === '/__capture/progress') {
@@ -137,9 +154,9 @@ export async function runBrowserCapture(options = {}) {
       return;
     }
     if (req.method === 'GET' && url.pathname.startsWith('/__capture/workspace/')) {
-      const rel = url.pathname.slice('/__capture/workspace/'.length);
-      const dest = resolve(root, rel);
-      if (!dest.startsWith(root) || !existsSync(dest)) {
+      const rel = decodeURIComponent(url.pathname.slice('/__capture/workspace/'.length));
+      const dest = resolve(workspaceRoot, rel);
+      if (!isInside(workspaceRoot, dest) || rel.includes('..') || !existsSync(dest)) {
         res.writeHead(404);
         res.end('not found');
         return;
@@ -150,9 +167,11 @@ export async function runBrowserCapture(options = {}) {
     }
     if (req.method === 'POST' && url.pathname === '/__capture/artifact') {
       const rel = String(req.headers['x-artifact-path'] ?? '');
-      const dest = resolve(root, rel);
-      const allowed = dest.startsWith(runRoot + '/') || dest === runRoot;
-      if (!rel || rel.includes('..') || !allowed) {
+      const dest = artifactPathMode === 'artifact-root'
+        ? resolve(artifactRoot, rel)
+        : resolve(root, rel);
+      const allowed = isInside(artifactRoot, dest);
+      if (!rel || rel.includes('..') || rel.startsWith('/') || !allowed) {
         res.writeHead(403);
         res.end('invalid artifact path');
         return;
@@ -165,7 +184,12 @@ export async function runBrowserCapture(options = {}) {
         writeFileSync(dest, buffer);
         const digest = sha256(buffer);
         res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify({ ok: true, bytes: buffer.length, sha256: digest, path: relative(root, dest) }));
+        res.end(JSON.stringify({
+          ok: true,
+          bytes: buffer.length,
+          sha256: digest,
+          path: artifactPathMode === 'artifact-root' ? rel : relative(root, dest),
+        }));
       });
       return;
     }
@@ -175,7 +199,7 @@ export async function runBrowserCapture(options = {}) {
   const host = '127.0.0.1';
   const port = await listen(server, host, 4177);
   const userData = mkdtempSync(resolve(tmpdir(), 'bcs-chrome-'));
-  const captureUrl = `http://${host}:${port}${page}?autorun=1&mode=${mode}`;
+  const captureUrl = `http://${host}:${port}${page}?${query}`;
   const args = [
     '--headless',
     '--no-sandbox',
@@ -246,34 +270,36 @@ export async function runBrowserCapture(options = {}) {
     }
   }
 
-  const runReportPath = resolve(runRoot, reportFile);
+  const runReportPath = resolve(reportDir, reportFile);
   mkdirSync(dirname(runReportPath), { recursive: true });
   writeFileSync(runReportPath, `${JSON.stringify(report, null, 2)}\n`);
-  const listed = [
-    ...(report.frames ?? []).map((item) => item.path),
-    ...(report.videos ?? []).map((item) => item.path),
-    `review-package/run/${reportFile}`,
-  ];
-  const manifestPath = resolve(runRoot, 'artifact-manifest.json');
-  let previousFiles = [];
-  if (!wipe && existsSync(manifestPath)) {
-    try {
-      previousFiles = JSON.parse(readFileSync(manifestPath, 'utf8')).files ?? [];
-    } catch {
-      previousFiles = [];
+  if (updateReviewManifest) {
+    const listed = [
+      ...(report.frames ?? []).map((item) => item.path),
+      ...(report.videos ?? []).map((item) => item.path),
+      `review-package/run/${reportFile}`,
+    ];
+    const manifestPath = resolve(runRoot, 'artifact-manifest.json');
+    let previousFiles = [];
+    if (!wipe && existsSync(manifestPath)) {
+      try {
+        previousFiles = JSON.parse(readFileSync(manifestPath, 'utf8')).files ?? [];
+      } catch {
+        previousFiles = [];
+      }
     }
-  }
-  writeFileSync(manifestPath, `${JSON.stringify({
-    mode: report.mode,
-    status: report.status,
-    ...captureIdentity(),
-    planHashes: report.planHashes ?? [],
-    files: [...new Set([...previousFiles, ...listed])],
-  }, null, 2)}\n`);
-  if (mode === 'full' && report.status === 'PASS' && wipe && reportFile === 'browser-e2e.json') {
-    const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
-    mkdirSync(dirname(outPath), { recursive: true });
-    writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+    writeFileSync(manifestPath, `${JSON.stringify({
+      mode: report.mode,
+      status: report.status,
+      ...captureIdentity(),
+      planHashes: report.planHashes ?? [],
+      files: [...new Set([...previousFiles, ...listed])],
+    }, null, 2)}\n`);
+    if (mode === 'full' && report.status === 'PASS' && wipe && reportFile === 'browser-e2e.json') {
+      const outPath = resolve(root, 'review-package/reports/browser-e2e.json');
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+    }
   }
   return report;
 }

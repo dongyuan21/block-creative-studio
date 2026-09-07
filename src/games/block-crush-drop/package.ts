@@ -1,4 +1,6 @@
 import type { GamePackageRegistration } from '../../bootstrap/gamePackage';
+import { blockCrushDropAgent } from './agent';
+import { blockCrushDropAuthoring } from './authoring';
 import { crushWoodCaptureSuite } from './capture/suite';
 import { blockCrushDropDefinition } from './definition';
 import { BLOCK_CRUSH_DROP_GAME_ID } from './manifest';
@@ -17,4 +19,6 @@ export const blockCrushDropPackage: GamePackageRegistration = {
   backends: [crushWoodCinematicBackend],
   captureSuite: crushWoodCaptureSuite,
   studioGameId: BLOCK_CRUSH_DROP_GAME_ID,
+  agent: blockCrushDropAgent,
+  authoring: blockCrushDropAuthoring,
 };

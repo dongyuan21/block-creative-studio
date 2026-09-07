@@ -21,13 +21,13 @@ describe('studio shell modularization', () => {
     expect(source('src/studio/sessionTypes.ts')).not.toMatch(/domain\/types|GridCell|TapTileGameState|CrushWoodState/);
   });
 
-  it('registers all implemented games as available and keeps Vita Mahjong as Coming Soon', () => {
+  it('registers all implemented games as available and keeps Mahjong as Coming Soon', () => {
     const registry = createDefaultStudioRegistry();
     expect(registry.list().map((item) => [item.gameId, item.status])).toEqual([
       ['block-placement', 'available'],
       ['taptile-tray-match3', 'available'],
       ['block-crush-drop', 'available'],
-      ['vita-mahjong-solitaire', 'coming-soon'],
+      ['mahjong-solitaire', 'coming-soon'],
     ]);
     expect(registry.require('block-placement').Workspace).toBe(BlockPlacementWorkspace);
     expect(registry.require('taptile-tray-match3').Workspace).toBe(TapTileWorkspace);
@@ -36,7 +36,8 @@ describe('studio shell modularization', () => {
     expect(typeof TapTileWorkspace).toBe('function');
     expect(typeof CrushWoodWorkspace).toBe('function');
     expect(typeof StudioShell).toBe('function');
-    expect(registry.get('vita-mahjong-solitaire')?.Workspace).toBeUndefined();
+    expect(registry.get('mahjong-solitaire')?.Workspace).toBeUndefined();
+    expect(registry.require('mahjong-solitaire').displayName).toBe('Mahjong');
   });
 
   it('keeps the shared Toolbar on the platform session mode instead of first-game domain types', () => {

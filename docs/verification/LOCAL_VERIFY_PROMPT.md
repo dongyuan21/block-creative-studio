@@ -139,7 +139,7 @@ PAGES_BASE_PATH=/block-creative-studio/ npm run build
 
 - 不要标 T0–T5 完成。
 - 不要标 visually-approved。
-- 不要把 `rendered: true` 写进 CLI。
+- 不要把 Node-only 命令的 `rendered` 写成 `true`。只有 `bcs render` 在 Chrome/WebCodecs 实际写出 MP4 之后才可以。
 - 不要把 39 条 Golden 标 PASS。
 - 不要把 UnrealBloomPass 说成 selective bloom。
 

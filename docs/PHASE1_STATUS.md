@@ -1,5 +1,7 @@
 # 当前实现状态
 
+> 本文记录 `0.2.0-alpha.2` 当时的 Placement / Reference 2D 状态，标题里的「当前」是历史时态。现行三款演示游戏、Studio / CLI 入口和官方 Skill 以根目录 [`README.md`](../README.md) 为准。
+
 ## 版本定位
 
 `0.2.0-alpha.2` 是 **全视频真值层 + Reference 2D 骨架**，不是一比一复刻完成版，也不是固定机位影视后端完成版。

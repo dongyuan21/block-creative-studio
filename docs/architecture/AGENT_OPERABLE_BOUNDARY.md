@@ -34,6 +34,10 @@ Prompts may be retained as provenance, but a renderer never depends on a prompt 
 
 The Web UI, BCS CLI, future MCP adapter, CI jobs, and render workers must all call the same headless application services. No client is allowed to reimplement variant inheritance or quality policy independently.
 
+The CLI is the atomic execution surface (`project scaffold`, `skin apply`, `agent run`, `take validate`, `document emit`, `render`, asset/variant/quality commands). Official and third-party **Skills** only sequence those commands. A new production taste (one take, many looks; resume render after Chrome appears) belongs in `skills/`, not as a fatter CLI verb.
+
+Registered demo `gameId`s: `block-placement`, `taptile-tray-match3`, `block-crush-drop`. `mahjong-solitaire` is Studio Coming Soon only; `agent run` against it is `UNKNOWN_AGENT`.
+
 ## Code execution
 
 Declarative JSON, media, texture sets, and GLB assets are preferred. Generated code is admitted only through a plugin package contract. Plugin execution is not enabled in v1; current validation rejects dangerous permissions by default. Later runtimes will use Workers, subprocess isolation, or WASM sandboxes rather than unrestricted `eval`.

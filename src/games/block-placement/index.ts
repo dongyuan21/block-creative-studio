@@ -1,3 +1,10 @@
+export { blockPlacementAgent } from './agent';
+export { blockPlacementAuthoring } from './authoring';
+export {
+  createBlockPlacementDocument,
+  BLOCK_PLACEMENT_LOOK_CANDY_RESIN,
+  BLOCK_PLACEMENT_LOOK_COPPER,
+} from './project';
 export { blockPlacementDefinition } from './definition';
 export { importStudioDocument, migrateBlockPlacementV1, migrateUnknownProjectToV2 } from './migrations/blockPlacementV1';
 export {
@@ -7,7 +14,13 @@ export {
   blockPlacementPresentationAdapter,
   compileBlockPlacementFrameSource,
 } from './presentation/legacyPresentationAdapter';
-export { createBlockPlacementCinematicBackendAdapter } from './render/cinematicBackendAdapter';
+export {
+  BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID,
+  blockPlacementCinematicBackend,
+  createBlockPlacementCinematicBackendAdapter,
+  lookPackIdFromRuntimeAssets,
+  resolveBlockPlacementCinematicStyle,
+} from './render/cinematicBackendAdapter';
 export { createBlockPlacementReferenceBackendAdapter } from './render/referenceBackendAdapter';
 export { blockPlacementRenderContract } from './render/renderContract';
 export {

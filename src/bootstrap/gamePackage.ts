@@ -1,4 +1,6 @@
 import type { AnyGameDefinition } from '../game-runtime/contracts';
+import { GameAgentRegistry, type GameAgentAdapter } from '../game-runtime/agentAdapter';
+import { GameAuthoringRegistry, type GameAuthoringAdapter } from '../game-runtime/authoringAdapter';
 import { GameRegistry, gameKey } from '../game-runtime/gameRegistry';
 import { GameRegistryError } from '../game-runtime/errors';
 import type { PresentationCompilerAdapter } from '../game-runtime/frameSource';
@@ -38,12 +40,16 @@ export interface GamePackageRegistration {
   backends?: RenderBackendAdapter[];
   captureSuite?: CaptureSuite;
   studioGameId?: string;
+  agent?: GameAgentAdapter;
+  authoring?: GameAuthoringAdapter;
 }
 
 export interface HeadlessPlatform {
   games: GameRegistry;
   presentations: PresentationRegistry;
   renderContracts: RenderContractRegistry;
+  agents: GameAgentRegistry;
+  authoring: GameAuthoringRegistry;
 }
 
 function fail(code: string, message: string, details?: unknown): never {
@@ -88,6 +94,18 @@ function preflightGamePackage(pkg: GamePackageRegistration, target: HeadlessPlat
   }
   if (pkg.studioGameId !== undefined && pkg.studioGameId !== gameId) {
     fail('PACKAGE_GAME_ID_MISMATCH', `Studio module gameId ${pkg.studioGameId} does not match ${gameId}.`);
+  }
+  if (pkg.agent && pkg.agent.gameId !== gameId) {
+    fail('PACKAGE_GAME_ID_MISMATCH', `Agent adapter gameId ${pkg.agent.gameId} does not match ${gameId}.`);
+  }
+  if (pkg.agent && target.agents.has(gameId)) {
+    fail('DUPLICATE_AGENT', `Agent adapter for ${gameId} is already registered.`);
+  }
+  if (pkg.authoring && pkg.authoring.gameId !== gameId) {
+    fail('PACKAGE_GAME_ID_MISMATCH', `Authoring adapter gameId ${pkg.authoring.gameId} does not match ${gameId}.`);
+  }
+  if (pkg.authoring && target.authoring.has(gameId)) {
+    fail('DUPLICATE_AUTHORING', `Authoring adapter for ${gameId} is already registered.`);
   }
 
   if (target.games.has(gameId, moduleVersion)) {
@@ -167,6 +185,14 @@ export function registerGamePackage(
     }
     target.games.register(pkg.definition);
     rollback.push(() => target.games.unregister(gameId, moduleVersion));
+    if (pkg.agent) {
+      target.agents.register(pkg.agent);
+      rollback.push(() => target.agents.unregister(gameId));
+    }
+    if (pkg.authoring) {
+      target.authoring.register(pkg.authoring);
+      rollback.push(() => target.authoring.unregister(gameId));
+    }
   } catch (error) {
     for (const undo of rollback.reverse()) undo();
     throw error;
@@ -178,6 +204,8 @@ export function createHeadlessPlatform(packages: readonly GamePackageRegistratio
     games: new GameRegistry(),
     presentations: new PresentationRegistry(),
     renderContracts: new RenderContractRegistry(),
+    agents: new GameAgentRegistry(),
+    authoring: new GameAuthoringRegistry(),
   };
   for (const pkg of packages) registerGamePackage(pkg, platform);
   return platform;

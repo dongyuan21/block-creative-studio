@@ -144,3 +144,11 @@ export function getDefaultCalibrationProfile(): CalibrationProfile {
   }
   return requireCalibrationProfile(defaultCalibrationId);
 }
+
+export function listCompositionProfiles(): CompositionProfile[] {
+  return [...compositions.values()];
+}
+
+export function listCalibrationProfiles(): CalibrationProfile[] {
+  return [...calibrations.values()];
+}
