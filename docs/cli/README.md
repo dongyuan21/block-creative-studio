@@ -1,6 +1,8 @@
 # BCS CLI
 
-The CLI is the first-class automation interface for external Agents, CI, and future render workers. It emits JSON on stdout and machine-readable errors on stderr.
+The CLI is the first-class **atomic** automation interface for external Agents, CI, and future render workers. It emits JSON on stdout and machine-readable errors on stderr.
+
+Skills (`skills/`) are the **composition** surface: official recipes that only call these commands, plus any recipes an external Agent writes for itself. Do not grow the CLI into a matrix of skins, directors, or retries — edit or fork a Skill instead. See [`skills/README.md`](../../skills/README.md).
 
 ## Build
 
@@ -128,7 +130,7 @@ node dist-cli/cli/bcs.js skin apply \
 
 ## Produce a document and optionally encode MP4
 
-`produce` chains scaffold → skin → agent take → document → presentation compile. Add `--render` to spawn Chrome and encode an MP4. Node itself still cannot set `rendered: true`.
+`produce` chains scaffold → skin → agent take → document → presentation compile. It is a convenience command, not the only legal path. Editable official recipes live in Skills (`bcs-from-puzzle-to-mp4`, `bcs-remix-looks`). Add `--render` to spawn Chrome and encode an MP4. Node itself still cannot set `rendered: true`.
 
 ```bash
 node dist-cli/cli/bcs.js produce \
@@ -150,24 +152,18 @@ Without Chrome, `render` returns `ok: false`, `recoverable: true`, `code: CHROME
 
 ## Skills
 
-`skills/` wraps these commands so an external Agent can compose them. Skills are the composition surface; the CLI is the execution surface.
+`skills/` is not a second implementation of the CLI. Atomic skills document one command. Composition skills sequence several commands.
 
-| CLI | Skill |
-|---|---|
-| `capabilities` / `schema` / `agent list` | `bcs-capabilities`, `bcs-schema` |
-| `project scaffold` / `authoring catalog` | `bcs-project-scaffold` |
-| `skin list` / `skin apply` | `bcs-skin-apply` |
-| `agent run` | `bcs-agent-run` |
-| `take validate` | `bcs-take-validate` |
-| `document emit` / `document compile` | `bcs-document-emit` |
-| `produce` | `bcs-produce` |
-| `render` | `bcs-render` |
-| `asset validate` | `bcs-asset-validate` |
-| `variant compile` | `bcs-variant-compile` |
-| `quality check` | `bcs-quality-check` |
-| `material compile` | `bcs-material-compile` |
-| `golden batch` | `bcs-golden-batch` |
-| `project migrate` | `bcs-project-migrate` |
+| Kind | Skill | What it composes |
+|---|---|---|
+| Composition | `bcs-from-puzzle-to-mp4` | scaffold → agent → validate → document → optional render |
+| Composition | `bcs-remix-looks` | one take × many in-game skins, no second Agent run |
+| Composition | `bcs-gate-before-render` | validate/compile before `render`; `ok` ≠ `rendered` |
+| Composition | `bcs-resume-render` | encode later when Chrome appears |
+| Composition | `bcs-placement-variant` | asset validate → variant compile → quality check |
+| Composition | `bcs-diagnose` | map CLI error codes to the next atomic command |
+| Convenience CLI | `bcs-produce` | same default path as `bcs-from-puzzle-to-mp4`, baked into one command |
+| Atomic | `bcs-capabilities`, `bcs-schema`, `bcs-project-scaffold`, `bcs-skin-apply`, `bcs-agent-run`, `bcs-take-validate`, `bcs-document-emit`, `bcs-render`, `bcs-asset-validate`, `bcs-variant-compile`, `bcs-quality-check`, `bcs-material-compile`, `bcs-golden-batch`, `bcs-project-migrate` | one CLI verb each |
 
-Hub: [`skills/bcs/SKILL.md`](../../skills/bcs/SKILL.md).
+Hub: [`skills/bcs/SKILL.md`](../../skills/bcs/SKILL.md). Index: [`skills/README.md`](../../skills/README.md).
 

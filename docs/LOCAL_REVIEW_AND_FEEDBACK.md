@@ -2,7 +2,7 @@
 
 给下载代码后的人：先出一组约定好的竖屏成片，再按同一套格式写观感。后续迭代只接这类反馈，不把 SwiftShader / CI / 架构 Review 当成画面过关。
 
-当前人工视觉评审片单仍以 **Block Placement** Studio 导出为主。三个演示游戏都可以通过 Agent CLI 出题 / 试玩 / 出片；不要把 CLI 短预览或 SwiftShader 样片当成商业画质通过。Vita Mahjong 还没接入。
+当前人工视觉评审片单仍以 **Block Placement** Studio 导出为主。三个演示游戏都可以通过 Agent CLI 出题 / 试玩 / 出片；组合配方在 `skills/`（可改），原子命令在 CLI。不要把 CLI 短预览或 SwiftShader 样片当成商业画质通过。Mahjong 还没接入。
 
 环境：**Node.js 22.12+**、桌面 **Chrome**。Studio 导出必须在 Chrome 里完成。`bcs render` 也是拉起无头 Chrome；Node 自己不会编码像素。
 

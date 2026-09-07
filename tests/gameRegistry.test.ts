@@ -66,7 +66,7 @@ describe('game registry', () => {
 
   it('fails on an unknown game id', () => {
     const registry = createDefaultGameRegistry();
-    expect(() => registry.get('vita-mahjong')).toThrowError(GameRegistryError);
+    expect(() => registry.get('unknown-game')).toThrowError(GameRegistryError);
     try {
       registry.get('unknown-game');
     } catch (error) {

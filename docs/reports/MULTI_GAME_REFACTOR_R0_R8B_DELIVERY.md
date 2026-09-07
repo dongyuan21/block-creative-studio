@@ -153,10 +153,10 @@ R9（删 V1、默认 V2、收敛旧 Renderer）必须等该 Slice 证明 V2 架�
 
 ---
 
-## 7. Vita Mahjong 接入条件（最小新增）
+## 7. Mahjong 接入条件（最小新增）
 
 ```text
-src/games/vita-mahjong-solitaire/
+src/games/mahjong-solitaire/
   definition.ts / manifest.ts / schemas.ts
   runtime.ts                 # layered-planar + match-pair + blocking
   render/renderContract.ts   # mahjong.tile.body / face-pack / border / selection / pair-exit

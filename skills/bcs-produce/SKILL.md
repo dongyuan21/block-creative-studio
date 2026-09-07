@@ -3,7 +3,9 @@ name: bcs-produce
 description: 从出题到工程文档的一键流水线：scaffold → skin → agent take → validate → document → compile frames，可选 --render 交给 Chrome 出片。
 ---
 
-# 自主创作流水线
+# 自主创作流水线（便捷 CLI）
+
+这是**一条** CLI，把 scaffold → skin → agent → document 串在一起。官方可编辑配方是 `bcs-from-puzzle-to-mp4`；同一 Take 多套皮是 `bcs-remix-looks`。不要给 `produce` 增加矩阵/多皮开关——那属于 Skill，不属于原子 CLI。
 
 ```bash
 node dist-cli/cli/bcs.js produce \

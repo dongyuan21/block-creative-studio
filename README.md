@@ -8,7 +8,7 @@ Block Creative Studio（BCS）从可复现的二维玩法真值出发，把游�
 
 当前版本：`0.3.0-alpha.4`  
 当前演示游戏：**Block Placement**、**TapTile Tray Match3**、**crash wooooood!**  
-规划接入：**Vita Mahjong Solitaire**
+规划接入：**Mahjong**
 
 ---
 
@@ -32,7 +32,7 @@ Semantic Replay / Rule Resolution
 
 - Block Placement 的落子、合法性、满行满列和计分在二维格阵中求解；
 - crash wooooood! 的落块、破坏集合和坍塌目标仍由二维规则决定；
-- Vita Mahjong 的牌面位置、离散层级、覆盖关系、左右阻塞和配对关系属于分层二维拓扑；
+- Mahjong 的牌面位置、离散层级、覆盖关系、左右阻塞和配对关系属于分层二维拓扑；
 - 厚度、倒角、PBR 材质、灯光、阴影、纵深、碎片、粒子和物理次级运动都属于表现层。
 
 因此，BCS 不是用三维物理“猜”玩法结果，而是让可信的二维玩法驱动固定机位下的高质量三维化成片。
@@ -150,7 +150,7 @@ flowchart LR
 | **Block Placement** | 8×8 二维格阵 | 从三个候选块中拖拽落子 | 满行、满列同步清除；通常不发生整体移动 | **可运行、可编辑、可导出**；CLI 可出题 / 试玩 / 出片 |
 | **TapTile Tray Match3** | 分层叠牌 + 底栏托盘三消 | 点选可用牌飞入托盘 | 三消清除、解锁被压牌、托盘满则失败 | **演示游戏已接入**；CLI 可出题 / 换皮 / 试玩 / 出片 |
 | **crash wooooood!** | 二维格阵与支撑/重力关系 | 从上方投放块 | 冲击或结构破坏；幸存块坍塌并重新稳定 | **演示游戏已接入**；CLI 可出题 / 换皮 / 试玩 / 出片 |
-| **Vita Mahjong Solitaire** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | 架构已预留，正式游戏模块未实现 |
+| **Mahjong** | 二维平面 + 离散层级 + 阻塞图 | 选择两张可用同类牌 | 移除配对并重算覆盖、左右阻塞和可用集合 | 架构已预留，正式游戏模块未实现 |
 
 未来的新游戏不要求共享同一种 Board 或 Action；只需要遵守统一的生产协议。
 
@@ -183,7 +183,8 @@ flowchart LR
 - `CreativeMaster + VariantRecipe → ResolvedRenderPlan`；
 - 材质外观与材质行为分离，Effect Pack 可校验材质兼容性；
 - Plan-bound Prepared Resources，正式渲染前校验 Plan Hash 和 Required Slots；
-- Agent-neutral Headless Core、机器可读 CLI，以及 `skills/` 组合入口；
+- Agent-neutral Headless Core、机器可读 CLI，以及 `skills/` 官方组合配方；
+- CLI 提供原子命令；Skill 负责编排。外部 Agent 可以改官方 Skill，也可以按同一套 CLI 自写 Skill；
 - 外部 Agent 可以从出题、换皮、机器试玩一直调度到 Chrome/WebCodecs 出片。
 
 系统本身不内置 LLM。它提供的是适合 Agent 调用的稳定协议，而不是把 Prompt 面板硬塞进创作流程。
@@ -243,9 +244,18 @@ npm run capture:review
 
 ---
 
-## Headless CLI
+## Headless CLI 与 Skill
 
-外部 Agent 用 `skills/` 组合这些命令。完整说明见 [`docs/cli/README.md`](docs/cli/README.md)。
+BCS 不内嵌 LLM。自动化分两层：
+
+| 层 | 位置 | 职责 | 谁改 |
+|---|---|---|---|
+| **CLI（原子）** | `node dist-cli/cli/bcs.js …` | 出题、换皮、试玩、校验、收工程、出片、资产/变体/门禁 | 改命令契约才动这里 |
+| **Skill（组合）** | `skills/` | 把原子命令排成可编辑配方 | 官方维护默认 Skill；Claude Code / Codex / 自研 Agent 可以复制或另写 |
+
+不要把「同一盘玩法换多套皮」做成新的 CLI 矩阵开关。那是 Skill：[`skills/bcs-remix-looks/SKILL.md`](skills/bcs-remix-looks/SKILL.md)。`bcs produce` 只是一条便捷 CLI，等价配方见 [`skills/bcs-from-puzzle-to-mp4/SKILL.md`](skills/bcs-from-puzzle-to-mp4/SKILL.md)。
+
+索引：[`skills/README.md`](skills/README.md)。入口：[`skills/bcs/SKILL.md`](skills/bcs/SKILL.md)。命令手册：[`docs/cli/README.md`](docs/cli/README.md)。
 
 ```bash
 npm run build:cli
@@ -294,7 +304,7 @@ src/
 ├── cli/                       # 外部 Agent / CI 使用的机器可读 CLI
 ├── assets/                    # 浏览器资产存储和运行时绑定
 └── exporter/                  # WebCodecs / MP4 导出入口
-skills/                        # 外部 Agent 组合 CLI 的 skill
+skills/                        # 官方 Skill：原子命令的 1:1 说明 + 可改的组合配方
 ```
 
 平台层禁止反向依赖具体游戏；不同游戏包之间也不能相互导入。`scripts/check-architecture.mjs` 会在 CI 中持续检查这些边界。
@@ -307,7 +317,7 @@ skills/                        # 外部 Agent 组合 CLI 的 skill
 |---|---|
 | 多游戏平台 R0–R8b | 已完成并合入 `main` |
 | Block Placement / TapTile / crash wooooood! | 三款演示游戏可 Studio 打开，也可走 Agent CLI 出题 / 试玩 / 出片 |
-| Vita Mahjong | 尚未作为正式模块接入 |
+| Mahjong | 尚未作为正式模块接入 |
 | 商业参考 Golden | `BLOCKED`：公共仓库不包含商业源视频 |
 | 人工视觉批准 | `PENDING` |
 | 音频、BGM、旁白 | 尚未进入当前导出链 |
@@ -325,8 +335,9 @@ skills/                        # 外部 Agent 组合 CLI 的 skill
 | [`docs/ENGINEERING.md`](docs/ENGINEERING.md) | 完整能力、命令、校验、Reference 审计和工程实现说明 |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Gameplay Truth、Reference 2D、固定机位渲染与 DCC 扩展边界 |
 | [`docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md`](docs/reports/MULTI_GAME_REFACTOR_R0_R8B_DELIVERY.md) | 多游戏平台重构交付证据与已知限制 |
-| [`docs/cli/README.md`](docs/cli/README.md) | Headless CLI 使用说明 |
-| [`skills/bcs/SKILL.md`](skills/bcs/SKILL.md) | 外部 Agent 组合 CLI 的入口 |
+| [`docs/cli/README.md`](docs/cli/README.md) | Headless CLI 原子命令 |
+| [`skills/README.md`](skills/README.md) | CLI 与 Skill 分层；官方组合配方索引 |
+| [`skills/bcs/SKILL.md`](skills/bcs/SKILL.md) | 外部 Agent 入口 |
 | [`docs/architecture/HEADLESS_CORE_V1.md`](docs/architecture/HEADLESS_CORE_V1.md) | Agent-neutral Headless Core |
 | [`docs/architecture/ASSET_IMPORT_PIPELINE_V1.md`](docs/architecture/ASSET_IMPORT_PIPELINE_V1.md) | 外部资产进入系统的编译与运行链路 |
 

@@ -67,10 +67,10 @@ BCS 当前开始提供 Agent-neutral 的 Headless Core。系统本身不内置 L
 - `frame-exact / semantic / rule-only` 三种不变量锁定模式；
 - 材质外观与破坏行为分离，以及 Material-aware Effect 兼容检查；
 - 结构、确定性、权限和资源预算型 Quality Gate；
-- 机器可读的 `bcs` CLI 与 JSON Schema；
+- 机器可读的 `bcs` CLI 与 JSON Schema（原子命令：出题、换皮、试玩、校验、收工程、出片、资产/变体/门禁）；
 - 按 `gameId` 调度的出题、换皮、机器试玩、工程文档和 Chrome 出片；
 - Crush 换皮不改玩法哈希；Placement `look.copper` 进入 document-render 电影镜头（参数铜金属，不是 plan-bound PBR 贴图）；
-- `skills/` 组合入口，给外部 Agent 用，不内嵌 LLM；
+- `skills/` 官方组合配方（同一 Take 多皮、补出片、PBR 变体、失败诊断）。Skill 可改、可复制；不要把编排做成新的 CLI 矩阵开关；
 - 批量矩阵编译时单变体失败隔离。
 
 ```bash
@@ -86,7 +86,7 @@ node dist-cli/cli/bcs.js variant compile \
 node dist-cli/cli/bcs.js quality check --plan /tmp/copper-plan.json --strict --require-hashes
 ```
 
-Agent 出题 / 试玩 / 出片见 [`CLI 文档`](cli/README.md) 与 [`skills/bcs/SKILL.md`](../skills/bcs/SKILL.md)。`bcs render` 只有在无头 Chrome 实际写出 MP4 后才把 `rendered` 设为 `true`。
+Agent 出题 / 试玩 / 出片见 [`CLI 文档`](cli/README.md)。CLI 与 Skill 分层见 [`skills/README.md`](../skills/README.md)；入口 [`skills/bcs/SKILL.md`](../skills/bcs/SKILL.md)。`bcs render` 只有在无头 Chrome 实际写出 MP4 后才把 `rendered` 设为 `true`。
 
 详见 [`AGENT_OPERABLE_BOUNDARY.md`](architecture/AGENT_OPERABLE_BOUNDARY.md)、[`HEADLESS_CORE_V1.md`](architecture/HEADLESS_CORE_V1.md)、[`WEB_VARIANT_WORKSPACE_V1.md`](architecture/WEB_VARIANT_WORKSPACE_V1.md)、[`ASSET_IMPORT_PIPELINE_V1.md`](architecture/ASSET_IMPORT_PIPELINE_V1.md)、[`FIXED_CAMERA_LOOKDEV_V1.md`](architecture/FIXED_CAMERA_LOOKDEV_V1.md) 和 [`CLI 文档`](cli/README.md)。插件执行、MCP 和云端渲染仍然延后；网页工作台已经接入同一套 Registry、Variant Compiler 与 Quality Gate。
 

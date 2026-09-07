@@ -29,12 +29,12 @@ describe('atomic game package registration', () => {
     const platform = emptyPlatform();
     const mismatched = {
       ...blockCrushDropPackage,
-      presentation: { ...crushWoodPresentationAdapter, gameId: 'vita-mahjong-solitaire' },
+      presentation: { ...crushWoodPresentationAdapter, gameId: 'mahjong-solitaire' },
     };
     expect(() => registerGamePackage(mismatched, platform)).toThrowError(GameRegistryError);
     expect(platform.games.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
     expect(platform.presentations.has(BLOCK_CRUSH_DROP_GAME_ID)).toBe(false);
-    expect(platform.presentations.has('vita-mahjong-solitaire')).toBe(false);
+    expect(platform.presentations.has('mahjong-solitaire')).toBe(false);
   });
 
   it('rejects a colliding composition id without registering the real Crush package', () => {
@@ -70,11 +70,11 @@ describe('atomic game package registration', () => {
     const platform = emptyPlatform();
     expect(() => registerGamePackage({
       ...blockPlacementPackage,
-      agent: { ...blockPlacementPackage.agent!, gameId: 'vita-mahjong-solitaire' },
+      agent: { ...blockPlacementPackage.agent!, gameId: 'mahjong-solitaire' },
     }, platform)).toThrowError(GameRegistryError);
     expect(platform.games.has('block-placement')).toBe(false);
     expect(platform.agents.has('block-placement')).toBe(false);
-    expect(platform.agents.has('vita-mahjong-solitaire')).toBe(false);
+    expect(platform.agents.has('mahjong-solitaire')).toBe(false);
   });
 
   it('registers the package agent adapter onto the platform instance', () => {

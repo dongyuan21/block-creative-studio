@@ -224,7 +224,7 @@ describe('bcs agent / take CLI', () => {
   });
 
   it('fails closed on an unknown gameId', async () => {
-    await expect(commandAgent({ action: 'run', gameId: 'vita-mahjong-solitaire', seed: 1 }))
+    await expect(commandAgent({ action: 'run', gameId: 'mahjong-solitaire', seed: 1 }))
       .rejects.toMatchObject({ code: 'UNKNOWN_AGENT' });
   });
 });

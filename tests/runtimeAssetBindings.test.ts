@@ -141,10 +141,10 @@ describe('runtime asset bindings', () => {
     expect(bindings.missing.every((item) => item.slotId.length > 0)).toBe(true);
   });
 
-  it('collects Vita Mahjong reserved slots from a V1 look pack without a second dependency walk', () => {
+  it('collects Mahjong reserved slots from a V1 look pack without a second dependency walk', () => {
     const fixture = makeFixture();
     const look = fixture.assets.find((item) => item.id === 'look.copper') as LookPackManifest;
-    const extraAssets: AssetManifest[] = VITA_MAHJONG_RESERVED_SLOTS.map((slotId, index) => {
+    const extraAssets: AssetManifest[] = MAHJONG_RESERVED_SLOTS.map((slotId, index) => {
       const character = String(index);
       const contentHash = hashChar(character);
       const uriDigest = slotId === 'mahjong.tile.body' ? 'a'.repeat(64) : character.repeat(64);
@@ -177,7 +177,7 @@ describe('runtime asset bindings', () => {
       slots: {
         ...look.slots,
         ...Object.fromEntries(
-          VITA_MAHJONG_RESERVED_SLOTS.map((slotId, index) => [slotId, ref(slotId, 'bitmap', String(index))]),
+          MAHJONG_RESERVED_SLOTS.map((slotId, index) => [slotId, ref(slotId, 'bitmap', String(index))]),
         ),
       },
     };
@@ -194,8 +194,8 @@ describe('runtime asset bindings', () => {
     );
     const slotIds = listRuntimeAssetSlotIds(plan);
     const requests = collectRuntimeAssetRequests(plan);
-    expect(VITA_MAHJONG_RESERVED_SLOTS.every((slotId) => slotIds.includes(slotId))).toBe(true);
-    expect(VITA_MAHJONG_RESERVED_SLOTS.filter((slotId) => slotId !== 'mahjong.tile.body').every(
+    expect(MAHJONG_RESERVED_SLOTS.every((slotId) => slotIds.includes(slotId))).toBe(true);
+    expect(MAHJONG_RESERVED_SLOTS.filter((slotId) => slotId !== 'mahjong.tile.body').every(
       (slotId) => requests.some((request) => request.slotId === slotId),
     )).toBe(true);
     const issues = collectRuntimeAssetReferenceIssues(plan);
@@ -205,7 +205,7 @@ describe('runtime asset bindings', () => {
   });
 });
 
-const VITA_MAHJONG_RESERVED_SLOTS = [
+const MAHJONG_RESERVED_SLOTS = [
   'mahjong.tile.body',
   'mahjong.tile.face-pack',
   'mahjong.tile.border',

@@ -9,12 +9,12 @@ import { ensureDefaultHeadlessPlatform } from './headlessBootstrap';
 import type { HeadlessPlatform } from './gamePackage';
 
 export { BLOCK_CRUSH_DROP_GAME_ID } from '../games/block-crush-drop/manifest';
-export const VITA_MAHJONG_SOLITAIRE_GAME_ID = 'vita-mahjong-solitaire';
+export const MAHJONG_SOLITAIRE_GAME_ID = 'mahjong-solitaire';
 
 const comingSoon: GameStudioModule[] = [
   {
-    gameId: VITA_MAHJONG_SOLITAIRE_GAME_ID,
-    displayName: 'Vita Mahjong',
+    gameId: MAHJONG_SOLITAIRE_GAME_ID,
+    displayName: 'Mahjong',
     status: 'coming-soon',
     description: '语义 Slot 已预留，规则尚未接入',
   },

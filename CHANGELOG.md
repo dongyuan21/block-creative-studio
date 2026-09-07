@@ -5,7 +5,7 @@
 ### Added
 
 - Agent-operable CLI: `project scaffold`, `skin apply`, `agent run`, `take validate`, `document emit/compile`, `produce`, and `render` (Chrome/WebCodecs). `rendered: true` only after an MP4 is written.
-- `skills/` wrappers so an external Agent can compose those commands without an embedded LLM.
+- Official composition Skills (`bcs-from-puzzle-to-mp4`, `bcs-remix-looks`, `bcs-gate-before-render`, `bcs-resume-render`, `bcs-placement-variant`, `bcs-diagnose`) plus 1:1 command Skills. CLI stays atomic; Skills are editable recipes. Index: `skills/README.md`.
 - Plan camera/layout metadata compile into `StyleSpec.shotExecution` and drive cinematic letterbox, pick mapping and punch zoom. Pose/FOV remain fallback.
 - Per-cell PBR UV jitter via `Texture.clone()` (shared image, independent offset/rotation).
 - Clear-shard kinematics read `MaterialBehaviorProfile` instead of a wood-only scale hack. Not a G-buffer fracture claim.
@@ -15,6 +15,7 @@
 
 - Crush Wood `skinId` is presentation-only. Gameplay state hash no longer includes it, so `skin apply` does not require re-running the agent.
 - Placement `look.copper` now drives document-render cinematic style (copper metal appearance + studio lighting). `look.candy-resin` keeps the previous candy-resin preset. PBR maps still require variant compile.
+- Reserved coming-soon game renamed to **Mahjong** (`mahjong-solitaire`). Product docs and Studio chrome no longer use the previous working title.
 
 ### Current boundary
 
