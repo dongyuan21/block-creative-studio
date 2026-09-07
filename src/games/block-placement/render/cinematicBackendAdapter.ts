@@ -1,6 +1,7 @@
 import type { RuntimeAssetBindings } from '../../../assets/runtimeAssetBindings';
 import type { StyleSpec } from '../../../domain/types';
 import type { PresentationPacket } from '../../../game-runtime/presentationPacket';
+import { DEFAULT_STYLE } from '../../../renderer/stylePresets';
 import { StudioScene } from './BlockPlacementCinematicScene';
 import {
   assertBackendSupportsPacket,
@@ -13,13 +14,15 @@ import {
   blockPlacementFrameFromPacket,
 } from '../presentation/legacyPresentationAdapter';
 
+export const BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID = 'block-placement.fixed-camera-cinematic';
+
 function isRuntimeAssetBindings(value: unknown): value is RuntimeAssetBindings {
   return value !== null && typeof value === 'object' && 'revision' in value;
 }
 
 export function createBlockPlacementCinematicBackendAdapter(style: StyleSpec): RenderBackendAdapter {
   const adapter: RenderBackendAdapter = {
-    id: 'block-placement.fixed-camera-cinematic',
+    id: BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID,
     renderer: 'fixed-camera-cinematic',
     supportedPresentationSchemas: [BLOCK_PLACEMENT_PRESENTATION_SCHEMA_ID],
     letterboxFromDesign: false,
@@ -47,3 +50,8 @@ export function createBlockPlacementCinematicBackendAdapter(style: StyleSpec): R
   };
   return adapter;
 }
+
+export const blockPlacementCinematicBackend = createBlockPlacementCinematicBackendAdapter({
+  ...DEFAULT_STYLE,
+  renderer: 'fixed-camera-cinematic',
+});

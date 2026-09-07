@@ -36,6 +36,7 @@ describe('authoring adapters and produce pipeline', () => {
       'skin apply',
       'document emit',
       'produce',
+      'render',
     ]));
   });
 

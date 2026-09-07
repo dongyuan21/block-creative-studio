@@ -76,3 +76,7 @@ export function requireRenderBackend(id: string): RenderBackendAdapter {
 export function unregisterRenderBackend(id: string): void {
   backends.delete(id);
 }
+
+export function listRenderBackends(): RenderBackendAdapter[] {
+  return [...backends.values()];
+}

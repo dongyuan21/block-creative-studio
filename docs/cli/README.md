@@ -126,7 +126,7 @@ node dist-cli/cli/bcs.js skin apply \
 
 ## Produce through to a render-ready document (no MP4)
 
-`produce` chains scaffold → skin → agent take → document → presentation compile. Node still cannot encode video.
+`produce` chains scaffold → skin → agent take → document → presentation compile. Add `--render` to spawn Chrome and encode an MP4. Node itself still cannot set `rendered: true`.
 
 ```bash
 node dist-cli/cli/bcs.js produce \
@@ -136,9 +136,15 @@ node dist-cli/cli/bcs.js produce \
   --seed 7 \
   --max-moves 8 \
   --out-dir /tmp/placement-produce
+node dist-cli/cli/bcs.js render \
+  --out-dir /tmp/placement-produce \
+  --quality preview \
+  --max-frames 8
 ```
 
-The directory contains `config.json`, `take.json`, `document.json`, `frames.json`, and `render-request.json` with `rendered: false`. Import the document in Studio or run `npm run capture:review` to encode.
+Without Chrome, `render` returns `ok: false`, `recoverable: true`, `code: CHROME_NOT_FOUND`, and leaves `rendered: false`. After a successful WebCodecs encode it writes `video.mp4`, `preview.png`, and updates `render-request.json` with `rendered: true`.
+
+`bcs render --list` prints registered cinematic backends, composition profiles, and render contracts.
 
 ## Skills
 

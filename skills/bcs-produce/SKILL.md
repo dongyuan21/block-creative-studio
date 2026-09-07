@@ -1,6 +1,6 @@
 ---
 name: bcs-produce
-description: 从出题到工程文档的一键流水线：scaffold → skin → agent take → validate → document → compile frames。用于让 Agent 自主创作到可出片交接；Node CLI 仍不编码 MP4。
+description: 从出题到工程文档的一键流水线：scaffold → skin → agent take → validate → document → compile frames，可选 --render 交给 Chrome 出片。
 ---
 
 # 自主创作流水线
@@ -15,6 +15,9 @@ node dist-cli/cli/bcs.js produce \
   [--max-moves <int>] \
   [--beam-width <int>] \
   [--max-expanded-states <int>] \
+  [--quality preview|standard|cinematic] \
+  [--render] \
+  [--max-frames <int>] \
   --out-dir <dir>
 ```
 
@@ -24,6 +27,6 @@ node dist-cli/cli/bcs.js produce \
 - `take.json` 机器试玩信封
 - `document.json` Studio V2 工程
 - `frames.json` presentation 源（非像素）
-- `render-request.json` 交给 Chrome/Studio 的出片请求
+- `render-request.json` 出片请求
 
-`ok` 表示 Take 能被官方 runtime 重放。`rendered` 永远是 `false`。要成片：打开 Studio 导入 `document.json` 导出，或跑 `npm run capture:review`。
+不加 `--render` 时 `rendered` 为 `false`。加上后会调用 `bcs-render`：有 Chrome 则写 `video.mp4`；没有 Chrome 则 `code: CHROME_NOT_FOUND`，工程文件仍保留。`ok` 表示 Take 能被官方 runtime 重放，不表示已经出片。要成片请看 `rendered`。

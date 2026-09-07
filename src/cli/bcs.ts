@@ -35,6 +35,7 @@ import {
   commandSkin,
 } from './commands/authoring.js';
 import { commandProjectMigrate } from './commands/projectMigrate.js';
+import { commandRender, type RenderCommandInput } from './commands/render.js';
 import { commandTake, type TakeCommandInput } from './commands/take.js';
 
 interface ParsedArgs {
@@ -438,6 +439,7 @@ async function execute(argv: string[]): Promise<unknown> {
     const maxExpandedStates = flagNumber(args, 'max-expanded-states');
     const quality = flagString(args, 'quality');
     const outDir = flagString(args, 'out-dir');
+    const maxFrames = flagNumber(args, 'max-frames');
     if (gameId !== undefined) produceInput.gameId = gameId;
     if (template !== undefined) produceInput.template = template;
     if (skin !== undefined) produceInput.skin = skin;
@@ -449,11 +451,31 @@ async function execute(argv: string[]): Promise<unknown> {
     if (maxExpandedStates !== undefined) produceInput.maxExpandedStates = maxExpandedStates;
     if (quality === 'preview' || quality === 'standard' || quality === 'cinematic') produceInput.quality = quality;
     if (outDir !== undefined) produceInput.outDir = outDir;
+    if (maxFrames !== undefined) produceInput.maxFrames = maxFrames;
+    if (flagBoolean(args, 'render')) produceInput.render = true;
     return commandProduce(produceInput);
+  }
+  if (command === 'render') {
+    const renderInput: RenderCommandInput = {};
+    if (flagBoolean(args, 'list')) renderInput.list = true;
+    const documentPath = flagString(args, 'document');
+    const outDir = flagString(args, 'out-dir');
+    const takeId = flagString(args, 'take-id');
+    const quality = flagString(args, 'quality');
+    const maxFrames = flagNumber(args, 'max-frames');
+    const timeoutMs = flagNumber(args, 'timeout-ms');
+    if (documentPath !== undefined) renderInput.documentPath = documentPath;
+    if (outDir !== undefined) renderInput.outDir = outDir;
+    if (takeId !== undefined) renderInput.takeId = takeId;
+    if (quality === 'preview' || quality === 'standard' || quality === 'cinematic') renderInput.quality = quality;
+    if (maxFrames !== undefined) renderInput.maxFrames = maxFrames;
+    if (timeoutMs !== undefined) renderInput.timeoutMs = timeoutMs;
+    if (flagBoolean(args, 'still-only')) renderInput.video = false;
+    return commandRender(renderInput);
   }
   throw new BcsHeadlessError(
     'CLI_COMMAND_INVALID',
-    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project scaffold|migrate, authoring catalog, skin list|apply, agent list|run, take validate, document emit|compile, produce.',
+    'Commands: capabilities, schema list|get, asset validate, variant compile, quality check, material compile, golden batch, project scaffold|migrate, authoring catalog, skin list|apply, agent list|run, take validate, document emit|compile, produce, render.',
     { path: command ?? '(missing command)' },
   );
 }

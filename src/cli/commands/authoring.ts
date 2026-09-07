@@ -7,6 +7,8 @@ import type { GameReplayEnvelope } from '../../game-runtime/replayEnvelope.js';
 import type { StudioProjectDocumentV2 } from '../../game-runtime/projectEnvelope.js';
 import { BcsHeadlessError } from '../../headless/errors.js';
 import { withCliErrors } from '../cliError.js';
+import { commandRender, type RenderCommandInput } from './render.js';
+import { createRenderRequest } from '../renderRequest.js';
 
 async function writeJson(path: string, value: unknown): Promise<string> {
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -191,6 +193,9 @@ export interface ProduceInput {
   maxExpandedStates?: number;
   quality?: 'preview' | 'standard' | 'cinematic';
   outDir?: string;
+  render?: boolean;
+  maxFrames?: number;
+  chromePath?: string | null;
 }
 
 export async function commandProduce(input: ProduceInput): Promise<unknown> {
@@ -264,15 +269,12 @@ export async function commandProduce(input: ProduceInput): Promise<unknown> {
         totalFrames: source.totalFrames,
         frameSourceHash: source.frameSourceHash,
         rendered: false,
-        note: 'Node compiles the presentation source only. Pixel frames and MP4 require Chrome WebCodecs or capture:review.',
+        note: 'Node compiles the presentation source only. Pixel frames and MP4 require `bcs render` (Chrome/WebCodecs).',
       };
     }
 
-    const renderRequest = {
-      contract: 'bcs.render-request',
-      contractVersion: '1.0.0',
-      rendered: false as const,
-      reason: 'CLI does not encode video. Use the Studio exporter or npm run capture:review in Chrome.',
+    const renderRequest = createRenderRequest({
+      rendered: false,
       gameId,
       takeId: document.takes[0]?.takeId ?? null,
       output: document.production.output,
@@ -282,7 +284,9 @@ export async function commandProduce(input: ProduceInput): Promise<unknown> {
         document: 'document.json',
         frames: frames ? 'frames.json' : null,
       },
-    };
+      reason: 'CLI Node runtime does not encode video. Run `bcs render --out-dir …` (Chrome/WebCodecs) or omit --render.',
+      code: 'NOT_RUN',
+    });
 
     const directory = input.outDir;
     await mkdir(directory, { recursive: true });
@@ -294,9 +298,31 @@ export async function commandProduce(input: ProduceInput): Promise<unknown> {
       ...(frames ? { frames: await writeJson(join(directory, 'frames.json'), frames) } : {}),
     };
 
+    let render: unknown = null;
+    let finalRequest = renderRequest;
+    if (input.render) {
+      if (!document.takes[0]) {
+        render = {
+          ok: false,
+          rendered: false,
+          recoverable: true,
+          code: 'DOCUMENT_HAS_NO_TAKE',
+        };
+      } else {
+        const renderInput: RenderCommandInput = { outDir: directory };
+        if (input.quality !== undefined) renderInput.quality = input.quality;
+        if (input.maxFrames !== undefined) renderInput.maxFrames = input.maxFrames;
+        if (input.chromePath !== undefined) renderInput.chromePath = input.chromePath;
+        render = await commandRender(renderInput);
+        if (render && typeof render === 'object' && 'renderRequest' in render) {
+          finalRequest = (render as { renderRequest: typeof renderRequest }).renderRequest;
+        }
+      }
+    }
+
     return {
       ok: agentResult.validation.valid,
-      rendered: false,
+      rendered: Boolean(render && typeof render === 'object' && 'rendered' in render && (render as { rendered: unknown }).rendered),
       gameId,
       templateId: scaffold.templateId,
       skinId: scaffold.skinId,
@@ -305,7 +331,8 @@ export async function commandProduce(input: ProduceInput): Promise<unknown> {
       ...(agentResult.metrics !== undefined ? { metrics: agentResult.metrics } : {}),
       notes: scaffold.notes,
       frames,
-      renderRequest,
+      renderRequest: finalRequest,
+      ...(render !== null ? { render } : {}),
       outDir: resolve(directory),
       files,
     };

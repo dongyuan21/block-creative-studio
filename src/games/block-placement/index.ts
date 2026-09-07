@@ -10,7 +10,11 @@ export {
   blockPlacementPresentationAdapter,
   compileBlockPlacementFrameSource,
 } from './presentation/legacyPresentationAdapter';
-export { createBlockPlacementCinematicBackendAdapter } from './render/cinematicBackendAdapter';
+export {
+  BLOCK_PLACEMENT_CINEMATIC_BACKEND_ID,
+  blockPlacementCinematicBackend,
+  createBlockPlacementCinematicBackendAdapter,
+} from './render/cinematicBackendAdapter';
 export { createBlockPlacementReferenceBackendAdapter } from './render/referenceBackendAdapter';
 export { blockPlacementRenderContract } from './render/renderContract';
 export {

@@ -266,7 +266,7 @@ node dist-cli/cli/bcs.js quality check \
   --require-hashes
 ```
 
-CLI 负责 Schema、资产、Plan 和质量报告；当前 MP4 仍由浏览器 Chrome + WebCodecs 生成，Node CLI 不会宣称 `rendered: true`。
+CLI 负责 Schema、资产、Plan、出题和出片调度；Node 进程本身不编码像素。`bcs render` / `produce --render` 在本机有 Chrome 时走 WebCodecs，只有写出 MP4 后才把 `rendered` 设为 `true`。
 
 ---
 

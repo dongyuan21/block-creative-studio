@@ -20,4 +20,4 @@ node dist-cli/cli/bcs.js document compile \
   [--out <frames.json>]
 ```
 
-`document compile` 只产出 `totalFrames` / `frameSourceHash`，**不会**写出像素或 MP4。`rendered` 保持 `false`。真正编码仍需 Studio 导出或 `npm run capture:review`。
+`document compile` 只产出 `totalFrames` / `frameSourceHash`，**不会**写出像素或 MP4。`rendered` 保持 `false`。真正编码请接 `bcs-render`（无头 Chrome + WebCodecs）。
