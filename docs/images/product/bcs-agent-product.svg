@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+<title id="title">人可创作，Agent 也能直接开工</title>
+<desc id="desc">BCS 产品图。图示基于 3732a80，文档核对基线为 669df56。CLI 在本地或 Node 环境运行，视频由 Chrome 编码；不代表商业视觉验收。</desc>
+<style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei","PingFang SC",sans-serif;fill:#18304D}rect{stroke-width:1.7}path.flow{fill:none;stroke-width:2.5}</style>
+<rect width="100%" height="100%" fill="#fff" stroke="none"/>
+<defs>
+<marker id="a0" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#117C82"/></marker>
+<marker id="a1" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#2356B6"/></marker>
+<marker id="a2" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#4A7B53"/></marker>
+<marker id="a3" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#754EBA"/></marker>
+<marker id="a4" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1L11 6L1 11Z" fill="#C26B08"/></marker>
+</defs>
+<rect x="60" y="89" width="54" height="5" rx="10" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="60" y="185" width="415" height="153" rx="16" fill="#F3F8F0" stroke="#4A7B53" style="stroke-width:1.7"/>
+<rect x="60" y="202" width="4" height="119" rx="2" fill="#4A7B53" stroke="none" style="stroke-width:1.7"/>
+<rect x="605" y="185" width="260" height="153" rx="16" fill="#F6F2FC" stroke="#754EBA" style="stroke-width:1.7"/>
+<rect x="605" y="202" width="4" height="119" rx="2" fill="#754EBA" stroke="none" style="stroke-width:1.7"/>
+<rect x="910" y="185" width="270" height="153" rx="16" fill="#F6F2FC" stroke="#754EBA" style="stroke-width:1.7"/>
+<rect x="910" y="202" width="4" height="119" rx="2" fill="#754EBA" stroke="none" style="stroke-width:1.7"/>
+<rect x="1225" y="185" width="315" height="153" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="1225" y="202" width="4" height="119" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="60" y="414" width="1480" height="285" rx="16" fill="#FFFFFF" stroke="#2356B6" style="stroke-width:2.2"/>
+<rect x="87" y="502" width="452" height="114" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="87" y="519" width="4" height="80" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="573" y="502" width="452" height="114" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="573" y="519" width="4" height="80" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="1059" y="502" width="452" height="114" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="1059" y="519" width="4" height="80" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="87" y="635" width="1424" height="44" rx="10" fill="#EFF8F7" stroke="#117C82" style="stroke-width:1.2"/>
+<rect x="60" y="767" width="460" height="131" rx="16" fill="#F1F5FD" stroke="#2356B6" style="stroke-width:1.7"/>
+<rect x="60" y="784" width="4" height="97" rx="2" fill="#2356B6" stroke="none" style="stroke-width:1.7"/>
+<rect x="570" y="767" width="460" height="131" rx="16" fill="#FFF7EC" stroke="#C26B08" style="stroke-width:1.7"/>
+<rect x="570" y="784" width="4" height="97" rx="2" fill="#C26B08" stroke="none" style="stroke-width:1.7"/>
+<rect x="1080" y="767" width="460" height="131" rx="16" fill="#EFF8F7" stroke="#117C82" style="stroke-width:1.7"/>
+<rect x="1080" y="784" width="4" height="97" rx="2" fill="#117C82" stroke="none" style="stroke-width:1.7"/>
+<path class="flow" d="M865 260L910 260" stroke="#754EBA" marker-end="url(#a3)"/>
+<path class="flow" d="M1180 260L1225 260" stroke="#754EBA" marker-end="url(#a3)"/>
+<path class="flow" d="M267.5 338L267.5 414" stroke="#4A7B53" marker-end="url(#a2)"/>
+<path class="flow" d="M1382.5 338L1382.5 414" stroke="#2356B6" marker-end="url(#a1)"/>
+<path class="flow" d="M290 699L290 767" stroke="#2356B6" marker-end="url(#a1)"/>
+<path class="flow" d="M800 699L800 767" stroke="#C26B08" marker-end="url(#a4)"/>
+<path class="flow" d="M1310 699L1310 767" stroke="#117C82" marker-end="url(#a0)"/>
+<text x="60" y="79.34" font-size="44" font-weight="700" text-anchor="start" style="fill:#18304D">人可创作，Agent 也能直接开工</text>
+<text x="60" y="136" font-size="25" font-weight="400" text-anchor="start" style="fill:#637892">BCS 多游戏创意平台 · 可视化工作台 + Skill 驱动的原子操作</text>
+<text x="1540" y="65.84" font-size="19" font-weight="700" text-anchor="end" style="fill:#2356B6">产品总览</text>
+<text x="84" y="234.3" font-size="30" font-weight="700" text-anchor="start" style="fill:#4A7B53">使用者</text>
+<text x="84" y="281.3" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">搭建局面 · 试玩回放</text>
+<text x="84" y="312.98" font-size="24" font-weight="400" text-anchor="start" style="fill:#18304D">在 Web Studio 调整与审核</text>
+<text x="629" y="233.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#754EBA">外部 Agent</text>
+<text x="629" y="281.6" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">理解任务</text>
+<text x="629" y="311.96" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">选择或修改配方</text>
+<text x="934" y="233.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#754EBA">BCS Skills</text>
+<text x="934" y="281.6" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">官方组合配方</text>
+<text x="934" y="311.96" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">也可复制、自写</text>
+<text x="1249" y="233.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#2356B6">CLI 原子操作</text>
+<text x="1249" y="281.6" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">独立调用</text>
+<text x="1249" y="311.96" font-size="23" font-weight="400" text-anchor="start" style="fill:#18304D">返回 JSON 与错误码</text>
+<text x="86" y="468.96" font-size="36" font-weight="700" text-anchor="start" style="fill:#2356B6">Block Creative Studio</text>
+<text x="1512" y="467.36" font-size="26" font-weight="700" text-anchor="end" style="fill:#2356B6">多游戏创作 · 共用生产能力</text>
+<text x="283" y="380.92" font-size="22" font-weight="400" text-anchor="start" style="fill:#4A7B53">可视化操作</text>
+<text x="1365" y="380.56" font-size="21" font-weight="400" text-anchor="end" style="fill:#2356B6">无头调用 · 不依赖手工点界面</text>
+<text x="111" y="550.22" font-size="27" font-weight="700" text-anchor="start" style="fill:#2356B6">Block Placement</text>
+<text x="111" y="593.56" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">方块放置 · 行列消除</text>
+<text x="597" y="550.22" font-size="27" font-weight="700" text-anchor="start" style="fill:#2356B6">TapTile Match-3</text>
+<text x="597" y="593.56" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">分层牌堆 · 7 槽三消</text>
+<text x="1083" y="550.22" font-size="27" font-weight="700" text-anchor="start" style="fill:#2356B6">Crush Wooood!</text>
+<text x="1083" y="593.56" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">纵向落块 · 粉碎坍落</text>
+<text x="799" y="666" font-size="25" font-weight="700" text-anchor="middle" style="fill:#117C82">出题与换皮   ·   机器试玩与 Take   ·   导演编译   ·   校验与固定帧渲染</text>
+<text x="84" y="815.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#2356B6">工程与玩法记录</text>
+<text x="84" y="867.06" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">配置 · Take · 可继续编辑的 JSON</text>
+<text x="594" y="815.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#C26B08">视频与预览</text>
+<text x="594" y="867.06" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">由 Chrome / WebCodecs 实际出片</text>
+<text x="1104" y="815.94" font-size="29" font-weight="700" text-anchor="start" style="fill:#117C82">结果与诊断</text>
+<text x="1104" y="867.06" font-size="21" font-weight="400" text-anchor="start" style="fill:#18304D">机器可读状态 · 校验报告 · 错误码</text>
+<text x="800" y="943.86" font-size="26" font-weight="700" text-anchor="middle" style="fill:#18304D">人用界面，Agent 用 Skill 调用 CLI；制作流程可以复用，也可以重新组合。</text>
+<text x="60" y="980.4" font-size="15" font-weight="400" text-anchor="start" style="fill:#637892">BCS · 源码 3732a80 · 2026-09-07</text>
+<text x="1540" y="980.4" font-size="15" font-weight="400" text-anchor="end" style="fill:#637892">1/03 · CLI 在本地 / Node 环境运行；BCS 不内嵌 LLM</text>
+</svg>
